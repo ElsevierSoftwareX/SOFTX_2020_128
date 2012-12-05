@@ -3,11 +3,19 @@ package Omicron
 use root
 use GWOLLUM
 
+macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
+
 #### for the environment
-path_prepend PATH "$(OMICRONROOT)/$(OMICRON_tag)"
-macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(OMICRON_tag):"
+path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
+path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag)"
+macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(Omicron_tag):"
 
-#### Application generation
-application omicron      omicron.cc
-alias omicron            "$(OMICRONROOT)/$(OMICRON_tag)/omicron.exe"
+#### dictionaries generation
+document rootcint OmicronDict Omicron.h LinkDef.h
 
+#### libraries generation
+library Omicron -no_prototypes Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+
+#### Applications generation
+application omicron omicron.cc
+alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
