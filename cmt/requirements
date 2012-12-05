@@ -1,0 +1,13 @@
+package Omicron
+
+use root
+use GWOLLUM
+
+#### for the environment
+path_prepend PATH "$(OMICRONROOT)/$(OMICRON_tag)"
+macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(OMICRON_tag):"
+
+#### Application generation
+application omicron      omicron.cc
+alias omicron            "$(OMICRONROOT)/$(OMICRON_tag)/omicron.exe"
+

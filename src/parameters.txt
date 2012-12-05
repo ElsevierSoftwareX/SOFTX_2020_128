@@ -1,0 +1,73 @@
+//*************************************************************************************
+//************************   Omicron configuration file   *****************************
+//*************************************************************************************
+
+//*************************************************************************************
+//************************           INPUT DATA           *****************************
+//*************************************************************************************
+
+//** full path to FFL file pointing to frame files
+DATA	FFL		/virgoData/ffl/raw.ffl
+
+//** list of channels you want to process (here you have 2)
+DATA	CHANNELS	V1:Pr_B1_ACp V1:h_16384Hz
+
+//** native sampling frequency (Hz) of working channels (as many as the number of input channels)
+DATA	NATIVEFREQUENCY	20000 16384
+
+//** working sampling (one value for all channels)
+DATA	SAMPLEFREQUENCY	4096
+
+//*************************************************************************************
+//************************        SEARCH PARAMETERS      *****************************
+//*************************************************************************************
+
+//** chunk duration in seconds (must be an integer)
+PARAMETER	CHUNKDURATION	288
+
+//** segment duration in seconds (must be an integer)
+PARAMETER	BLOCKDURATION	64
+
+//** overlap duration between segments in seconds (must be an integer)
+PARAMETER	OVERLAPDURATION	 8
+
+//** search frequency range
+PARAMETER	FREQUENCYRANGE	48	2048
+
+//** search Q range
+PARAMETER	QRANGE		3.3166	141
+
+//** maximal mismatch between 2 consecutive tiles (0<MM<1) 
+PARAMETER	MISMATCHMAX	0.2
+
+//*************************************************************************************
+//************************            TRIGGERS           *****************************
+//*************************************************************************************
+
+//** tile SNR threshold
+TRIGGER		SNRTHRESHOLD	5.5
+
+//** maximum number of triggers per file
+//TRIGGER		NMAX		1000
+
+//*************************************************************************************
+//************************             OUTPUT            *****************************
+//*************************************************************************************
+
+//** full path to output directory
+OUTPUT	DIRECTORY		/olusers/virgorun/put_output_path
+
+//** file format (root or txt)
+OUTPUT	FORMAT			root
+
+//** verbosity level (0-1-2-3)
+OUTPUT	VERBOSITY		0
+
+//** flag to save PSDs (0=OFF, 1=ON)
+OUTPUT  WRITEPSD		0
+
+//** flag to save data time series (0=OFF, 1=ON)
+OUTPUT  WRITETIMESERIES		0
+
+//** flag to save whitened data time series (0=OFF, 1=ON)
+OUTPUT  WRITEWHITENEDDATA	0
