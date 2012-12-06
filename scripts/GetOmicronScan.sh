@@ -12,6 +12,11 @@ main="h_4096Hz" # channel name
 outdir=`pwd` # output directory
 snrmin=8
 
+if [ ! test -z "$OMICRON_HTML" ]; then
+  echo "The Omicron environment is not sourced"
+fi
+
+
 # move to the script directory
 cd `dirname $0`
 . $GWOLLUMROOT/local/environment.sh
@@ -28,7 +33,7 @@ printhelp(){
     echo "OUTPUT CONTROL"
     echo "  -m  [MAIN_CHANNEL]  main channel: always plotted"
     echo "                      Default = h_4096Hz"
-    echo "  -d  [OUTDIR]        _full_ path to output directory"
+    echo "  -d  [OUTDIR]        _full_ pOMICRON_HTMLath to output directory"
     echo "                      Default = current directory"
     echo ""
     echo "  -h                  print this help"
@@ -103,8 +108,8 @@ mkdir -p ${outdir}; rm -fr ${outdir}/*
 
 ##### html template and web material
 template=${outdir}/index.template
-cp ${GWOLLUM_HTML}/template.omicronscan.html $template
-cp ${GWOLLUM_HTML}/comparison_mode.html ${outdir}/
+cp ${OMICRON_HTML}/template.omicronscan.html $template
+cp ${OMICRON_HTML}/comparison_mode.html ${outdir}/
 ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
 ln -sf ${GWOLLUM_DOC}/Pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 currentdate=`date -u`

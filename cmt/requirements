@@ -10,6 +10,12 @@ path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
 path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag)"
 path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
 macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(Omicron_tag):"
+set OMICRON_HTML     "$(OMICRONROOT)/html"
+set OMICRON_DOC      "$(OMICRONROOT)/doc"
+set OMICRON_SCRIPTS  "$(OMICRONROOT)/scripts"
+set OMICRON_BIN      "$(OMICRONROOT)/bin"
+set OMICRON_LIB      "$(OMICRONROOT)/lib"
+
 
 #### dictionaries generation
 document rootcint OmicronDict Omicron.h LinkDef.h
