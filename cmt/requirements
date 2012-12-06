@@ -19,3 +19,5 @@ library Omicron -no_prototypes Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 #### Applications generation
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
+application omicronplot omicronplot.cc
+alias omicronplot         "$(OMICRONROOT)/$(Omicron_tag)/omicronplot.exe"

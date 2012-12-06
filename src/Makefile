@@ -9,6 +9,9 @@ Omicron_DICT_HDRS = Omicron.h
 omicron_EXE       = omicron.exe
 omicron_OBJS      = omicron.o
 
+omicronplot_EXE       = omicronplot.exe
+omicronplot_OBJS      = omicronplot.o
+
 CXXFLAGS += -I$(UTILS_SRC)
 CXXFLAGS += -I$(SEGMENTS_SRC)
 CXXFLAGS += -I$(TRIGGERS_SRC)
@@ -17,7 +20,7 @@ CXXFLAGS += -I$(FRAMELIB_INCLUDE)
 CXXFLAGS += -I$(FFTW3_INCLUDE)
 CXXFLAGS += -I$(OMICRON_SRC)
 
-all: $(Omicron_LIB) $(omicron_EXE)
+all: $(Omicron_LIB) $(omicron_EXE) $(omicronplot_EXE)
 
 %.o : %.cc
 	$(CXX) -c $< $(CXXFLAGS)
@@ -29,7 +32,7 @@ $(Omicron_LIB) : $(Omicron_OBJS)
 OmicronDict.cc OmicronDict.h : $(Omicron_DICT_HDRS)
 	$(ROOTSYS)/bin/rootcint -f OmicronDict.cc -c $(ROOT_INCLUDE) -I$(FFTW3_INCLUDE) -I$(FRAMELIB_INCLUDE) -I$(UTILS_SRC) -I$(SEGMENTS_SRC) -I$(TRIGGERS_SRC) -I$(TIMESLIDES_SRC) -I$(OMICRON_SRC) -p $(Omicron_DICT_HDRS) LinkDef.h
 
-$(omicron_EXE) : $(omicron_OBJS)
+%.exe : %.cc
 	$(CXX) $^  -g -o $@ $(CXXFLAGS) $(ROOT_LIBS) $(FFTW3_LIB) -L$(FRAMELIB_LIB) -lFrame -L$(INSTALL_LIB) -lCUtils -lRootUtils -lTimeSlides -lSegments -lTriggers -lOmicronToolBox -L$(OINSTALL_LIB) -lOmicron
 	cp $@ $(OINSTALL_BIN)
 
