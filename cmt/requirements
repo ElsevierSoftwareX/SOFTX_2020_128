@@ -1,7 +1,7 @@
 package Omicron
 
 use root
-use GWOLLUM
+use GWOLLUM v0r2p0
 
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
 
