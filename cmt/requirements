@@ -8,6 +8,7 @@ macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
 #### for the environment
 path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
 path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag)"
+path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
 macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(Omicron_tag):"
 
 #### dictionaries generation
