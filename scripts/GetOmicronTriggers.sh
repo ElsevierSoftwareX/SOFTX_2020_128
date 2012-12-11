@@ -7,16 +7,14 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-# move to the script directory
-cd `dirname $0`
-. $GWOLLUMROOT/local/environment.sh
+source $OMICRONROOT/cmt/setup.sh ""
 
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronTriggers.sh -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
+    echo "GetOmicronTriggers -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
     echo ""
-    echo "Example: GetOmicronTriggers.sh -ch_4096Hz 934228815 934232415"
+    echo "Example: GetOmicronTriggers -ch_4096Hz 934228815 934232415"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
@@ -112,8 +110,9 @@ while getopts ":c:s:S:f:F:C:T:ruanqlh" opt; do
 	    print_q=1
 	    ;;
 	l)
-	    echo "Available channels :"
-	    for chan in $OMICRON_CHANNELS; do echo $chan; done
+	    for run in $RUN_NAMES; do
+		GetOmicronChannels.sh -r $run | grep -v OMICRON_CHANNELS | grep -v "own shell scripts" | grep -v GetOmicronChannels.sh
+	    done
 	    exit 0
 	    ;;
 	h)
@@ -132,7 +131,29 @@ done
 shift $(($OPTIND - 1))
 tmin=`echo $1 | awk '{print int($1)}'`
 tmax=`echo $2 | awk '{print int($1)}'`
+OPTIND=0
 
+##### select run
+run="NONE"
+for r in $RUN_NAMES; do
+    r_s=${r}_START
+    r_e=${r}_END
+    if [[ $tmin -ge ${!r_s} && $tmin -lt ${!r_e} ]]; then
+	if [[ $tmax -gt ${!r_s} && $tmax -le ${!r_e} ]]; then
+	  run=$r
+	  break;
+	fi
+    fi
+done
+
+if [ $run = "NONE" ]; then
+    echo "Invalid GPS times: the time interval must be entirely contained in a single run:"
+    echo "Possible runs = $RUN_NAMES"
+    exit 1 
+fi
+
+##### get available channels
+. GetOmicronChannels.sh -r $run > /dev/null 2>&1
 
 ##### check channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
@@ -196,18 +217,6 @@ if [ "$dt" = "0.0000" ] ; then
     echo "type  'GetOmicronTriggers.sh -h'  for help"
     exit 1
 fi
-
-#####
-#echo $channel
-#echo $tmin $tmax
-#echo $snrmin $snrmax
-#echo $freqmin $freqmax
-#echo $print_c
-#echo $print_freq
-#echo $print_dur
-#echo $print_bw
-#echo $print_snr
-#echo $print_q
 
 ##### map the trigger directory
 triggers=`GetTriggerFileList.sh -c${channel} $tmin $tmax | grep "FILELIST" | sed 's|FILELIST ||g'`

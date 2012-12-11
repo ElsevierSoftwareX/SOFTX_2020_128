@@ -1,30 +1,23 @@
 #!/bin/bash
 #
-# GetOmicronWeb.sh
+# GetOmicronScan.sh
 #
-# generate omicron web page
+# generate omicron scan
 #
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
+
+source $OMICRONROOT/cmt/setup.sh ""
 
 ##### default options
 main="h_4096Hz" # channel name
 outdir=`pwd` # output directory
 snrmin=8
 
-if [ ! test -z "$OMICRON_HTML" ]; then
-  echo "The Omicron environment is not sourced"
-fi
-
-
-# move to the script directory
-cd `dirname $0`
-. $GWOLLUMROOT/local/environment.sh
-
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronScan.sh -m [MAIN_CHANNEL] [GPS_CENTER]"
+    echo "GetOmicronScan -m [MAIN_CHANNEL] [GPS_CENTER]"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -s  [SNRMIN]        print aux. scan only if SNR > [SNRMIN]"
@@ -33,7 +26,7 @@ printhelp(){
     echo "OUTPUT CONTROL"
     echo "  -m  [MAIN_CHANNEL]  main channel: always plotted"
     echo "                      Default = h_4096Hz"
-    echo "  -d  [OUTDIR]        _full_ pOMICRON_HTMLath to output directory"
+    echo "  -d  [OUTDIR]        _full_ path to output directory"
     echo "                      Default = current directory"
     echo ""
     echo "  -h                  print this help"
@@ -65,7 +58,7 @@ while getopts ":m:s:d:h" opt; do
 	    ;;
 	\?)
 	    echo "Invalid option: -$OPTARG"
-	    echo "type  'GetOmicronScan.sh -h'  for help"
+	    echo "type  'GetOmicronScan -h'  for help"
 	    exit 1
 	    ;;
     esac
@@ -75,18 +68,38 @@ done
 shift $(($OPTIND - 1))
 tcenter=`echo $1 | awk '{printf "%.3f", $1}'`
 tcenter_=`echo $tcenter | awk '{print int($1)}'`
+OPTIND=0
+
+##### select run
+run="NONE"
+for r in $RUN_NAMES; do
+    r_s=${r}_START
+    r_e=${r}_END
+    if [[ $tcenter_ -ge ${!r_s} && $tcenter_ -lt ${!r_e} ]]; then
+	run=$r
+	break;
+    fi
+done
+
+if [ $run = "NONE" ]; then
+    echo "Invalid GPS time"
+    exit 1 
+fi
+
+##### get available channels
+. GetOmicronChannels.sh -r $run > /dev/null 2>&1
 
 ##### check main channel is available
-if ! echo "$OMICRON_ONLINE_CHANNELS $OMICRON_CHANNELS" | grep -q "$main"; then
+if ! echo "$OMICRON_CHANNELS" | grep -q "$main"; then
     echo "Invalid option: channel '${main}' is not available"
-    echo "type  'GetOmicronScan.sh -h'  for help"
+    echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
 
 ##### check timing
 if [ $tcenter_ -lt 700000000 ]; then
     echo "Invalid option: '$tcenter' is not a reasonable central time"
-    echo "type  'GetOmicronScan.sh -h'  for help"
+    echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
 
@@ -98,7 +111,7 @@ tstop=$(( $tcenter_ + 100 ))
 ##### check outdir
 if [ ! -d $outdir ] ; then
     echo "Invalid option: the output directory $outdir cannot be found"
-    echo "type  'GetOmicronScan.sh -h'  for help"
+    echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
 
@@ -129,6 +142,7 @@ echo "" >> ${outdir}/log.txt
 echo "Scanning ${main}..." >> ${outdir}/log.txt
 # map the main channel triggers
 triggers=`GetTriggerFileList.sh -c${main} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
+
 if [ "$triggers" = "" ]; then
     echo "triggers are not available for $main at $tcenter"
     exit 1

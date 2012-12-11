@@ -1,29 +1,57 @@
 package Omicron
 
+use VirgoPolicy v2r5
 use root
 use GWOLLUM v0r2p0
 
-macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
+#### LOCALS
 
-#### for the environment
-path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
-path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag)"
-path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
-macro_prepend RPATH "" OSF1  "$(OMICRONROOT)/$(Omicron_tag):"
 set OMICRON_HTML     "$(OMICRONROOT)/html"
 set OMICRON_DOC      "$(OMICRONROOT)/doc"
 set OMICRON_SCRIPTS  "$(OMICRONROOT)/scripts"
 set OMICRON_BIN      "$(OMICRONROOT)/bin"
 set OMICRON_LIB      "$(OMICRONROOT)/lib"
 
+set LIGOTOOLS               ""\
+    Florent		    "/home/florent/Soft/ligosoft/time"\
+    Cascina		    "/data/procdata/bufferv16/Bursts/omega/ligotools"\
+    CCIN2P3		    ""
+set OMICRON_TRIGGERS        ""\
+    Florent		    "/home/florent/Analysis/Omicron/triggers"\
+    Cascina		    "/data/procdata/bufferv16/Omicron/triggers"\
+    CCIN2P3		    ""
+set OMICRON_ONLINE_TRIGGERS ""\
+    Cascina		    "/data/procdata/bufferv29/OnlineOmicron"
+set OMICRON_WEB             ""\
+    Florent		    "/home/florent/Analysis/Omicron/web"\
+    Cascina		    "/data/procdata/bufferv16/Omicron/Omicron"
+set OMICRON_TRIGGERS_BASE   "100000"
+
+#### for the environment
+path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag):$(LIGOTOOLS)/lib"
+path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts:$(LIGOTOOLS)/bin"
+macro_prepend RPATH "$(OMICRONROOT)/$(Omicron_tag):"
+
+#### alias scripts
+alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
+alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
+alias GetTriggerFileList   "$(OMICRONROOT)/scripts/GetTriggerFileList.sh"
+alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
+alias GetOmicronWeb        "$(OMICRONROOT)/scripts/GetOmicronWeb.sh"
+alias GetOmicronScan       "$(OMICRONROOT)/scripts/GetOmicronScan.sh"
+alias MakeOmicronWeb       "$(OMICRONROOT)/scripts/MakeOmicronWeb.sh"
 
 #### dictionaries generation
 document rootcint OmicronDict Omicron.h LinkDef.h
 
 #### libraries generation
-library Omicron -no_prototypes Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+macro_append Omicron_dependencies " OmicronToolBox" 
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lOmicronToolBox" 
+library Omicron -no_prototypes -no_static Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
+macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lSegments -lOmicron"
+
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
 application omicronplot omicronplot.cc

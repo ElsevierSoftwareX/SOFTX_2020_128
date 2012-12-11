@@ -7,24 +7,22 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
+source $OMICRONROOT/cmt/setup.sh ""
+
 ##### default options
 channel="h_4096Hz" # channel name
 stopgps=0
 dayoption=0
 houroption=1
 
-# move to the script directory
-cd `dirname $0`
-. $GWOLLUMROOT/local/environment.sh
-
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "MakeOmicronWeb.sh -a -c[CHANNEL_NAME] [GPS]"
+    echo "MakeOmicronWeb -a -c[CHANNEL_NAME] [GPS]"
     echo ""
     echo "Examples:"
-    echo "   MakeOmicronWeb.sh -a -ch_4096Hz 934228815"
-    echo "   MakeOmicronWeb.sh -o -ch_4096Hz now"
+    echo "   MakeOmicronWeb -a -ch_4096Hz 934228815"
+    echo "   MakeOmicronWeb -o -ch_4096Hz now"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
@@ -79,11 +77,31 @@ done
 ##### gps interval
 shift $(($OPTIND - 1))
 gps=`echo $1 | awk '{print int($1)}'`
+OPTIND=0
+
+##### select run
+run="NONE"
+for r in $RUN_NAMES; do
+    r_s=${r}_START
+    r_e=${r}_END
+    if [[ $gps -ge ${!r_s} && $gps -lt ${!r_e} ]]; then
+	run=$r
+	break;
+    fi
+done
+
+if [ $run = "NONE" ]; then
+    echo "Invalid GPS time"
+    exit 1 
+fi
+
+##### get available channels
+. GetOmicronChannels.sh -r $run > /dev/null 2>&1
 
 ##### check channel is available
-if ! echo "$OMICRON_ONLINE_CHANNELS $OMICRON_CHANNELS" | grep -q "$channel"; then
+if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
     echo "Invalid option: channel '${channel}' is not available"
-    echo "type  'MakeOmicronWeb.sh -h'  for help"
+    echo "type  'MakeOmicronWeb -h'  for help"
     exit 1
 fi
 
@@ -160,12 +178,12 @@ fi
 ##### make web page
 mkdir -p ${outdir}
 if [ $stopgps -eq 1 ]; then
-    ./GetOmicronWeb.sh -c${channel} -d${outdir} $start $stop
+    GetOmicronWeb.sh -c${channel} -d${outdir} $start $stop
 else
     if [ $dayoption -eq 1 ]; then
-	./GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -t${downlinkday} $start $stop
+	GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -t${downlinkday} $start $stop
     else
-	./GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -u${uplink} -t${downlinkhour} $start $stop
+	GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -u${uplink} -t${downlinkhour} $start $stop
     fi
 fi
 
