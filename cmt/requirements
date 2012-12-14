@@ -19,7 +19,7 @@ set LIGOTOOLS               ""\
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
     Cascina		    "/virgoData/Omicron"\
-    CCIN2P3		    ""
+    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"
 set OMICRON_ONLINE_TRIGGERS ""\
     Cascina		    "/data/procdata/bufferv29/OnlineOmicron"
 set OMICRON_WEB             ""\
