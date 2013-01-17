@@ -7,8 +7,6 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-source $OMICRONROOT/cmt/setup.sh ""
-
 ##### default options
 main="h_4096Hz" # channel name
 outdir=`pwd` # output directory
@@ -33,6 +31,12 @@ printhelp(){
     echo ""
 } 
 
+
+##### Check the environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
 
 ##### needs argument
 if [ $# -lt 1 ]; then

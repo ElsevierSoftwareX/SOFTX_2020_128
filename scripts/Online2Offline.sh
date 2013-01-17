@@ -7,16 +7,12 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-# move to the script directory
-cd `dirname $0`
-. ../environment.sh
-
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "Online2Offline.sh -c[CHANNEL_NAME]"
+    echo "Online2Offline -c[CHANNEL_NAME]"
     echo ""
-    echo "Example: Online2Offline.sh -c h_4096Hz"
+    echo "Example: Online2Offline -c h_4096Hz"
     echo ""
     echo "TRIGGER SELECTION"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
@@ -26,22 +22,19 @@ printhelp(){
     echo "                      Default = '5000'"
     echo ""
     echo "OUTPUT CONTROL"
-    echo "By default 3 columns are printed: time - frequency - SNR"
-    echo "  -r                  do not print frequency column"
-    echo "  -u                  print duration column"
-    echo "  -a                  print bandwidth column (not available with -C option)"
-    echo "  -n                  do not print SNR column"
-    echo "  -q                  print Q column (not available with -C option)"
-    echo ""
-    echo "  -l                  list available channels"
     echo "  -h                  print this help"
     echo ""
 } 
 
-##### default options
-channel="unknwon" # channel name
-delay=5000
+##### Check the environment
+if [[ -z "$OMICRON_ONLINE_TRIGGERS" ]]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
 
+##### default options
+channel="unknown" # channel name
+delay=5000
 
 ##### read options
 while getopts ":c:d:h" opt; do
@@ -58,30 +51,42 @@ while getopts ":c:d:h" opt; do
 	    ;;
 	\?)
 	    echo "Invalid option: -$OPTARG"
-	    echo "type  'Online2Offline.sh -h'  for help"
+	    echo "type  'Online2Offline -h'  for help"
 	    exit 1
 	    ;;
     esac
 done
 
-##### gps interval
-#shift $(($OPTIND - 1))
-#tmin=`echo $1 | awk '{print int($1)}'`
-#tmax=`echo $2 | awk '{print int($1)}'`
-
-
-##### check channel
-if [ ! -d ${OMICRON_TRIGGERS}/${channel} ]; then
-    echo "Invalid option: channel '${channel}' is not available in ${OMICRON_TRIGGERS}"
-    echo "create the directory or:"
-    echo "type  'Online2Offline.sh -h'  for help"
-    exit 1
-fi
-
-
 ##### timing
 now=`tconvert now`
 oldtime=$(( $now - $delay + 0 ))
+
+##### select run
+run="NONE"
+for r in $RUN_NAMES; do
+    r_s=${r}_START
+    r_e=${r}_END
+    if [[ $now -ge ${!r_s} && $now -lt ${!r_e} ]]; then
+	run=$r
+	break;
+    fi
+done
+
+if [ $run = "NONE" ]; then
+    echo "Invalid time: not configured for this time"
+    echo "Possible runs = $RUN_NAMES"
+    exit 1 
+fi
+
+##### get available channels
+. GetOmicronChannels.sh -r $run > /dev/null 2>&1
+
+##### check channel is available
+if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
+    echo "Invalid option: channel '${channel}' is not available"
+    echo "type  'Online2Offline -h'  for help"
+    exit 1
+fi
 
 ##### select online files to merge
 cd $OMICRON_ONLINE_TRIGGERS
@@ -106,12 +111,11 @@ cd `dirname $0`
 
 ##### anything to merge?
 if [ "$tomerge" = "" ]; then
-    echo "Online2Offline.sh: no files to merge"
+    echo "Online2Offline: no files to merge"
     exit 1
 fi
 
 ##### merge files
-#mkdir -p ${OMICRON_TRIGGERS}/${channel}
 triggermerge.exe ${OMICRON_TRIGGERS}/${channel} ${channel} "${tomerge}"
 rm -f ${tomerge}
 

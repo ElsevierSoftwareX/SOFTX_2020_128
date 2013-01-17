@@ -7,9 +7,6 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-# move to the script directory
-source $OMICRONROOT/cmt/setup.sh ""
-
 printhelp(){
     echo ""
     echo "Usage:"
@@ -22,6 +19,12 @@ printhelp(){
     echo "  -h              print this help"
     echo ""
 } 
+
+##### Check the environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
 
 # default: take the latest run
 for rr in $RUN_NAMES; do

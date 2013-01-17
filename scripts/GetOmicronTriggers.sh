@@ -7,8 +7,6 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-source $OMICRONROOT/cmt/setup.sh ""
-
 printhelp(){
     echo ""
     echo "Usage:"
@@ -48,6 +46,11 @@ printhelp(){
     echo ""
 } 
 
+##### Check the environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
 
 ##### needs argument
 if [ $# -lt 1 ]; then
