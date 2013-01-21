@@ -82,6 +82,12 @@ shift $(($OPTIND - 1))
 gps=`echo $1 | awk '{print int($1)}'`
 OPTIND=0
 
+##### current time with a delay of 20s
+if [ $gps -eq 0 ]; then
+    gps_=`tconvert now`
+    gps=$(( $gps_ - 20 ))
+fi
+
 ##### select run
 run="NONE"
 for r in $RUN_NAMES; do
@@ -106,12 +112,6 @@ if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
     echo "Invalid option: channel '${channel}' is not available"
     echo "type  'MakeOmicronWeb -h'  for help"
     exit 1
-fi
-
-##### current time with a delay of 20s
-if [ $gps -eq 0 ]; then
-    gps_=`tconvert now`
-    gps=$(( $gps_ - 20 ))
 fi
 
 ##### get date
