@@ -32,7 +32,7 @@ class Omicron {
   // PROCESSES
   bool MakeTiling(void);
   bool Process();
-  bool ProcessOnline(const int aChNumber, FrVect *aVect);
+  int ProcessOnline(const int aChNumber, FrVect *aVect);
 
   //INFO
   inline int GetChunkDuration(void){return fChunkDuration;};

@@ -166,19 +166,19 @@ bool Omicron::Process(){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
+int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::ProcessOnline: the Omicron object is corrupted"<<endl;
-    return false;
+    return -1;
   }
   if(!tiling_OK){
     cerr<<"Omicron::ProcessOnline: the Otile object was not created or is corrupted"<<endl;
-    return false;
+    return -2;
   }
   if(aChNumber<0||aChNumber>=(int)fChannels.size()){
     cerr<<"Omicron::ProcessOnline: channel number "<<aChNumber<<" does not exist"<<endl;
-    return false;
+    return -3;
   }
 
   if(fVerbosity>0) cout<<"processing channel "<<fChannels[aChNumber]<<"..."<<endl;
@@ -186,7 +186,7 @@ bool Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   // read and condition data
   if(!odata[aChNumber]->ReadVect(aVect)){
     cerr<<"Omicron::ProcessOnline: channel number "<<aChNumber<<": vector cannot be read"<<endl;
-    return false;
+    return 1;
   }
                   
   // write chunk info if requested
@@ -196,7 +196,7 @@ bool Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   // get conditioned data
   if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1])){
     cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
-    return false;
+    return 2;
   }
   
   //get triggers
@@ -204,7 +204,7 @@ bool Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   if(!tile->GetTriggers(triggers[aChNumber],c_data[0],c_data[1],odata[aChNumber]->GetSegmentTimeStart(0))){
     cerr<<"Omicron::Process: could not get trigger for channel "<<fChannels[aChNumber]
 	<<" in segment starting at "<<odata[aChNumber]->GetSegmentTimeStart(0)<<endl;
-    return false;
+    return 3;
   }
   else
     triggers[aChNumber]->AddSegment(odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2,odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2);
@@ -212,10 +212,10 @@ bool Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   // save triggers
   if(!triggers[aChNumber]->Write("ALL","default")){
     cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[aChNumber]<<endl;
-    return false;
+    return 4;
   }
       
-  return true;
+  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
