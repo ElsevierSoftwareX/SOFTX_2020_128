@@ -19,7 +19,7 @@ printhelp(){
     echo ""
     echo "TIMING"
     echo "  -d  [DELAY]         time delay to mark files as old [s]"
-    echo "                      Default = '5000'"
+    echo "                      Default = '100000'"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -h                  print this help"
@@ -34,7 +34,7 @@ fi
 
 ##### default options
 channel="unknown" # channel name
-delay=5000
+delay=100000
 
 ##### read options
 while getopts ":c:d:h" opt; do
@@ -57,9 +57,17 @@ while getopts ":c:d:h" opt; do
     esac
 done
 
+##### Check channel
+if [ ! -d ${OMICRON_ONLINE_TRIGGERS}/${channel} ]; then
+    echo "Error: the online channel ${channel} does not exist"
+    exit 1
+fi
+
 ##### timing
 now=`tconvert now`
 oldtime=$(( $now - $delay + 0 ))
+now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
+oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
 
 ##### select run
 run="NONE"
@@ -83,42 +91,29 @@ fi
 
 ##### check channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
-    echo "Invalid option: channel '${channel}' is not available"
+    echo "Invalid option: channel '${channel}' is not available (offline)"
     echo "type  'Online2Offline -h'  for help"
     exit 1
 fi
 
-##### select online files to merge
-cd $OMICRON_ONLINE_TRIGGERS
-tomerge=""
-# loop over online trigger files of a given channel
-for file in ${channel}_*.root; do
-    if [ ! -e $file ]; then continue; fi
-
-    # timing
-    s=`echo $file | awk -F_ '{print $((NF -1))}'`
-    d=`echo $file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
-    e=$(($s+$d))
-    
-    # keep only old files
-    if [ $e -gt $oldtime ]; then break; fi
-	
-    # update list of files
-    tomerge="${tomerge} ${OMICRON_ONLINE_TRIGGERS}/${file}"
-
-done
-cd `dirname $0`
-
-##### anything to merge?
-if [ "$tomerge" = "" ]; then
-    echo "Online2Offline: no files to merge"
+# first online file
+first_file=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/ |head -1`
+if [ "$first_file=" = "" ]; then
+    echo "Error: there is no online files"
     exit 1
 fi
+first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 
-##### merge files
-triggermerge.exe ${OMICRON_TRIGGERS}/${channel} ${channel} "${tomerge}"
-rm -f ${tomerge}
+# starting base
+b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
+echo "Starting base = ${b}"
 
-
+# merge files
+while [ $b -lt $oldtime_base ]; do
+    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root ..."
+    triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root"
+    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root
+    let "b+=1"
+done
 
 exit 0
