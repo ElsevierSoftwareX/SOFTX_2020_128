@@ -135,11 +135,14 @@ while [ $tmin_base -le $tmax_base ]; do
     for file in ${OMICRON_TRIGGERS}/${run}/${channel}/${channel}_${tmin_base}*.root; do 
 	if [ -e $file ]; then 
 	    s=`echo $file | awk -F_ '{print $((NF -1))}'`
+	    if [ $s -gt $tmax ]; then break; fi
 	    d=`echo $file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
 	    e=$(($s+$d))
-	    if [[ $e -gt $tmin && $s -lt $tmax ]]; then
-		triggers="$triggers $file"
-	    fi	    
+	    if [ $e -lt $tmin ]; then continue; fi
+
+	    # keep this file
+	    triggers="$triggers $file"
+	    
 	fi 
     done
 
@@ -147,16 +150,22 @@ while [ $tmin_base -le $tmax_base ]; do
     for file in ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${tmin_base}*.root; do 
 	if [ -e $file ]; then 
 	    s=`echo $file | awk -F_ '{print $((NF -1))}'`
+	    if [ $s -gt $tmax ]; then break; fi
 	    d=`echo $file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
 	    e=$(($s+$d))
-	    if [[ $e -gt $tmin && $s -lt $tmax ]]; then
-		cp $file ${tmpdir}/
-		if [ $first -eq 1 ]; then triggers="$triggers ${tmpdir}/*.root"; first=0; fi
-	    fi	    
+	    if [ $e -lt $tmin ]; then continue; fi
+
+	    # keep this file
+	    cp $file ${tmpdir}/
+	    if [ $first -eq 1 ]; then triggers="$triggers ${tmpdir}/*.root"; first=0; fi
+	    
 	fi 
     done
 
     let "tmin_base+=1"
+
+    newtmin=$(( $tmin_base * $OMICRON_TRIGGERS_BASE ))
+    if [ $newtmin -gt $tmax ]; then break; fi
 done
 
 echo "FILELIST $triggers"
