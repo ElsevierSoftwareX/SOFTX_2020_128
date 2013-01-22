@@ -147,8 +147,14 @@ fi
 ##### build directory
 mkdir -p ${outdir}/${channel}
 
+##### starting date
+date -u > ${outdir}/${channel}/plot.log.txt 2>&1
+
 ##### make plots
-GetOmicronPlots.sh -c${channel} -d${outdir}/${channel} $tmin $tmax > ${outdir}/${channel}/plot.log.txt 2>&1
+GetOmicronPlots.sh -c${channel} -d${outdir}/${channel} $tmin $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
+
+##### ending date
+date -u >> ${outdir}/${channel}/plot.log.txt 2>&1
 
 ##### clean
 cd ${outdir}/${channel}
