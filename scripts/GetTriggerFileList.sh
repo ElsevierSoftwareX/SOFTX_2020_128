@@ -121,9 +121,11 @@ tmax_base=$(( $tmax / $OMICRON_TRIGGERS_BASE + 1 ))
 #### clean tmp dir with old trigger directories
 now=`tconvert now`
 for dir in ${TMP}/triggers.*.*; do
-    g=`echo $dir | awk -F. '{print $((NF -1))}'`
-    tdiff=$(( $now - $g ))
-    if [ $tdiff -gt 5000 ]; then rm -f $dir; fi
+    if [ -d $dir ]; then
+	g=`echo $dir | awk -F. '{print $((NF -1))}'`
+	tdiff=$(( $now - $g ))
+	if [ $tdiff -gt 5000 ]; then rm -f $dir; fi
+    fi
 done
 
 #### tmp dir for online files
