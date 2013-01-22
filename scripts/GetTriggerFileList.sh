@@ -119,11 +119,15 @@ tmin_base=$(( $tmin / $OMICRON_TRIGGERS_BASE - 1 ))
 tmax_base=$(( $tmax / $OMICRON_TRIGGERS_BASE + 1 ))
 
 #### clean tmp dir with old trigger directories
-for i in `find ${TMP} -maxdepth 1 -type d -mtime +0 -print | grep triggers`; do rm -fr $i > /dev/null 2>&1; done
+now=`tconvert now`
+for dir in ${TMP}/triggers.*.*; do
+    g=`echo $dir | awk -F. '{print $((NF -1))}'`
+    tdiff=$(( $now - $g ))
+    if [ $tdiff -gt 5000 ]; then rm -f $dir; fi
+done
 
 #### tmp dir for online files
-tag=$RANDOM
-tmpdir=${TMP}/triggers.${RANDOM}
+tmpdir=${TMP}/triggers.${now}.${RANDOM}
 mkdir -p ${tmpdir}; rm -f ${tmpdir}/*.root > /dev/null 2>&1
 
 ##### map the trigger directory
