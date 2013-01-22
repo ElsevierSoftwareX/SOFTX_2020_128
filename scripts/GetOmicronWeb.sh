@@ -147,6 +147,13 @@ fi
 ##### build directory
 mkdir -p ${outdir}/${channel}
 
+##### check lock
+if [ -e ${outdir}/${channel}/lock ]; then
+    echo "GetOmicronWeb: the directory ${outdir}/${channel} is locked"
+    exit 1
+fi
+touch ${outdir}/${channel}/lock
+
 ##### starting date
 date -u > ${outdir}/${channel}/plot.log.txt 2>&1
 
@@ -291,7 +298,7 @@ sed -e "s|\[DATESTART\]|${datestart}|g" \
 
 ##### cleaning
 rm -f $template
-
+rm -f ${outdir}/${channel}/lock
 
 
 exit 0
