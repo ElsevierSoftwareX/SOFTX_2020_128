@@ -122,6 +122,7 @@ while [ $b10000 -lt $now_base10000 ]; do
     mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
     let "b10000+=1"
 done
+rm -fr ${TMP}/${channel}-${now}/
 
 
 # merge and archive files
