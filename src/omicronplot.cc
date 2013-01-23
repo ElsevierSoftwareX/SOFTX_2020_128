@@ -61,6 +61,10 @@ int main (int argc, char* argv[]){
   triggers->OmicronPlot("SNRFREQ",start,stop,outdir+"/snrfreq_"+sstart+"_"+sstop+".gif");
   triggers->OmicronPlot("SNRTIME",start,stop,outdir+"/snrtime_"+sstart+"_"+sstop+".gif");
 
+  // segment plot
+  triggers->ResizePlot(1000,100);
+  triggers->OmicronPlot("SEG",start,stop,outdir+"/segments_"+sstart+"_"+sstop+".gif");
+
   // info file
   ofstream infofile((outdir+"/info_"+sstart+"_"+sstop+".txt").c_str());
   infofile.flags ( ios::fixed );

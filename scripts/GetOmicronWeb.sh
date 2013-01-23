@@ -165,7 +165,7 @@ date -u >> ${outdir}/${channel}/plot.log.txt 2>&1
 
 ##### clean
 cd ${outdir}/${channel}
-rm -f ./map.gif ./rate.gif ./snrfreq.gif ./loudest.gif ./snr.gif ./freq.gif ./snrtime.gif ./info.txt
+rm -f ./map.gif ./seg.gif ./rate.gif ./snrfreq.gif ./loudest.gif ./snr.gif ./freq.gif ./snrtime.gif ./info.txt
 
 ##### no data
 if grep -q "triggers are not available" ./plot.log.txt; then
@@ -182,6 +182,7 @@ if grep -q "triggers are not available" ./plot.log.txt; then
 else
     for file in ./*.gif ./*.txt; do
 	if echo $file | grep -q "map"; then mv $file ./map.gif;
+	elif echo $file | grep -q "segments"; then mv $file ./seg.gif;
 	elif echo $file | grep -q "rate"; then mv $file ./rate.gif;
 	elif echo $file | grep -q "snrfreq"; then mv $file ./snrfreq.gif;
 	elif echo $file | grep -q "snrtime"; then mv $file ./snrtime.gif;
@@ -265,6 +266,11 @@ if [ ! "${previous}${next}${up}${hlinks}" = "" ]; then
 	sed -i "/<\!-- time navigation -->/i\<tr><td><a href=\"${hlinks}21\">21h</a></td><td><a href=\"${hlinks}22\">22h</a></td><td><a href=\"${hlinks}23\">23h</a></td></tr>" $template
     fi
     sed -i "/<\!-- time navigation -->/i\</table>"  $template
+fi
+
+##### remove the segment plot if no data
+if grep -q "triggers are not available" ${outdir}/${channel}/plot.log.txt; then
+    sed -i '/<!-- to_remove -->/d' $template
 fi
 
 ##### fill static variables
