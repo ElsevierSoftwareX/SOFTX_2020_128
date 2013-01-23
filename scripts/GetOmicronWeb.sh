@@ -225,7 +225,7 @@ fi
 
 ##### web page materials
 template=${outdir}/${channel}.template
-cp ${OMICRON_HTML}/template.omicronmonitor.html $template
+cp ${OMICRON_HTML}/template/template.omicronmonitor.html $template
 ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
 ln -sf ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
 ln -sf ${GWOLLUM_DOC}/Pics/gwollum_logo.gif ${outdir}/logo.gif

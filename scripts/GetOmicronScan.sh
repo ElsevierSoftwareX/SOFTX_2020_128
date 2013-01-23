@@ -125,8 +125,8 @@ mkdir -p ${outdir}; rm -fr ${outdir}/*
 
 ##### html template and web material
 template=${outdir}/index.template
-cp ${OMICRON_HTML}/template.omicronscan.html $template
-cp ${OMICRON_HTML}/comparison_mode.html ${outdir}/
+cp ${OMICRON_HTML}/template/template.omicronscan.html $template
+cp ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
 ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
 ln -sf ${GWOLLUM_DOC}/Pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 currentdate=`date -u`
