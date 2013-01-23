@@ -7,109 +7,109 @@
 </head>
 
 <body>
-    
-   <!-- check arguments from file -->
-    
-   <?php
-   $badNumber = "/([^0-9.])/";
 
-   // environment. FIXME: hard-coded
-   $OMICRON = "/virgoDev/Omicron/v0r1"
+<!-- check arguments from file -->
 
-   // get values
-   $timemode = $_REQUEST['timemode'];
-   $gpsvalue = trim($_REQUEST['gpsvalue']);
-   $year = $_REQUEST['year'];
-   $month = $_REQUEST['month'];
-   $day = $_REQUEST['day'];
-   $hour = $_REQUEST['hour'];
-   $predefvalue = $_REQUEST['predefvalue'];
-   $channel = trim($_REQUEST['channel']);
-   $fullday = $_REQUEST['fullday'];
+<?php
+include "tconvert.php";
+$badNumber = "/([^0-9.])/";
+
+// set the default timezone to use: UTC
+date_default_timezone_set('UTC');
+
+// get values
+$timemode = $_REQUEST['timemode'];
+$gpsvalue = trim($_REQUEST['gpsvalue']);
+$year = $_REQUEST['year'];
+$month = $_REQUEST['month'];
+$day = $_REQUEST['day'];
+$hour = $_REQUEST['hour'];
+$predefvalue = $_REQUEST['predefvalue'];
+$channel = trim($_REQUEST['channel']);
+$fullday = $_REQUEST['fullday'];
    
-   // Only list available channels
-   if($_REQUEST['getchannel'] == 'Get Available Channels'){
-     $chandirs = array();
-     
-     // loop over channel directories
-     if ($handle = opendir("{$OMICRONTRIGGERS}")) {
-       while (false !== ($chandir = readdir($handle))) {
-	 if(!strpos($chandir,'_')) continue;
-	 $chandirs[] = $chandir;
-       }
-       closedir($handle);
-     }
-     sort($chandirs);
-     echo "<pre>\n";
-     print_r($chandirs);
-     //foreach($chandir in $chandirs) echo "$chandir\n";
-     echo "</pre>\n";
-   }
-   else{
-     if($timemode=="date"){// ----------- Date input
-       if($hour=="all") $fullday="yes";
-       else $fullday="no";
-     }
-     else{
-       if($timemode=="gps"){// ----------- GPS time input
-	 if(empty($gpsvalue)) die("Please specify a GPS value");
-	 if(preg_match($badNumber, $gpsvalue)) die("Your GPS value does not make any sense");
-	 if($gpsvalue<700000000) die("Your GPS value does not make any sense");
-	 $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gpsvalue}");
-       }
-       else{// ----------- Predefined time input
-	 if($predefvalue=="latestday"){// latest day
-	   if(file_exists("./latestday/{$channel}.html")){
-	     header("Location: ./latestday/{$channel}.html");
-	     exit;
-	   }
-	   else die("Channel {$channel} is not available for the last day");
-	 }
-	 if($predefvalue=="latesthour"){// latest hour
-	   if(file_exists("./latesthour/{$channel}.html")){
-	     header("Location: ./latesthour/{$channel}.html");
-	     exit;
-	   }
-	   else die("Channel {$channel} is not available for the last hour");
-	 }
-	 elseif($predefvalue=="thishour"){// this hour
-	   $gps_now=exec("source ${OMICRON}/cmt/setup.csh; tconvert now");
-	   $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
-	   $fullday="no";	 
-	 }
-	 else{// today
-	   $gps_now=exec("source ${OMICRON}/cmt/setup.csh; tconvert now");
-	   $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
-	   $fullday="yes";
-	 }
-       }
-       // convert gps into date elements
-       $date_elmt = explode(" ", $tstamp);
-       $year=$date_elmt[0];
-       $month=$date_elmt[1];
-       $day=$date_elmt[2];
-       $hour=$date_elmt[3];
-     }
-     
-     // redirect to existing page if it exists
-     if($fullday=="yes"){
-       if(file_exists("./{$year}/{$month}/{$day}/{$channel}.html")){
-	 header("Location: ./{$year}/{$month}/{$day}/{$channel}.html");
-	 exit;
-       }
-       else die("Your request ({$channel}: {$year}-{$month}-{$day}) does not lead to an existing web page.<br>Do you want to process your request anyway and create a web report on demand?<br>Well, be patient; this feature will be available later...");
-     }
-     else{
-       if(file_exists("./{$year}/{$month}/{$day}/{$hour}/{$channel}.html")){
-	 header("Location: ./{$year}/{$month}/{$day}/{$hour}/{$channel}.html");
-	 exit;
-       }
-       else die("Your request ({$channel}: {$year}-{$month}-{$day} {$hour}h) does not lead to an existing web page.<br>Do you want to process your request anyway and create a web report on demand?<br>Well, be patient; this feature will be available later...");
-     }
-
-   }
-   ?>  
+// Only list available channels
+if($_REQUEST['getchannel'] == 'Get Available Channels'){
+  $chandirs = array();
+  
+  // loop over channel directories
+  if ($handle = opendir("{$OMICRONTRIGGERS}")) {
+    while (false !== ($chandir = readdir($handle))) {
+      if(!strpos($chandir,'_')) continue;
+      $chandirs[] = $chandir;
+    }
+    closedir($handle);
+  }
+  sort($chandirs);
+  echo "<pre>\n";
+  print_r($chandirs);
+  //foreach($chandir in $chandirs) echo "$chandir\n";
+  echo "</pre>\n";
+}
+else{
+  if($timemode=="date"){// ----------- Date input
+    if($hour=="all") $fullday="yes";
+    else $fullday="no";
+  }
+  else{
+    if($timemode=="gps"){// ----------- GPS time input
+      if(empty($gpsvalue)) die("Please specify a GPS value");
+      if(preg_match($badNumber, $gpsvalue)) die("Your GPS value does not make any sense");
+      if($gpsvalue<700000000) die("Your GPS value does not make any sense");
+      $unixtime=gps2unix($gpsvalue);
+      $date_elmt = explode(" ",date("Y m d H",$unixtime));
+    }
+    else{// ----------- Predefined time input
+      if($predefvalue=="latestday"){// latest day
+	if(file_exists("./latestday/{$channel}.html")){
+	  header("Location: ./latestday/{$channel}.html");
+	  exit;
+	}
+	else die("Channel {$channel} is not available for the last day");
+      }
+      if($predefvalue=="latesthour"){// latest hour
+	if(file_exists("./latesthour/{$channel}.html")){
+	  header("Location: ./latesthour/{$channel}.html");
+	  exit;
+	}
+	else die("Channel {$channel} is not available for the last hour");
+      }
+      elseif($predefvalue=="thishour"){// this hour
+	$date_elmt = explode(" ",date("Y m d H"));
+	$fullday="no";
+      }
+      else{// today
+	$date_elmt = explode(" ",date("Y m d H"));
+	$fullday="yes";
+      }
+    }
     
+    // get date elements
+    $year=$date_elmt[0];
+    $month=$date_elmt[1];
+    $day=$date_elmt[2];
+    $hour=$date_elmt[3];
+  }
+  
+  // redirect to existing page if it exists
+  if($fullday=="yes"){
+    if(file_exists("./{$year}/{$month}/{$day}/{$channel}.html")){
+      header("Location: ./{$year}/{$month}/{$day}/{$channel}.html");
+      exit;
+    }
+    else die("Your request ({$channel}: {$year}-{$month}-{$day}) does not lead to an existing web page.<br>Do you want to process your request anyway and create a web report on demand?<br>Well, be patient; this feature will be available later...");
+  }
+  else{
+    if(file_exists("./{$year}/{$month}/{$day}/{$hour}/{$channel}.html")){
+      header("Location: ./{$year}/{$month}/{$day}/{$hour}/{$channel}.html");
+      exit;
+    }
+    else die("Your request ({$channel}: {$year}-{$month}-{$day} {$hour}h) does not lead to an existing web page.<br>Do you want to process your request anyway and create a web report on demand?<br>Well, be patient; this feature will be available later...");
+  }
+  
+}
+?>  
+
 
   <!-- foot page -->
   <table valign="bottom" align="center">

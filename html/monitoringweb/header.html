@@ -10,7 +10,7 @@
 <body>
   <table style="background:url('./omicronlogo_l.gif') no-repeat left center fixed;">
     <tr>
-      <td>
+      <td width="150">
 	<table class="omicroncalendar">
 	  <tr>
 	    <th><br><a href="./calendar.html" target="header">Switch to calendar mode [only h(t)]</a></th>
@@ -126,9 +126,11 @@
 		  <option value="thishour">this hour</option>
 		</select>
 	      </td>
-	      <td class="omicronheader"><input type="submit" name="getchannel" value="Get Available Channels"></td>
+	      <!-- <td class="omicronheader"><input type="submit" name="getchannel" value="Get Available Channels"></td> -->
+	      <td class="omicronheader"></td>
 	    </tr>
 	  </table>
+	  <marquee Class="Scroller" behavior="scroll" direction="left" scrollamount="4" scrolldelay="0" onmouseover="this.stop()" onmouseout="this.start()"><b>Currently available:</b> <a href="./getomicronpage.php?channel=FAKE_h_16384Hz_4R&timemode=predef&predefvalue=today" target="content">FAKE_h_16384Hz_4R</a> <a href="./getomicronpage.php?channel=FAKE-STRAIN_BURST&timemode=predef&predefvalue=today" target="content">FAKE-STRAIN_BURST</a> <a href="./getomicronpage.php?channel=H1:FAKE-STRAIN_4S&timemode=predef&predefvalue=today" target="content">H1:FAKE-STRAIN_4S</a> <a href="./getomicronpage.php?channel=L1:FAKE-STRAIN_4S&timemode=predef&predefvalue=today" target="content">L1:FAKE-STRAIN_4S</a></marquee>
 	</form>
       </td>
     </tr>
