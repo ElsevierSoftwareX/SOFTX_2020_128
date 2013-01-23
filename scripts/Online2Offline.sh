@@ -68,6 +68,7 @@ now=`tconvert now`
 oldtime=$(( $now - $delay + 0 ))
 now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
 oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
+now_base10000=$(( $now / 10000 ))
 
 ##### select run
 run="NONE"
@@ -114,7 +115,7 @@ echo "Starting base10000 = ${b10000}"
 mkdir -p ${TMP}/${channel}-${now}
 
 # merge online file
-while [ $b10000 -lt $now_base ]; do
+while [ $b10000 -lt $now_base10000 ]; do
     echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root ..."
     triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root"
     rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root
