@@ -12,7 +12,9 @@
     
    <?php
    $badNumber = "/([^0-9.])/";
-   include "myenv.php";
+
+   // environment. FIXME: hard-coded
+   $OMICRON = "/virgoDev/Omicron/v0r1"
 
    // get values
    $timemode = $_REQUEST['timemode'];
@@ -53,7 +55,7 @@
 	 if(empty($gpsvalue)) die("Please specify a GPS value");
 	 if(preg_match($badNumber, $gpsvalue)) die("Your GPS value does not make any sense");
 	 if($gpsvalue<700000000) die("Your GPS value does not make any sense");
-	 $tstamp=exec("source ./environment.sh; tconvert -f \"%Y %m %d %H\" {$gpsvalue}");
+	 $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gpsvalue}");
        }
        else{// ----------- Predefined time input
 	 if($predefvalue=="latestday"){// latest day
@@ -71,13 +73,13 @@
 	   else die("Channel {$channel} is not available for the last hour");
 	 }
 	 elseif($predefvalue=="thishour"){// this hour
-	   $gps_now=exec("source ./environment.sh; tconvert now");
-	   $tstamp=exec("source ./environment.sh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
+	   $gps_now=exec("source ${OMICRON}/cmt/setup.csh; tconvert now");
+	   $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
 	   $fullday="no";	 
 	 }
 	 else{// today
-	   $gps_now=exec("source ./environment.sh; tconvert now");
-	   $tstamp=exec("source ./environment.sh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
+	   $gps_now=exec("source ${OMICRON}/cmt/setup.csh; tconvert now");
+	   $tstamp=exec("source ${OMICRON}/cmt/setup.csh; tconvert -f \"%Y %m %d %H\" {$gps_now}");
 	   $fullday="yes";
 	 }
        }
