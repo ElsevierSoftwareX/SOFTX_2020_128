@@ -68,7 +68,7 @@ now=`tconvert now`
 oldtime=$(( $now - $delay + 0 ))
 now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
 oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
-now_base10000=$(( $now / 10000 ))
+now_base1000=$(( $now / 1000 ))
 
 ##### select run
 run="NONE"
@@ -108,19 +108,19 @@ first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 # starting base
 b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
 echo "Starting base = ${b}"
-b10000=$(( $first_start / 10000 ))
-echo "Starting base10000 = ${b10000}"
+b1000=$(( $first_start / 1000 ))
+echo "Starting base1000 = ${b1000}"
 
 # tmp place holder
 mkdir -p ${TMP}/${channel}-${now}
 
 # merge online file
-while [ $b10000 -lt $now_base10000 ]; do
-    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root ..."
-    triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root"
-    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root
+while [ $b1000 -lt $now_base1000 ]; do
+    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
+    triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root"
+    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
     mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
-    let "b10000+=1"
+    let "b1000+=1"
 done
 rm -fr ${TMP}/${channel}-${now}/
 
