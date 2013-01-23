@@ -107,10 +107,25 @@ first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 # starting base
 b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
 echo "Starting base = ${b}"
+b10000=$(( $first_start / 10000 ))
+echo "Starting base10000 = ${b10000}"
 
-# merge files
+# tmp place holder
+mkdir -p ${TMP}/${channel}-${now}
+
+# merge online file
+while [ $b10000 -lt $now_base ]; do
+    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root ..."
+    triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root"
+    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b10000}*.root
+    mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+    let "b10000+=1"
+done
+
+
+# merge and archive files
 while [ $b -lt $oldtime_base ]; do
-    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root ..."
+    echo "Merging and archiving ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root ..."
     triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root"
     rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root
     let "b+=1"
