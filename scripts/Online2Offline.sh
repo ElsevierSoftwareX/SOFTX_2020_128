@@ -117,9 +117,12 @@ mkdir -p ${TMP}/${channel}-${now}
 # merge online file
 while [ $b1000 -lt $now_base1000 ]; do
     echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-    triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root"
-    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
-    mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" | grep "nothing to merge"; then
+	echo "skip this file"
+    else
+	rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
+	mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+    fi
     let "b1000+=1"
 done
 rm -fr ${TMP}/${channel}-${now}/
