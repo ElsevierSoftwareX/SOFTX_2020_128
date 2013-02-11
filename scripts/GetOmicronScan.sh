@@ -128,7 +128,7 @@ template=${outdir}/index.template
 cp ${OMICRON_HTML}/template/template.omicronscan.html $template
 cp ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
 ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
-ln -sf ${GWOLLUM_DOC}/Pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
+ln -sf ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 currentdate=`date -u`
 
 ##### start log
