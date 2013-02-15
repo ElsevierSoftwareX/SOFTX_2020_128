@@ -12,10 +12,6 @@ set OMICRON_SCRIPTS  "$(OMICRONROOT)/scripts"
 set OMICRON_BIN      "$(OMICRONROOT)/bin"
 set OMICRON_LIB      "$(OMICRONROOT)/lib"
 
-set LIGOTOOLS               ""\
-    Florent		    "/home/florent/Soft/ligosoft/time"\
-    Cascina		    "/data/procdata/bufferv16/Bursts/omega/ligotools"\
-    CCIN2P3		    ""
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
     Cascina		    "/virgoData/Omicron"\
