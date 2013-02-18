@@ -47,11 +47,8 @@ int main (int argc, char* argv[]){
     return 2;
   }
 
-  // segments
-  Segments *fullseg = new Segments();
-  fullseg->AddSegment(start,stop);
-  fullseg->Intersect(triggers->GetSegments());
-  double live = fullseg->GetLiveTime();
+  // livetime
+  double live = triggers->GetSegments()->GetLiveTime(start,stop);
 
   // make plots
   triggers->OmicronPlot("MAP",start,stop,outdir+"/map_"+sstart+"_"+sstop+".gif");
@@ -97,8 +94,7 @@ int main (int argc, char* argv[]){
   
   // cleaning
   delete triggers;
-  delete fullseg;
-
+  
   return 0;
 }
 
