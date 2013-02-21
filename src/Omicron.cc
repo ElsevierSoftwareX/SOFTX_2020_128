@@ -47,9 +47,16 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   }
 
   // Init data objects
+  vector<string> s_chan;
   if(status_OK){
     for(int c=0; c<(int)fChannels.size(); c++){
-      odata[c] = new Odata(fFflFile,fChannels[c],fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
+      if(fChanSum.size()&&!fChanSum[0].compare(fChannels[c]))
+	odata[c] = new Odata(fFflFile,fChanSum,fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
+      else{
+	s_chan.push_back(fChannels[c]);
+	odata[c] = new Odata(fFflFile,s_chan,fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
+      }
+      s_chan.clear();
       status_OK*=odata[c]->GetStatus();
     }
   }
@@ -281,6 +288,27 @@ bool Omicron::ReadOptions(void){
   for(int c=0; c<(int)fChannels.size(); c++){
     fOutdir[c]=maindir+"/"+fChannels[c];
     system(("mkdir -p "+fOutdir[c]).c_str());
+  }
+
+  // channel sums
+  fChanSum.clear();
+  io.GetOpt("DATA","SUM", fChanSum);
+  if(fChanSum.size()&&fChanSum.size()<3){
+    cerr<<"Omicron::ReadOptions: there must be at least 2 channels to sum up"<<endl;
+    return false;
+  }
+  if(fChanSum.size()){
+    bool c_found=false;
+    for(int c=0; c<(int)fChannels.size(); c++){
+      if(!fChanSum[0].compare(fChannels[c])){
+	c_found=true;
+	break;
+      }
+    }
+    if(!c_found){
+      cerr<<"Omicron::ReadOptions: the SUM channel cannot be found"<<endl;
+      return false;
+    }
   }
 
   // ffl/cache file path
