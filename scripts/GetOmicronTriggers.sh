@@ -12,11 +12,16 @@ printhelp(){
     echo "Usage:"
     echo "GetOmicronTriggers -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
     echo ""
+    echo "By default, standard Omicron triggers are printed unless the '-t' option is used"
+    echo ""
     echo "Example: GetOmicronTriggers -ch_4096Hz 934228815 934232415"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
     echo "                      Default = 'h_4096Hz'"
+    echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
+    echo "                      The file pattern is [TRIGGER_FILES]"
+    echo "                      this option overides the channel option -c"
     echo "  -s  [SNR_MIN]       minimum SNR value"
     echo "                      Default = '1'"
     echo "  -S  [SNR_MAX]       maximum SNR value"
@@ -31,7 +36,7 @@ printhelp(){
     echo "                      [NO]  = print unclustered triggers"
     echo "                      Default = 'YES'"
     echo "  -T  [CLUSTERING_DT] Delta_t window for clustering (in s.)"
-    echo "                      Default = '0.01'"
+    echo "                      Default = '0.1'"
     echo ""
     echo "OUTPUT CONTROL"
     echo "By default 3 columns are printed: time - frequency - SNR"
@@ -46,15 +51,15 @@ printhelp(){
     echo ""
 } 
 
-##### Check the environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
-    echo "Error: The Omicron environment is not set"
-    exit 1
-fi
-
 ##### needs argument
 if [ $# -lt 1 ]; then
     printhelp
+    exit 1
+fi
+
+##### Check the Omicron environment
+if [[ -z "$OMICRONROOT" ]]; then
+    echo "Error: The Omicron environment is not set"
     exit 1
 fi
 
@@ -70,14 +75,17 @@ print_dur=0        # print duration column
 print_bw=0         # print bandwidth column
 print_q=0          # print Q column
 print_snr=1        # print SNR column
-dt=0.01            # clustering dt
-
+dt=0.1            # clustering dt
+triggerfiles="NONE" # user trigger files
 
 ##### read options
-while getopts ":c:s:S:f:F:C:T:ruanqlh" opt; do
+while getopts ":c:t:s:S:f:F:C:T:ruanqlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
+	    ;;
+	t)
+	    triggerfiles="$OPTARG"
 	    ;;
 	s)
 	    snrmin="$OPTARG"
@@ -136,35 +144,6 @@ tmin=`echo $1 | awk '{print int($1)}'`
 tmax=`echo $2 | awk '{print int($1)}'`
 OPTIND=0
 
-##### select run
-run="NONE"
-for r in $RUN_NAMES; do
-    r_s=${r}_START
-    r_e=${r}_END
-    if [[ $tmin -ge ${!r_s} && $tmin -lt ${!r_e} ]]; then
-	if [[ $tmax -gt ${!r_s} && $tmax -le ${!r_e} ]]; then
-	  run=$r
-	  break;
-	fi
-    fi
-done
-
-if [ $run = "NONE" ]; then
-    echo "Invalid GPS times: the time interval must be entirely contained in a single run:"
-    echo "Possible runs = $RUN_NAMES"
-    exit 1 
-fi
-
-##### get available channels
-. GetOmicronChannels.sh -r $run > /dev/null 2>&1
-
-##### check channel is available
-if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
-    echo "Invalid option: channel '${channel}' is not available"
-    echo "type  'GetOmicronTriggers.sh -h'  for help"
-    exit 1
-fi
-
 ##### check timing
 if [ $tmin -lt 700000000 ]; then
     echo "Invalid option: '$tmin' is not a reasonable starting time"
@@ -217,6 +196,47 @@ if [ ! "$cluster" = "NO" ] ; then print_c=1; else print_c=0; fi
 dt_int=`echo $dt | awk '{printf "%.4f\n", $1}'`
 if [ "$dt" = "0.0000" ] ; then
     echo "Invalid option: the delta_t value '$dt' is not reasonable"
+    echo "type  'GetOmicronTriggers.sh -h'  for help"
+    exit 1
+fi
+
+##### case where the trigger files are provided
+if [ ! "$triggerfiles" = "NONE" ]; then
+    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_snr $print_q $print_c
+    exit 0
+fi
+
+##### Check the Omicron environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
+
+##### select run
+run="NONE"
+for r in $RUN_NAMES; do
+    r_s=${r}_START
+    r_e=${r}_END
+    if [[ $tmin -ge ${!r_s} && $tmin -lt ${!r_e} ]]; then
+	if [[ $tmax -gt ${!r_s} && $tmax -le ${!r_e} ]]; then
+	  run=$r
+	  break;
+	fi
+    fi
+done
+
+if [ $run = "NONE" ]; then
+    echo "Invalid GPS times: the time interval must be entirely contained in a single run:"
+    echo "Possible runs = $RUN_NAMES"
+    exit 1 
+fi
+
+##### get available channels
+. GetOmicronChannels.sh -r $run > /dev/null 2>&1
+
+##### check channel is available
+if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
+    echo "Invalid option: channel '${channel}' is not available"
     echo "type  'GetOmicronTriggers.sh -h'  for help"
     exit 1
 fi
