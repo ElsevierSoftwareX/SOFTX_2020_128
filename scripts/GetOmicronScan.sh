@@ -246,7 +246,7 @@ loudsnr=`grep -m 1 -w LOUDESTSNR_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1
 # get channel description
 if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
 
-    chan_des=` grep -w h_4096Hz ${OMICRON_PARAMETERS}/channels.txt`
+    chan_des=` grep -w ${main} ${OMICRON_PARAMETERS}/channels.txt`
     if [ "$chan_des" = "" ]; then
 	description="No description for this channel"
     else
