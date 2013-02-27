@@ -7,6 +7,8 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
+here=`pwd`
+
 printhelp(){
     echo ""
     echo "Usage:"
@@ -70,6 +72,7 @@ for chan in *; do
     echo ${chan}
     OMICRON_CHANNELS="${chan} ${OMICRON_CHANNELS}"
 done
+cd $here
 
 export OMICRON_CHANNELS
 

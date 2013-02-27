@@ -11,6 +11,8 @@
 main="h_4096Hz" # channel name
 outdir=`pwd` # output directory
 snrmin=8
+parameterfile=""
+tagname="NONE"
 
 printhelp(){
     echo ""
@@ -18,16 +20,26 @@ printhelp(){
     echo "GetOmicronScan -m [MAIN_CHANNEL] [GPS_CENTER]"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
-    echo "  -s  [SNRMIN]        print aux. scan only if SNR > [SNRMIN]"
-    echo "                      Default = 8"
+    echo "  -s  [SNRMIN]         print aux. scan only if SNR > [SNRMIN]"
+    echo "                       Default = 8"
+    echo "  -t  [TAGNAME]        Predefined channel selection (Virgo only):"
+    echo "                       [TAGNAME] = std  -->  standard setting"
+    echo "                       [TAGNAME] = min  -->  minimal setting with only the GW channels"
+    echo "                       [TAGNAME] = sel  -->  only a \"happy few\" channels are selected"
+    echo "  -p  [PARAMETER_FILE] if given, this option allows you to scan a user-defined selection"
+    echo "                       of channels"
+    echo "                       [PARAMETER_FILE] is the path to a user parameter file"
+    echo "                       This file should contain a single column with the list"
+    echo "                       of channels to scan"
+    echo "                       When this option is given the option '-t' is ignored"
     echo ""
     echo "OUTPUT CONTROL"
-    echo "  -m  [MAIN_CHANNEL]  main channel: always plotted"
-    echo "                      Default = h_4096Hz"
-    echo "  -d  [OUTDIR]        _full_ path to output directory"
-    echo "                      Default = current directory"
+    echo "  -m  [MAIN_CHANNEL]   main channel: always plotted"
+    echo "                       Default = h_4096Hz"
+    echo "  -d  [OUTDIR]         path to output directory"
+    echo "                       Default = current directory"
     echo ""
-    echo "  -h                  print this help"
+    echo "  -h                   print this help"
     echo ""
 } 
 
@@ -45,13 +57,19 @@ if [ $# -lt 1 ]; then
 fi
 
 ##### read options
-while getopts ":m:s:d:h" opt; do
+while getopts ":m:s:p:d:t:h" opt; do
     case $opt in
 	m)
 	    main="$OPTARG"
 	    ;;
 	s)
 	    snrmin=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
+	p)
+	    parameterfile="$OPTARG"
+	    ;;
+	t)
+	    tagname="$OPTARG"
 	    ;;
 	d)
 	    outdir="$OPTARG"
@@ -73,6 +91,13 @@ shift $(($OPTIND - 1))
 tcenter=`echo $1 | awk '{printf "%.3f", $1}'`
 tcenter_=`echo $tcenter | awk '{print int($1)}'`
 OPTIND=0
+
+##### check timing
+if [ $tcenter_ -lt 700000000 ]; then
+    echo "Invalid option: '$tcenter' is not a reasonable central time"
+    echo "type  'GetOmicronScan -h'  for help"
+    exit 1
+fi
 
 ##### select run
 run="NONE"
@@ -100,13 +125,6 @@ if ! echo "$OMICRON_CHANNELS" | grep -q "$main"; then
     exit 1
 fi
 
-##### check timing
-if [ $tcenter_ -lt 700000000 ]; then
-    echo "Invalid option: '$tcenter' is not a reasonable central time"
-    echo "type  'GetOmicronScan -h'  for help"
-    exit 1
-fi
-
 ##### elaborate timing
 dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_}`
 tstart=$(( $tcenter_ - 100 ))
@@ -119,16 +137,74 @@ if [ ! -d $outdir ] ; then
     exit 1
 fi
 
+##### check parameter file if given
+if [ ! $parameterfile = "" ] ; then
+    if [ ! -e $parameterfile ] ; then
+	echo "Invalid option: the parameter file $parameterfile cannot be found"
+	echo "type  'GetOmicronScan -h'  for help"
+	exit 1
+    fi
+    if [ ! -s $parameterfile ] ; then
+	echo "Invalid option: the parameter file $parameterfile is empty"
+	echo "type  'GetOmicronScan -h'  for help"
+	exit 1
+    fi
+fi
+
+##### get parameter file from tag
+if [ "$parameterfile" = "" ]; then
+    if [ "$tagname" = "std" ]; then
+	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.std.txt ]; then
+	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.std.txt
+	else
+	    echo "Invalid option: no 'std' parameter file for ${run}"
+	    echo "type  'GetOmicronScan -h'  for help"
+	    exit 1
+	fi
+
+    elif [ "$tagname" = "min" ]; then
+	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.min.txt ]; then
+	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.min.txt
+	else
+	    echo "Invalid option: no 'min' parameter file for ${run}"
+	    echo "type  'GetOmicronScan -h'  for help"
+	    exit 1
+	fi
+
+    elif [ "$tagname" = "sel" ]; then
+	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.sel.txt ]; then
+	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.sel.txt
+	else
+	    echo "Invalid option: no 'sel' parameter file for ${run}"
+	    echo "type  'GetOmicronScan -h'  for help"
+	    exit 1
+	fi
+	
+    else # scan everything
+	tagname=$tagname
+    fi
+fi
+
+##### update channel list if parameter file is given
+if [ ! $parameterfile = "" ] ; then
+    OMICRON_CHANNELS_NEW=""
+    while read line; do
+	OMICRON_CHANNELS_NEW="$OMICRON_CHANNELS_NEW $line"
+    done < $parameterfile
+    OMICRON_CHANNELS=$OMICRON_CHANNELS_NEW
+fi
+
 ##### build directory
 outdir="${outdir}/${tcenter}"
 mkdir -p ${outdir}; rm -fr ${outdir}/*
 
 ##### html template and web material
 template=${outdir}/index.template
-cp ${OMICRON_HTML}/template/template.omicronscan.html $template
-cp ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
-ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
-ln -sf ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
+cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
+cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
+cp -f ${GWOLLUM_DOC}/style.css ${outdir}/style.css
+cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
+if [ ! $parameterfile = "" ] ; then cp -f $parameterfile ${outdir}/parameters.txt; fi
 currentdate=`date -u`
 
 ##### start log
@@ -168,8 +244,14 @@ loudf=`grep -m 1 -w LOUDESTFREQ_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1 
 loudsnr=`grep -m 1 -w LOUDESTSNR_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1 | awk '{printf "%.2f", $2}'`
 
 # get channel description
-if [ -e ${OMICRON_TRIGGERS}/${main}/description.txt ]; then
-    description=`cat ${OMICRON_TRIGGERS}/${main}/description.txt`
+if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
+
+    chan_des=` grep -w h_4096Hz ${OMICRON_PARAMETERS}/channels.txt`
+    if [ "$chan_des" = "" ]; then
+	description="No description for this channel"
+    else
+	description=`echo $chan_des | sed -e 's/^\w*\ *//'`
+    fi
 else
     description="No description for this channel"
 fi
@@ -198,6 +280,7 @@ for channel in $OMICRON_CHANNELS; do
 	echo "  no trigger ---> Do not plot" >> ${outdir}/log.txt
 	continue
     fi
+
     let "naux_with_triggers+=1"
     eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
 
@@ -224,8 +307,14 @@ for channel in $OMICRON_CHANNELS; do
     loudf=`grep -m 1 -w LOUDESTFREQ_dt4 ${outdir}/${channel}_${tcenter}.txt  | head -1 | awk '{printf "%.1f", $2}'`
 
     # get channel description
-    if [ -e ${OMICRON_TRIGGERS}/${channel}/description.txt ]; then
-	description=`cat ${OMICRON_TRIGGERS}/${channel}/description.txt`
+    if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
+	
+	chan_des=` grep -w ${channel} ${OMICRON_PARAMETERS}/channels.txt`
+	if [ "$chan_des" = "" ]; then
+	    description="No description for this channel"
+	else
+	    description=`echo $chan_des | sed -e 's/^\w*\ *//'`
+	fi
     else
 	description="No description for this channel"
     fi

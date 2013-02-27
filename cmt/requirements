@@ -6,11 +6,12 @@ use GWOLLUM v0r3
 
 #### LOCALS
 
-set OMICRON_HTML     "$(OMICRONROOT)/html"
-set OMICRON_DOC      "$(OMICRONROOT)/doc"
-set OMICRON_SCRIPTS  "$(OMICRONROOT)/scripts"
-set OMICRON_BIN      "$(OMICRONROOT)/bin"
-set OMICRON_LIB      "$(OMICRONROOT)/lib"
+set OMICRON_HTML       "$(OMICRONROOT)/html"
+set OMICRON_PARAMETERS "$(OMICRONROOT)/parameters"
+set OMICRON_DOC        "$(OMICRONROOT)/doc"
+set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
+set OMICRON_BIN        "$(OMICRONROOT)/bin"
+set OMICRON_LIB        "$(OMICRONROOT)/lib"
 
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
