@@ -16,6 +16,7 @@ next=""
 previous=""
 up=""
 hlinks=""
+fullweb="no"
 
 printhelp(){
     echo ""
@@ -34,7 +35,8 @@ printhelp(){
     echo "  -n  [HTMLPATH]      add -next- button pointing to [HTMLPATH]"
     echo "  -p  [HTMLPATH]      add -previous- button pointing to [HTMLPATH]"
     echo "  -u  [HTMLPATH]      add -up- button pointing to [HTMLPATH]"
-    echo "  -t  [DAYPATH]/       add hour links found in [DAYPATH]/"
+    echo "  -t  [DAYPATH]/      add hour links found in [DAYPATH]/"
+    echo "  -w                  full web architecture flag"
     echo ""
     echo "  -h                  print this help"
     echo ""
@@ -53,7 +55,7 @@ if [ $# -lt 1 ]; then
 fi
 
 ##### read options
-while getopts ":c:d:n:p:u:t:h" opt; do
+while getopts ":c:d:n:p:u:t:wh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -72,6 +74,9 @@ while getopts ":c:d:n:p:u:t:h" opt; do
 	    ;;
 	t)
 	    hlinks="$OPTARG"
+	    ;;
+	w)
+	    fullweb="yes"
 	    ;;
 	h)
 	    printhelp
@@ -169,14 +174,46 @@ rm -f ./map.gif ./seg.gif ./rate.gif ./snrfreq.gif ./loudest.gif ./snr.gif ./fre
 
 ##### no data
 if grep -q "triggers are not available" ./plot.log.txt; then
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./map.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./rate.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrfreq.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snr.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./freq.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrtime.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./loudest.gif
-    ln -s ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./info.txt
+
+    if [ "$fullweb" = "no" ]; then
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./map.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./rate.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrfreq.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snr.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./freq.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrtime.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./loudest.gif
+	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./info.txt
+    else
+	if [ -e ../../../../nodata.gif ]; then
+	    ln -s ../../../../nodata.gif ./map.gif
+	    ln -s ../../../../nodata.gif ./rate.gif
+	    ln -s ../../../../nodata.gif ./snrfreq.gif
+	    ln -s ../../../../nodata.gif ./snr.gif
+	    ln -s ../../../../nodata.gif ./freq.gif
+	    ln -s ../../../../nodata.gif ./snrtime.gif
+	    ln -s ../../../../nodata.gif ./loudest.gif
+	    ln -s ../../../../nodata.gif ./info.txt
+	elif [ -e ../../../../../nodata.gif ]; then
+	    ln -s ../../../../../nodata.gif ./map.gif
+	    ln -s ../../../../../nodata.gif ./rate.gif
+	    ln -s ../../../../../nodata.gif ./snrfreq.gif
+	    ln -s ../../../../../nodata.gif ./snr.gif
+	    ln -s ../../../../../nodata.gif ./freq.gif
+	    ln -s ../../../../../nodata.gif ./snrtime.gif
+	    ln -s ../../../../../nodata.gif ./loudest.gif
+	    ln -s ../../../../../nodata.gif ./info.txt
+	else
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./map.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./rate.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrfreq.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snr.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./freq.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./snrtime.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./loudest.gif
+	    cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./info.txt
+	fi
+    fi
 
 ##### generic names for plots
 else
@@ -227,10 +264,29 @@ fi
 ##### web page materials
 template=${outdir}/${channel}.template
 cp ${OMICRON_HTML}/template/template.omicronmonitor.html $template
-ln -sf ${GWOLLUM_DOC}/style.css ${outdir}/style.css
-ln -sf ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
-ln -sf ${GWOLLUM_DOC}/Pics/gwollum_logo.gif ${outdir}/logo.gif
-ln -sf ${OMICRON_HTML}/pics/omicronlogo_l.gif ${outdir}/omicronlogo.gif
+if [ "$fullweb" = "no" ]; then
+    cp -f ${GWOLLUM_DOC}/style.css ${outdir}
+    cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
+    cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo.gif ${outdir}/logo.gif
+    cp -f ${OMICRON_HTML}/pics/omicronlogo_l.gif ${outdir}/omicronlogo.gif
+else
+    if [ -e ../../../style.css ]; then
+	ln -sf ../../../style.css ${outdir}/style.css
+	ln -sf ../../../omicronlogo_l.gif ${outdir}/omicronlogo.gif
+	ln -sf ../../../icon.gif ${outdir}/icon.gif
+	ln -sf ../../../omicronlogo_s.gif ${outdir}/logo.gif
+    elif [ -e ../../../../style.css ]; then
+	ln -sf ../../../../style.css ${outdir}/style.css
+	ln -sf ../../../../omicronlogo_l.gif ${outdir}/omicronlogo.gif
+	ln -sf ../../../../icon.gif ${outdir}/icon.gif
+	ln -sf ../../../../omicronlogo_s.gif ${outdir}/logo.gif
+    else
+	cp -f ${GWOLLUM_DOC}/style.css ${outdir}
+	cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
+	cp -f ${OMICRON_HTML}/pics/omicronlogo_s.gif ${outdir}/logo.gif
+	cp -f ${OMICRON_HTML}/pics/omicronlogo_l.gif ${outdir}/omicronlogo.gif
+    fi
+fi
 currentdate=`date -u`
 
 ##### time navigation
