@@ -181,12 +181,12 @@ fi
 ##### make web page
 mkdir -p ${outdir}
 if [ $stopgps -eq 1 ]; then
-    GetOmicronWeb.sh -c${channel} -d${outdir} $start $stop
+    GetOmicronWeb.sh -w -c${channel} -d${outdir} $start $stop
 else
     if [ $dayoption -eq 1 ]; then
-	GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -t${downlinkday} $start $stop
+	GetOmicronWeb.sh -w -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -t${downlinkday} $start $stop
     else
-	GetOmicronWeb.sh -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -u${uplink} -t${downlinkhour} $start $stop
+	GetOmicronWeb.sh -w -c${channel} -d${outdir} -p${previouslink} -n${nextlink} -u${uplink} -t${downlinkhour} $start $stop
     fi
 fi
 
