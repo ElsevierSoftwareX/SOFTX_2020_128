@@ -154,7 +154,16 @@ bool Omicron::Process(){
 	}
 	else
 	  triggers[c]->AddSegment(odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2,odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2);
-	
+
+	//stop getting triggers if max flag
+	if(triggers[c]->GetMaxFlag()) break;
+      }
+      
+      // don't save if max flag
+      if(triggers[c]->GetMaxFlag()){
+	cerr<<"Omicron::Process: channel "<<fChannels[c]<<" is maxed-out. This chunk is not saved"<<endl;
+	triggers[c]->Reset();
+	continue;
       }
       
       // save triggers
