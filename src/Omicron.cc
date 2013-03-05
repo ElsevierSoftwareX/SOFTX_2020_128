@@ -229,13 +229,13 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   if(triggers[aChNumber]->GetMaxFlag()){
     cerr<<"Omicron::ProcessOnline: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk is not saved"<<endl;
     triggers[aChNumber]->Reset();
-    continue;
+    return 4;
   }
 
   // save triggers
   if(!triggers[aChNumber]->Write("ALL","default")){
     cerr<<"Omicron::ProcessOnline: writing events failed for channel "<<fChannels[aChNumber]<<endl;
-    return 4;
+    return 5;
   }
       
   return 0;
