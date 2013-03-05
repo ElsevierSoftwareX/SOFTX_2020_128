@@ -185,7 +185,7 @@ if grep -q "triggers are not available" ./plot.log.txt; then
 	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./loudest.gif
 	cp -f ${GWOLLUM_DOC}/Pics/WebReport/nodata1.gif ./info.txt
     else
-	if [ -e ../../../../nodata.gif ]; then
+	if [ -e ${outdir}/../../../../nodata.gif ]; then
 	    ln -s ../../../../nodata.gif ./map.gif
 	    ln -s ../../../../nodata.gif ./rate.gif
 	    ln -s ../../../../nodata.gif ./snrfreq.gif
@@ -194,7 +194,7 @@ if grep -q "triggers are not available" ./plot.log.txt; then
 	    ln -s ../../../../nodata.gif ./snrtime.gif
 	    ln -s ../../../../nodata.gif ./loudest.gif
 	    ln -s ../../../../nodata.gif ./info.txt
-	elif [ -e ../../../../../nodata.gif ]; then
+	elif [ -e ${outdir}/../../../../../nodata.gif ]; then
 	    ln -s ../../../../../nodata.gif ./map.gif
 	    ln -s ../../../../../nodata.gif ./rate.gif
 	    ln -s ../../../../../nodata.gif ./snrfreq.gif
@@ -270,12 +270,12 @@ if [ "$fullweb" = "no" ]; then
     cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo.gif ${outdir}/logo.gif
     cp -f ${OMICRON_HTML}/pics/omicronlogo_l.gif ${outdir}/omicronlogo.gif
 else
-    if [ -e ../../../style.css ]; then
+    if [ -e ${outdir}/../../../style.css ]; then
 	ln -sf ../../../style.css ${outdir}/style.css
 	ln -sf ../../../omicronlogo_l.gif ${outdir}/omicronlogo.gif
 	ln -sf ../../../icon.gif ${outdir}/icon.gif
 	ln -sf ../../../omicronlogo_s.gif ${outdir}/logo.gif
-    elif [ -e ../../../../style.css ]; then
+    elif [ -e ${outdir}/../../../../style.css ]; then
 	ln -sf ../../../../style.css ${outdir}/style.css
 	ln -sf ../../../../omicronlogo_l.gif ${outdir}/omicronlogo.gif
 	ln -sf ../../../../icon.gif ${outdir}/icon.gif
