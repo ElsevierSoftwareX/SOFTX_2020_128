@@ -211,23 +211,30 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
 
   // get conditioned data
   if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1])){
-    cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
+    cerr<<"Omicron::ProcessOnline: conditionned data are corrupted!"<<endl;
     return 2;
   }
   
   //get triggers
   cout<<" "<<fChannels[aChNumber]<<" Extracting triggers in "<<odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2<<"-"<<odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2<<endl;
   if(!tile->GetTriggers(triggers[aChNumber],c_data[0],c_data[1],odata[aChNumber]->GetSegmentTimeStart(0))){
-    cerr<<"Omicron::Process: could not get trigger for channel "<<fChannels[aChNumber]
+    cerr<<"Omicron::ProcessOnline: could not get trigger for channel "<<fChannels[aChNumber]
 	<<" in segment starting at "<<odata[aChNumber]->GetSegmentTimeStart(0)<<endl;
     return 3;
   }
   else
     triggers[aChNumber]->AddSegment(odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2,odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2);
 	
+  // don't save if max flag
+  if(triggers[aChNumber]->GetMaxFlag()){
+    cerr<<"Omicron::ProcessOnline: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk is not saved"<<endl;
+    triggers[aChNumber]->Reset();
+    continue;
+  }
+
   // save triggers
   if(!triggers[aChNumber]->Write("ALL","default")){
-    cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[aChNumber]<<endl;
+    cerr<<"Omicron::ProcessOnline: writing events failed for channel "<<fChannels[aChNumber]<<endl;
     return 4;
   }
       
