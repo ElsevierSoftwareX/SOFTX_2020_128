@@ -61,7 +61,8 @@ class Omicron {
   string fFflFile;              // path to FFL file (Virgo)
   string fCacheFile;            // path to Cache file (LIGO)
   vector <string> fChannels;    // list of channels
-  vector <string> fChanSum;     // channel sums
+  vector <string> fInjChan;     // injection channels
+  vector <double> fInjFact;     // injection factors
   vector <int> fFreqRange;      // Frequency range
   vector <double> fQRange;      // Q range
   vector <int> fNativeFrequency;// native sampling frequency
