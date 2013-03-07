@@ -43,6 +43,10 @@ printhelp(){
     echo "  -r                  do not print frequency column"
     echo "  -u                  print duration column"
     echo "  -a                  print bandwidth column (not available with -C option)"
+    echo "  -o                  print tstart column"
+    echo "  -e                  print tend column"
+    echo "  -p                  print fstart column"
+    echo "  -v                  print fend column"
     echo "  -n                  do not print SNR column"
     echo "  -q                  print Q column (not available with -C option)"
     echo ""
@@ -73,13 +77,17 @@ cluster="YES"      # cluster or no
 print_freq=1       # print frequency column
 print_dur=0        # print duration column
 print_bw=0         # print bandwidth column
+print_ts=0         # print tstart column
+print_te=0         # print tend column
+print_fs=0         # print fstart column
+print_fe=0         # print fend column
 print_q=0          # print Q column
 print_snr=1        # print SNR column
 dt=0.1            # clustering dt
 triggerfiles="NONE" # user trigger files
 
 ##### read options
-while getopts ":c:t:s:S:f:F:C:T:ruanqlh" opt; do
+while getopts ":c:t:s:S:f:F:C:T:ruanoepvqlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -113,6 +121,18 @@ while getopts ":c:t:s:S:f:F:C:T:ruanqlh" opt; do
 	    ;;
 	a)
 	    print_bw=1
+	    ;;
+	o)
+	    print_ts=1
+	    ;;
+	e)
+	    print_te=1
+	    ;;
+	p)
+	    print_fs=1
+	    ;;
+	v)
+	    print_fe=1
 	    ;;
 	n)
 	    print_snr=0
@@ -249,6 +269,6 @@ if [ "$triggers" = "" ]; then
 fi
 
 ##### retrieve triggers
-printtriggers.exe "$triggers" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_snr $print_q $print_c
+printtriggers.exe "$triggers" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_q $print_c
 
 exit 0
