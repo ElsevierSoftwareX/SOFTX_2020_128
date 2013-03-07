@@ -222,7 +222,7 @@ fi
 
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_snr $print_q $print_c
+    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_q $print_c
     exit 0
 fi
 
