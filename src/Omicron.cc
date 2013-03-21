@@ -317,7 +317,7 @@ bool Omicron::ReadOptions(void){
   // ffl/cache file path
   online=false;
   io.GetOpt("DATA","FFL", fFflFile);
-  io.GetOpt("DATA","CACHE", fCacheFile);
+  //io.GetOpt("DATA","CACHE", fCacheFile);
   if(!fFflFile.compare("ONLINE")){// online keyword
     online=true;
   }
@@ -328,16 +328,18 @@ bool Omicron::ReadOptions(void){
     }
   }
   else{
-    if(fCacheFile.empty()||!IsTextFile(fCacheFile)){
-      cerr<<"Omicron::ReadOptions: FFL file (DATA/CACHE-FFL) cannot be found"<<endl;
-      return false;
-    }
+    cerr<<"Omicron::ReadOptions: FFL file (DATA/FFL) is missing"<<endl;
+    return false;
+    //if(fCacheFile.empty()||!IsTextFile(fCacheFile)){
+    //cerr<<"Omicron::ReadOptions: FFL file (DATA/CACHE-FFL) cannot be found"<<endl;
+    //return false;
+    //}
     //convert cache to ffl
-    if(!Cache2FFL(fCacheFile,maindir+"/convertedcache.ffl")){
-      cerr<<"Omicron::ReadOptions: cannot convert cache file in ffl file"<<endl;
-      return false;
-    }
-    fFflFile=maindir+"/convertedcache.ffl";
+    //if(!Cache2FFL(fCacheFile,maindir+"/convertedcache.ffl")){
+    //cerr<<"Omicron::ReadOptions: cannot convert cache file in ffl file"<<endl;
+    //return false;
+    //}
+    //fFflFile=maindir+"/convertedcache.ffl";
   }
 
   // Native channel frequencies
@@ -359,14 +361,13 @@ bool Omicron::ReadOptions(void){
   // Frequency range
   fFreqRange.clear();
   io.GetOpt("PARAMETER","FREQUENCYRANGE", fFreqRange);
-  if(fFreqRange.size()!=2||fFreqRange[0]>fFreqRange[1]){
+  if(fFreqRange.size()!=2||fFreqRange[0]>=fFreqRange[1]){
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) must be given"<<endl;
     return false;
   }
   if(fFreqRange[1]>fSampleFrequency/2){
-    cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<endl;
+    cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
     fFreqRange.pop_back(); fFreqRange.push_back(fSampleFrequency/2);
-    return true;
   }
 
   // Q range
@@ -438,7 +439,7 @@ bool Omicron::ReadOptions(void){
   }
 
   // SNR Threshold
-  fSNRThreshold=5.0;
+  fSNRThreshold=8.0;
   io.GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold);
   
   // set trigger limit
@@ -461,8 +462,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"                      --> root format will be used"<<endl;
     fOutFormat="root";
   }
-
-
+ 
   // set writing flags
   writepsd=0, writetimeseries=0, writewhiteneddata=0;
   io.GetOpt("OUTPUT","WRITEPSD", writepsd);
