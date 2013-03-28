@@ -87,6 +87,7 @@ class Omicron {
   Segments *fSegments;
   Odata *odata[NDATASTREAMS];
   double *c_data[2];// conditioned data complex vector
+  double *psd;      // psd vector - DO NOT DELETE
 
   //OUTPUT
   Triggers *triggers[NDATASTREAMS];// output triggers

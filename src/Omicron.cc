@@ -121,10 +121,13 @@ bool Omicron::Process(){
       for(int s=0; s<odata[c]->GetNSegments(); s++){
 
 	// get conditioned data
-	if(!odata[c]->GetConditionedData(s,c_data[0],c_data[1])){
+	if(!odata[c]->GetConditionedData(s,c_data[0],c_data[1],&psd)){
 	  cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
 	  return false;
 	}
+
+	// set new power for this chunk
+	if(!s) tile->SetPowerSpectrum(psd);
 
 	// save it if requested
 	if(writewhiteneddata){
@@ -204,11 +207,14 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   if(writepsd) status_OK*=odata[aChNumber]->WritePSD(fOutdir[aChNumber]);
 
   // get conditioned data
-  if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1])){
+  if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1],&psd)){
     cerr<<"Omicron::ProcessOnline: conditionned data are corrupted!"<<endl;
     return 2;
   }
-  
+  	
+  // set new power spectrum
+  tile->SetPowerSpectrum(psd);
+
   //get triggers
   cout<<" "<<fChannels[aChNumber]<<" Extracting triggers in "<<odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2<<"-"<<odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2<<endl;
   if(!tile->GetTriggers(triggers[aChNumber],c_data[0],c_data[1],odata[aChNumber]->GetSegmentTimeStart(0))){
@@ -267,40 +273,40 @@ bool Omicron::ReadOptions(void){
 
   // check that the option file exists
   if(!IsTextFile(fOptionFile)){
-    cerr<<"Omicron::ReadOptions: option file cannot be found"<<endl;
+    cerr<<"Omicron::ReadOptions: option file "<<fOptionFile<<" cannot be found"<<endl;
     return false;
   }
 
   fOptions = new IO(fOptionFile.c_str());
   IO& io = *fOptions;
 
-  // output directory
-  string maindir;
+  //***** output directory *****
+  string maindir="";
   io.GetOpt("OUTPUT","DIRECTORY", maindir);
-  if(maindir.empty()||!IsDirectory(maindir)){
-    cerr<<"Omicron::ReadOptions: output directory cannot be found"<<endl;
+  if(maindir.empty()){
+    cerr<<"Omicron::ReadOptions: you must provide an output directory: OUTPUT/DIRECTORY"<<endl;
     return false;
   }
+  if(!IsDirectory(maindir)){
+    cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY"<<endl;
+    return false;
+  }
+  //*****************************
 
-  // List of channels
+  //***** List of channels *****
   fChannels.clear();
   io.GetOpt("DATA","CHANNELS", fChannels);
   if(fChannels.size()<=0){
-    cerr<<"Omicron::ReadOptions: The list of channels (DATA/CHANNELS) has to be given"<<endl;
+    cerr<<"Omicron::ReadOptions: you must provide a list of channels: DATA/CHANNELS"<<endl;
     return false;
   }
   if(fChannels.size()>NDATASTREAMS){
     cerr<<"Omicron::ReadOptions: The number of channels cannot exceed "<<NDATASTREAMS<<endl;
     return false;
   }
+  //*****************************
 
-  // create output directories
-  for(int c=0; c<(int)fChannels.size(); c++){
-    fOutdir[c]=maindir+"/"+fChannels[c];
-    system(("mkdir -p "+fOutdir[c]).c_str());
-  }
-
-  // injection channels
+  //***** injection channels *****
   fInjChan.clear();
   io.GetOpt("INJECTION","CHANNELS", fInjChan);
   if(fInjChan.size()&&fInjChan.size()!=fChannels.size()){
@@ -313,93 +319,66 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: INJECTION/FACTORS is inconsistent with the number of channels"<<endl;
     return false;
   }
+  //*****************************
 
-  // ffl/cache file path
+  //***** ffl file *****
   online=false;
   io.GetOpt("DATA","FFL", fFflFile);
-  //io.GetOpt("DATA","CACHE", fCacheFile);
-  if(!fFflFile.compare("ONLINE")){// online keyword
+  if(!fFflFile.compare("ONLINE"))// online keyword
     online=true;
-  }
-  else if(!fFflFile.empty()){
-    if(!IsTextFile(fFflFile)){
-      cerr<<"Omicron::ReadOptions: FFL file (DATA/FFL) cannot be found"<<endl;
-      return false;
-    }
-  }
-  else{
-    cerr<<"Omicron::ReadOptions: FFL file (DATA/FFL) is missing"<<endl;
+  else if(fFflFile.empty()){
+    cerr<<"Omicron::ReadOptions: you must provide a FFL file: DATA/FFL"<<endl;
     return false;
-    //if(fCacheFile.empty()||!IsTextFile(fCacheFile)){
-    //cerr<<"Omicron::ReadOptions: FFL file (DATA/CACHE-FFL) cannot be found"<<endl;
-    //return false;
-    //}
-    //convert cache to ffl
-    //if(!Cache2FFL(fCacheFile,maindir+"/convertedcache.ffl")){
-    //cerr<<"Omicron::ReadOptions: cannot convert cache file in ffl file"<<endl;
-    //return false;
-    //}
-    //fFflFile=maindir+"/convertedcache.ffl";
   }
+  else if(!IsTextFile(fFflFile)){
+    cerr<<"Omicron::ReadOptions: the FFL file "<<fFflFile<<" cannot be found"<<endl;
+    return false;
+  }
+  else// OK
+    online=false;
+  //*****************************
 
-  // Native channel frequencies
+  //***** Native channel frequencies *****
   fNativeFrequency.clear();
   io.GetOpt("DATA","NATIVEFREQUENCY", fNativeFrequency);
   if(fNativeFrequency.size()!=fChannels.size()){
-    cerr<<"Omicron::ReadOptions: Each channel must be given a native frequency (PARAMETER/NATIVEFREQUENCY)"<<endl;
+    cerr<<"Omicron::ReadOptions: Each channel must be given a native frequency: PARAMETER/NATIVEFREQUENCY"<<endl;
     return false;
   }
+  //*****************************
 
-  // Sampling frequency (Def=4096)
+  //***** Sampling frequency *****
   fSampleFrequency=-1;
   io.GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency);
   if(fSampleFrequency<64||fSampleFrequency>20000){
-    cerr<<"Omicron::ReadOptions: Sampling frequency (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
+    cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
+  //*****************************
 
-  // Frequency range
+  //***** Frequency range *****
   fFreqRange.clear();
   io.GetOpt("PARAMETER","FREQUENCYRANGE", fFreqRange);
   if(fFreqRange.size()!=2||fFreqRange[0]>=fFreqRange[1]){
-    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) must be given"<<endl;
+    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct"<<endl;
     return false;
   }
   if(fFreqRange[1]>fSampleFrequency/2){
     cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
     fFreqRange.pop_back(); fFreqRange.push_back(fSampleFrequency/2);
   }
+  //*****************************
 
-  // Q range
+  //***** Q range *****
   fQRange.clear();
   io.GetOpt("PARAMETER","QRANGE", fQRange);
   if(fQRange.size()!=2||fQRange[0]>fQRange[1]){
-    cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) must be given"<<endl;
+    cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct"<<endl;
     return false;
   }
- 
-  //***************** optional options *****************
+  //*****************************
 
-  /* Segment structure
-  
-    PSD is computed over one chunk (median-mean)
-    |________________chunk_________________|
-    |                                   |____________chunk____________|
-    |----seg----|                          |
-             |----seg----|                 |
-	              |----seg----|        |
-		               |----seg----|
-			                |--|
-					overlap
-
-    For each segment, triggers (t) are extracted as follows (overlap divided in 2):
-    
-    |---------seg---------|
-       |ttttttttttttttt|
-	               |
-                    |---------seg---------|
-		       |ttttttttttttttt|
-  */
+  //***** timing *****
   fChunkDuration=288;
   fSegmentDuration=64;
   fOverlapDuration=8;
@@ -429,46 +408,59 @@ bool Omicron::ReadOptions(void){
     cerr<<"PARAMETER/OVERLAPDURATION: "<<fOverlapDuration<<endl;
     return false;
   }
- 
-  // maximum mismatch
+  //*****************************
+
+  //***** maximum mismatch *****
   fMismatchMax=0.2;
   io.GetOpt("PARAMETER","MISMATCHMAX", fMismatchMax);
   if(fMismatchMax<=0||fMismatchMax>0.5){
     cerr<<"Omicron::ReadOptions: maximum mismatch (PARAMETER/MISMATCHMAX) is not reasonable"<<endl;
     return false;
   }
+  //*****************************
 
-  // SNR Threshold
+  //***** SNR Threshold *****
   fSNRThreshold=8.0;
   io.GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold);
-  
-  // set trigger limit
+  //*****************************
+
+  //***** set trigger limit *****
   fNtriggerMax=1000000;
   io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
+  //*****************************
 
-  // set clustering
+  //***** set clustering *****
   fcldt=0.1;
   io.GetOpt("TRIGGER","CLUSTERING", fClusterAlgo);
   io.GetOpt("TRIGGER","CLUSTERDT", fcldt);
+  //*****************************
 
-  // set verbosity
+  //***** set verbosity *****
   fVerbosity=0;
   io.GetOpt("OUTPUT","VERBOSITY", fVerbosity);
+  //*****************************
 
-  // set verbosity
+  //***** set verbosity ***** 
   io.GetOpt("OUTPUT","FORMAT", fOutFormat);
   if(fOutFormat.compare("root")&&fOutFormat.compare("txt")){
     cerr<<"Omicron::ReadOptions: possible output formats: root or txt"<<endl;
     cerr<<"                      --> root format will be used"<<endl;
     fOutFormat="root";
   }
- 
-  // set writing flags
+  //*****************************
+
+  //***** set writing flags *****
   writepsd=0, writetimeseries=0, writewhiteneddata=0;
   io.GetOpt("OUTPUT","WRITEPSD", writepsd);
   io.GetOpt("OUTPUT","WRITETIMESERIES", writetimeseries);
   io.GetOpt("OUTPUT","WRITEWHITENEDDATA", writewhiteneddata);
+  //*****************************
 
+  // create output directories
+  for(int c=0; c<(int)fChannels.size(); c++){
+    fOutdir[c]=maindir+"/"+fChannels[c];
+    system(("mkdir -p "+fOutdir[c]).c_str());
+  }
 
   io.Dump(cout);
 
