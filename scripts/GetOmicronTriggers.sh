@@ -47,6 +47,7 @@ printhelp(){
     echo "  -e                  print tend column"
     echo "  -p                  print fstart column"
     echo "  -v                  print fend column"
+    echo "  -m                  print amplitude column"
     echo "  -n                  do not print SNR column"
     echo "  -q                  print Q column (not available with -C option)"
     echo ""
@@ -82,12 +83,13 @@ print_te=0         # print tend column
 print_fs=0         # print fstart column
 print_fe=0         # print fend column
 print_q=0          # print Q column
+print_amp=0        # print Amplitude column
 print_snr=1        # print SNR column
-dt=0.1            # clustering dt
+dt=0.1             # clustering dt
 triggerfiles="NONE" # user trigger files
 
 ##### read options
-while getopts ":c:t:s:S:f:F:C:T:ruanoepvqlh" opt; do
+while getopts ":c:t:s:S:f:F:C:T:ruanoempvqlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -133,6 +135,9 @@ while getopts ":c:t:s:S:f:F:C:T:ruanoepvqlh" opt; do
 	    ;;
 	v)
 	    print_fe=1
+	    ;;
+	m)
+	    print_amp=1
 	    ;;
 	n)
 	    print_snr=0
@@ -222,7 +227,7 @@ fi
 
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_q $print_c
+    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
     exit 0
 fi
 
@@ -269,6 +274,6 @@ if [ "$triggers" = "" ]; then
 fi
 
 ##### retrieve triggers
-printtriggers.exe "$triggers" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_q $print_c
+printtriggers.exe "$triggers" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
 
 exit 0
