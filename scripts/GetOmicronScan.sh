@@ -247,7 +247,9 @@ echo "" >> ${outdir}/log.txt
 ##########################################################################
 echo "Scanning ${main}..." >> ${outdir}/log.txt
 # map the main channel triggers
-triggers=`GetTriggerFileList.sh -c${main} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
+if [ $chandir = "NONE" ]; then triggers=`GetTriggerFileList.sh -c${main} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
+else triggers="${chandir}/${main}/*.root"
+fi
 
 if [ "$triggers" = "" ]; then
     echo "triggers are not available for $main at $tcenter"
@@ -301,7 +303,10 @@ for channel in $OMICRON_CHANNELS; do
     let "naux+=1"
 
     # map the channel triggers
-    triggers=`GetTriggerFileList.sh -c${channel} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
+    if [ $chandir = "NONE" ]; then triggers=`GetTriggerFileList.sh -c${channel} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
+    else triggers="${chandir}/${channel}/*.root"
+    fi
+
     if [ "$triggers" = "" ]; then 
 	echo "  no trigger ---> Do not plot" >> ${outdir}/log.txt
 	continue
