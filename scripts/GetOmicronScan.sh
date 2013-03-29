@@ -8,11 +8,13 @@
 # florent.robinet@lal.in2p3.fr
 
 ##### default options
+here=`pwd`
 main="h_4096Hz" # channel name
 outdir=`pwd` # output directory
 snrmin=8
 parameterfile=""
 tagname="NONE"
+chandir="NONE"
 
 printhelp(){
     echo ""
@@ -33,6 +35,13 @@ printhelp(){
     echo "                       of channels to scan"
     echo "                       When this option is given the option '-t' is ignored"
     echo ""
+    echo "  -r  [TRIGGER_DIR]    The user can provide his own directory where the triggers are located"
+    echo "                       [TRIGGER_DIR] must contain subdirectories for each channels:"
+    echo "                       [TRIGGER_DIR]/channel_1/"
+    echo "                       [TRIGGER_DIR]/channel_2/"
+    echo "                       ..."
+    echo "                       [TRIGGER_DIR]/channel_N/"
+    echo ""
     echo "OUTPUT CONTROL"
     echo "  -m  [MAIN_CHANNEL]   main channel: always plotted"
     echo "                       Default = h_4096Hz"
@@ -45,7 +54,7 @@ printhelp(){
 
 
 ##### Check the environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
+if [[ -z "$OMICRONROOT" ]]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
@@ -57,7 +66,7 @@ if [ $# -lt 1 ]; then
 fi
 
 ##### read options
-while getopts ":m:s:p:d:t:h" opt; do
+while getopts ":m:s:p:d:t:r:h" opt; do
     case $opt in
 	m)
 	    main="$OPTARG"
@@ -70,6 +79,9 @@ while getopts ":m:s:p:d:t:h" opt; do
 	    ;;
 	t)
 	    tagname="$OPTARG"
+	    ;;
+	r)
+	    chandir="$OPTARG"
 	    ;;
 	d)
 	    outdir="$OPTARG"
@@ -99,25 +111,39 @@ if [ $tcenter_ -lt 700000000 ]; then
     exit 1
 fi
 
-##### select run
-run="NONE"
-for r in $RUN_NAMES; do
-    r_s=${r}_START
-    r_e=${r}_END
-    if [[ $tcenter_ -ge ${!r_s} && $tcenter_ -lt ${!r_e} ]]; then
-	run=$r
-	break;
+##### scan user channel directory
+if [ ! $chandir = "NONE" ]; then
+    if [ ! -d $chandir ] ; then
+	echo "Invalid option: the channel directory $chandir cannot be found"
+	echo "type  'GetOmicronScan -h'  for help"
+	exit 1
     fi
-done
+    cd $chandir
+    for dir in *; do
+	OMICRON_CHANNELS="${OMICRON_CHANNELS} ${dir}"
+    done
+    cd $here
 
-if [ $run = "NONE" ]; then
-    echo "Invalid GPS time"
-    exit 1 
+else
+    ##### select run
+    run="NONE"
+    for r in $RUN_NAMES; do
+	r_s=${r}_START
+	r_e=${r}_END
+	if [[ $tcenter_ -ge ${!r_s} && $tcenter_ -lt ${!r_e} ]]; then
+	    run=$r
+	    break;
+	fi
+    done
+    
+    if [ $run = "NONE" ]; then
+	echo "Invalid GPS time"
+	exit 1 
+    fi
+
+    ##### get available channels
+    . GetOmicronChannels.sh -r $run > /dev/null 2>&1
 fi
-
-##### get available channels
-. GetOmicronChannels.sh -r $run > /dev/null 2>&1
-
 ##### check main channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$main"; then
     echo "Invalid option: channel '${main}' is not available"
