@@ -120,8 +120,10 @@ if [ ! $chandir = "NONE" ]; then
     fi
     cd $chandir
     for dir in *; do
+	if [ ! -d ${dir} ]; then continue; fi
 	OMICRON_CHANNELS="${OMICRON_CHANNELS} ${dir}"
     done
+    echo "channel candidates: $OMICRON_CHANNELS"
     cd $here
 
 else
@@ -314,6 +316,11 @@ for channel in $OMICRON_CHANNELS; do
 
     let "naux_with_triggers+=1"
     eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
+
+    if [ ! -e ${outdir}/map_${tcenter}_dt4.gif ]; then
+	echo "  no trigger files ---> Do not plot" >> ${outdir}/log.txt
+	continue
+    fi
 
     # generic names for plots
     mv ${outdir}/map_${tcenter}_dt4.gif ${outdir}/${channel}_${tcenter}_dt4.gif
