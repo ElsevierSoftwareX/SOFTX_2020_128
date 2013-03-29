@@ -321,23 +321,48 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
-  //***** ffl file *****
+  //***** lcf file *****
   online=false;
-  io.GetOpt("DATA","FFL", fFflFile);
-  if(!fFflFile.compare("ONLINE"))// online keyword
+  bool lcfset=false;
+  io.GetOpt("DATA","LCF", fLcfFile);
+  if(!fLcfFile.compare("ONLINE")){// online keyword
     online=true;
-  else if(fFflFile.empty()){
-    cerr<<"Omicron::ReadOptions: you must provide a FFL file: DATA/FFL"<<endl;
+    lcfset=true;
+  }
+  else if(fLcfFile.empty()){
+    lcfset=false;
+  }
+  else if(!IsTextFile(fLcfFile)){
+    cerr<<"Omicron::ReadOptions: the LCF file "<<fLcfFile<<" cannot be found"<<endl;
     return false;
   }
-  else if(!IsTextFile(fFflFile)){
-    cerr<<"Omicron::ReadOptions: the FFL file "<<fFflFile<<" cannot be found"<<endl;
-    return false;
+  else{// OK
+    lcfset=true;
+    LCF2FFL(fLcfFile,maindir+"/converted_lcf.ffl");
+    fFflFile=maindir+"/converted_lcf.ffl";
   }
-  else// OK
-    online=false;
+
   //*****************************
 
+  //***** ffl file *****
+  if(!lcfset){
+    online=false;
+    io.GetOpt("DATA","FFL", fFflFile);
+    if(!fFflFile.compare("ONLINE"))// online keyword
+      online=true;
+    else if(fFflFile.empty()){
+      cerr<<"Omicron::ReadOptions: you must provide a FFL file: DATA/FFL"<<endl;
+      return false;
+    }
+    else if(!IsTextFile(fFflFile)){
+      cerr<<"Omicron::ReadOptions: the FFL file "<<fFflFile<<" cannot be found"<<endl;
+      return false;
+    }
+    else// OK
+      online=false;
+  }
+  //*****************************
+    
   //***** Native channel frequencies *****
   fNativeFrequency.clear();
   io.GetOpt("DATA","NATIVEFREQUENCY", fNativeFrequency);
@@ -464,5 +489,57 @@ bool Omicron::ReadOptions(void){
 
   io.Dump(cout);
 
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::LCF2FFL(const string lcf_file, const string ffl_file){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // check that the option file exists
+  if(!IsTextFile(lcf_file)){
+    cerr<<"Omicron::LCF2FFL: input file "<<lcf_file<<" cannot be found"<<endl;
+    return false;
+  }
+
+  ReadAscii *RA = new ReadAscii(lcf_file,"s;s;i;i;s");
+  if(RA->GetNCol()!=5){
+    cerr<<"Omicron::LCF2FFL: input file "<<lcf_file<<" does not look like a LCF file"<<endl;
+    delete RA;
+    return false;
+  }
+
+  ofstream ffile(ffl_file.c_str());
+  int start, duration;
+  string framefile, framefilename;
+  for(int l=0; l<RA->GetNRow(); l++){
+    if(!RA->GetElement(start,l,2)){
+      cerr<<"Omicron::LCF2FFL: cannot retrieve starting time"<<endl;
+      delete RA;
+      return false;
+    }
+    if(!RA->GetElement(duration,l,3)){
+      cerr<<"Omicron::LCF2FFL: cannot retrieve duration"<<endl;
+      delete RA;
+      return false;
+    }
+    if(!RA->GetElement(framefile,l,4)){
+      cerr<<"Omicron::LCF2FFL: cannot retrieve frame file name"<<endl;
+      delete RA;
+      return false;
+    }
+
+    // FIXME: This could be better!!
+    if(string::npos != framefile.find("localhost")){
+      unsigned pos = framefile.find("localhost");
+      framefilename=framefile.substr(pos+9);
+    }
+    else framefilename=framefile;
+
+    ffile<<framefilename<<" "<<start<<" "<<duration<<" 0 0"<<endl;
+  }
+
+  ffile.close();
+  delete RA;
   return true;
 }

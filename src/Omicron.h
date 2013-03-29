@@ -29,6 +29,8 @@ class Omicron {
   Omicron(Segments *aSegments, const string aOptionFile);// constructor
   virtual ~Omicron(void);// destructor
 
+  bool LCF2FFL(const string lcf_file, const string ffl_file);
+
   // PROCESSES
   bool MakeTiling(void);
   bool Process();
@@ -59,7 +61,7 @@ class Omicron {
   string fOptionFile;
   IO *fOptions;
   string fFflFile;              // path to FFL file (Virgo)
-  string fCacheFile;            // path to Cache file (LIGO)
+  string fLcfFile;              // path to LCF file (LIGO)
   vector <string> fChannels;    // list of channels
   vector <string> fInjChan;     // injection channels
   vector <double> fInjFact;     // injection factors
