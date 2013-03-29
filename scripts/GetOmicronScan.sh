@@ -231,6 +231,7 @@ template=${outdir}/index.template
 cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
 cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
 cp -f ${GWOLLUM_DOC}/style.css ${outdir}/style.css
+cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
 cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 if [ ! $parameterfile = "" ] ; then cp -f $parameterfile ${outdir}/parameters.txt; fi
 currentdate=`date -u`
