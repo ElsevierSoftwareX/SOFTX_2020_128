@@ -8,8 +8,9 @@
 # florent.robinet@lal.in2p3.fr
 
 ##### default options
-channel="h_4096Hz" # channel name
-outdir=`pwd` # output directory
+channel="required"  # channel name
+outdir=`pwd`        # output directory
+triggerfiles="NONE" # user trigger files
 
 printhelp(){
     echo ""
@@ -20,7 +21,10 @@ printhelp(){
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
-    echo "                      Default = 'h_4096Hz'"
+    echo "                      this option is required"
+    echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
+    echo "                      The file pattern is [TRIGGER_FILES]"
+    echo "                      this option overides the channel option -c"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -d  [OUTDIR]        output directory where to save plots"
@@ -30,8 +34,8 @@ printhelp(){
     echo ""
 } 
 
-##### Check the environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
+##### Check the Omicron environment
+if [[ -z "$OMICRONROOT" ]]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
@@ -43,10 +47,13 @@ if [ $# -lt 1 ]; then
 fi
 
 ##### read options
-while getopts ":c:d:h" opt; do
+while getopts ":c:d:t:h" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
+	    ;;
+	t)
+	    triggerfiles="$OPTARG"
 	    ;;
 	d)
 	    outdir="$OPTARG"
@@ -68,6 +75,50 @@ shift $(($OPTIND - 1))
 tmin=`echo $1 | awk '{print int($1)}'`
 tmax=`echo $2 | awk '{print int($1)}'`
 OPTIND=0
+
+##### check timing
+if [ $tmin -lt 700000000 ]; then
+    echo "Invalid option: '$tmin' is not a reasonable starting time"
+    echo "type  'GetOmicronPlots -h'  for help"
+    exit 1
+fi
+if [ $tmax -lt 700000000 ]; then
+    echo "Invalid option: '$tmax' is not a reasonable stop time"
+    echo "type  'GetOmicronPlots -h'  for help"
+    exit 1
+fi
+if [ $tmax -le $tmin ]; then
+    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
+    echo "type  'GetOmicronPlots -h'  for help"
+    exit 1
+fi
+
+##### channel is required
+if [ "$channel" = "required" ]; then
+    echo "GetOmicronPlots: the channel name is required with the -c option"
+    echo "type  'GetOmicronPlots -h'  for help"
+    exit 1
+fi
+
+
+##### check outdir
+if [ ! -d $outdir ] ; then
+    echo "Invalid option: the output directory $outdir cannot be found"
+    echo "type  'GetOmicronPlots -h'  for help"
+    exit 1
+fi
+
+##### case where the trigger files are provided
+if [ ! "$triggerfiles" = "NONE" ]; then
+    omicronplot.exe $channel $outdir "$triggerfiles" $tmin $tmax
+    exit 0
+fi
+
+##### Check the environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron trigger environment is not set"
+    exit 1
+fi
 
 ##### select run
 run="NONE"
@@ -98,30 +149,6 @@ if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
     exit 1
 fi
 
-##### check timing
-if [ $tmin -lt 700000000 ]; then
-    echo "Invalid option: '$tmin' is not a reasonable starting time"
-    echo "type  'GetOmicronPlots -h'  for help"
-    exit 1
-fi
-if [ $tmax -lt 700000000 ]; then
-    echo "Invalid option: '$tmax' is not a reasonable stop time"
-    echo "type  'GetOmicronPlots -h'  for help"
-    exit 1
-fi
-if [ $tmax -le $tmin ]; then
-    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
-    echo "type  'GetOmicronPlots -h'  for help"
-    exit 1
-fi
-
-##### check outdir
-if [ ! -d $outdir ] ; then
-    echo "Invalid option: the output directory $outdir cannot be found"
-    echo "type  'GetOmicronPlots -h'  for help"
-    exit 1
-fi
-
 ##### map the trigger directory
 triggers=`GetTriggerFileList.sh -c${channel} $tmin $tmax | grep "FILELIST" | sed 's|FILELIST ||g'`
 if [ "$triggers" = "" ]; then
@@ -136,6 +163,6 @@ if [ "$triggers" = "" ]; then
 fi
 
 ##### retrieve triggers
-omicronplot.exe $outdir "$triggers" $tmin $tmax
+omicronplot.exe $channel $outdir "$triggers" $tmin $tmax
 
 exit 0

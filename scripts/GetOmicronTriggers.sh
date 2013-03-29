@@ -233,7 +233,7 @@ fi
 
 ##### Check the Omicron environment
 if [[ -z "$OMICRON_TRIGGERS" ]]; then
-    echo "Error: The Omicron environment is not set"
+    echo "Error: The Omicron trigger environment is not set"
     exit 1
 fi
 
