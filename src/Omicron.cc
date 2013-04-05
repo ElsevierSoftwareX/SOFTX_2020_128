@@ -467,8 +467,8 @@ bool Omicron::ReadOptions(void){
 
   //***** set verbosity ***** 
   io.GetOpt("OUTPUT","FORMAT", fOutFormat);
-  if(fOutFormat.compare("root")&&fOutFormat.compare("txt")){
-    cerr<<"Omicron::ReadOptions: possible output formats: root or txt"<<endl;
+  if(fOutFormat.compare("root")&&fOutFormat.compare("xml")&&fOutFormat.compare("txt")){
+    cerr<<"Omicron::ReadOptions: possible output formats: root, xml or txt"<<endl;
     cerr<<"                      --> root format will be used"<<endl;
     fOutFormat="root";
   }
