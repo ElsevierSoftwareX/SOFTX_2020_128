@@ -120,7 +120,7 @@ bool Omicron::Process(){
   
       // write chunk info if requested
       if(writetimeseries) status_OK*=odata[c]->WriteTimeSeries(fOutdir[c]);
-      if(writepsd) status_OK*=odata[c]->WritePSD(fOutdir[c]);
+      if(writepsd)        status_OK*=odata[c]->WritePSD(fOutdir[c]);
 
       //loop over segments
       for(int s=0; s<odata[c]->GetNSegments(); s++){
@@ -139,10 +139,10 @@ bool Omicron::Process(){
 	  FWhite[c]->cd();
 	  GWhite = new TGraph(fSegmentDuration*fSampleFrequency);
 	  ostringstream graph_name;
-	  graph_name<<"White_"<<odata[c]->GetSegmentTimeStart(s);
+	  graph_name<<"Whiten_"<<odata[c]->GetSegmentTimeStart(s);
 	  GWhite->SetName(graph_name.str().c_str());
 	  for(int i=0; i<fSegmentDuration*fSampleFrequency/2; i++) 
-	    GWhite->SetPoint(i,(double)i/(double)fSegmentDuration,fabs(c_data[0][i]));
+	    GWhite->SetPoint(i,(double)i/(double)fSegmentDuration,c_data[0][i]);
 	  GWhite->Write();
 	  delete GWhite;
 	}
@@ -381,7 +381,7 @@ bool Omicron::ReadOptions(void){
   //***** Sampling frequency *****
   fSampleFrequency=-1;
   io.GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency);
-  if(fSampleFrequency<=0||fSampleFrequency>20000){
+  if(fSampleFrequency<=0||fSampleFrequency>40000){
     cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
@@ -416,12 +416,8 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
-  if(fChunkDuration<4||fChunkDuration>1000||fChunkDuration%2){
+  if(fChunkDuration<4||fChunkDuration>5000||fChunkDuration%2){
     cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
-    return false;
-  }
-  if(fFreqRange[0]<1.0/(double)fChunkDuration){
-    cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable given your frequency range"<<endl;
     return false;
   }
   if(fSegmentDuration<4||fSegmentDuration%2||fSegmentDuration>fChunkDuration){
@@ -430,6 +426,10 @@ bool Omicron::ReadOptions(void){
   }
   if (!(fSegmentDuration > 0 && !(fSegmentDuration & (fSegmentDuration - 1) ))){
     cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/BLOCKDURATION) should be a power of 2"<<endl;
+    return false;
+  }
+  if(fFreqRange[0]<1.0/(double)fSegmentDuration){
+    cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/CHUNKDURATION) is not reasonable given your frequency range"<<endl;
     return false;
   }
   if(fOverlapDuration<0||fOverlapDuration>fSegmentDuration/2||fOverlapDuration%2){
