@@ -47,14 +47,14 @@ class Omicron {
  protected:
 
   // STATUS
-  bool status_OK;  // general status
-  bool tiling_OK;  // tiling status
-  bool online;     // online running
+  bool status_OK;               // general status
+  bool tiling_OK;               // tiling status
+  bool online;                  // online running
 
   // OUTPUT FLAGS
-  bool writepsd;          // writing PSD flag
-  bool writetimeseries;   // writing time series flag
-  bool writewhiteneddata; // writing whiten data flag
+  bool writepsd;                // writing PSD flag
+  bool writetimeseries;         // writing time series flag
+  bool writewhiteneddata;       // writing whiten data flag
 
   // OPTIONS
   int fVerbosity;
@@ -65,7 +65,7 @@ class Omicron {
   vector <string> fChannels;    // list of channels
   vector <string> fInjChan;     // injection channels
   vector <double> fInjFact;     // injection factors
-  vector <int> fFreqRange;      // Frequency range
+  vector <double> fFreqRange;   // Frequency range
   vector <double> fQRange;      // Q range
   vector <int> fNativeFrequency;// native sampling frequency
   int fSampleFrequency;         // sample frequency of input data
@@ -78,24 +78,24 @@ class Omicron {
   string fOutFormat;            // output format
 
   // TRIGGER
-  double fSNRThreshold; // SNR Threshold
-  int fNtriggerMax;     // trigger limit
-  double fcldt;         // clustering dt
+  double fSNRThreshold;         // SNR Threshold
+  int fNtriggerMax;             // trigger limit
+  double fcldt;                 // clustering dt
 
   // TILING
-  Otile *tile;
+  Otile *tile;                  // tiling structure
 
   // DATA
-  Segments *fSegments;
-  Odata *odata[NDATASTREAMS];
-  double *c_data[2];// conditioned data complex vector
-  double *psd;      // psd vector - DO NOT DELETE
+  Segments *fSegments;          // segments to process - DO NOT DELETE
+  Odata *odata[NDATASTREAMS];   // data structures
+  double *c_data[2];            // conditioned data complex vector
+  double *psd;                  // psd vector - DO NOT DELETE
 
-  //OUTPUT
+  // OUTPUT
   Triggers *triggers[NDATASTREAMS];// output triggers
-  int fFileSize; // file size in seconds
-  
-  bool ReadOptions(void);
+   
+  // INPUT
+  bool ReadOptions(void);       // to parse option card
   
 
   ClassDef(Omicron,0)  

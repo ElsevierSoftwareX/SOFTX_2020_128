@@ -26,38 +26,36 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++){
     odata[c]=NULL;
     triggers[c]=NULL;
-   }
-
-  // data vector
-  if(status_OK){
-    c_data[0] = new double [fSegmentDuration*fSampleFrequency/2];
-    c_data[1] = new double [fSegmentDuration*fSampleFrequency/2];
   }
 
-  // trigger objects
+  // conditioned data vector
+  if(status_OK){
+    c_data[0] = new double [fSegmentDuration*fSampleFrequency/2]; // real part
+    c_data[1] = new double [fSegmentDuration*fSampleFrequency/2]; // imaginary part
+  }
+
+  // init trigger objects
   if(status_OK){
     for(int c=0; c<(int)fChannels.size(); c++){
-      triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
-      triggers[c]->SetNtriggerMax(fNtriggerMax);
+      triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);// construct
+      triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
       if(!fClusterAlgo.empty()){
-	triggers[c]->SetClustering(fClusterAlgo);
-	triggers[c]->SetClusterDeltaT(fcldt);
+	status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
+	status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
       }
     }
   }
 
-  // Init data objects
+  // init data objects
   if(status_OK){
     for(int c=0; c<(int)fChannels.size(); c++){
       odata[c] = new Odata(fFflFile,fChannels[c],fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
-      if(fInjChan.size()) odata[c]->SetInjectionChannel(fInjChan[c],fInjFact[c]);
-      status_OK*=odata[c]->GetStatus();
+      if(fInjChan.size()) status_OK*=odata[c]->SetInjectionChannel(fInjChan[c],fInjFact[c]);// add injection channel
+      status_OK*=odata[c]->GetStatus();// update status
     }
   }
 
-  if(!status_OK)
-    cerr<<"Omicron::Omicron: Initialization failed"<<endl;
-   
+  if(!status_OK) cerr<<"Omicron::Omicron: Initialization failed"<<endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +63,7 @@ Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
   cout<<"delete Omicron"<<endl;
 
-  if(fVerbosity>0) cout<<" -> delete tiling"<<endl;
+  if(fVerbosity) cout<<" -> delete tiling"<<endl;
   if(tile!=NULL) delete tile;
   if(fVerbosity>0) cout<<" -> delete data containers"<<endl;    
   if(c_data[0]!=NULL) delete c_data[0];
@@ -99,19 +97,26 @@ bool Omicron::Process(){
       FWhite[c] = new TFile((fOutdir[c]+"/white_"+fChannels[c]+".root").c_str(), "RECREATE");
     }
   }
+
+  int psdsize;
   
+  // looping status
+  int keep_looping=0; 
+  // 0 means keep calling new chunks of data
+  // 1 means stop calling new chunks: end of data to process
+  // 2 means the data chunk is corrupted -> move to the next one
+
   // loop over chunks
-  int keep_looping=0;
   while(keep_looping!=1){
 
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
-      if(fVerbosity>0) cout<<"processing channel "<<fChannels[c]<<"..."<<endl;
+      if(fVerbosity) cout<<"processing channel "<<fChannels[c]<<"..."<<endl;
       
       // get new data chunk
-      keep_looping=odata[c]->NewChunk();
-      if(keep_looping==1) break;
-      if(keep_looping>1) continue;
+      keep_looping=odata[c]->NewChunk();// get fresh data
+      if(keep_looping==1) break;        // end of data to process
+      if(keep_looping>1) continue;      // the data chunk is corrupted -> skip
   
       // write chunk info if requested
       if(writetimeseries) status_OK*=odata[c]->WriteTimeSeries(fOutdir[c]);
@@ -121,13 +126,13 @@ bool Omicron::Process(){
       for(int s=0; s<odata[c]->GetNSegments(); s++){
 
 	// get conditioned data
-	if(!odata[c]->GetConditionedData(s,c_data[0],c_data[1],&psd)){
+	if(!odata[c]->GetConditionedData(s,c_data[0],c_data[1],&psd,psdsize)){
 	  cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
 	  return false;
 	}
 
 	// set new power for this chunk
-	if(!s) tile->SetPowerSpectrum(psd);
+	if(!s) tile->SetPowerSpectrum(psd,psdsize);
 
 	// save it if requested
 	if(writewhiteneddata){
@@ -207,13 +212,14 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   if(writepsd) status_OK*=odata[aChNumber]->WritePSD(fOutdir[aChNumber]);
 
   // get conditioned data
-  if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1],&psd)){
+  int psdsize;
+  if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1],&psd,psdsize)){
     cerr<<"Omicron::ProcessOnline: conditionned data are corrupted!"<<endl;
     return 2;
   }
   	
   // set new power spectrum
-  tile->SetPowerSpectrum(psd);
+  tile->SetPowerSpectrum(psd,psdsize);
 
   //get triggers
   cout<<" "<<fChannels[aChNumber]<<" Extracting triggers in "<<odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2<<"-"<<odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2<<endl;
@@ -375,7 +381,7 @@ bool Omicron::ReadOptions(void){
   //***** Sampling frequency *****
   fSampleFrequency=-1;
   io.GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency);
-  if(fSampleFrequency<64||fSampleFrequency>20000){
+  if(fSampleFrequency<=0||fSampleFrequency>20000){
     cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
@@ -390,7 +396,7 @@ bool Omicron::ReadOptions(void){
   }
   if(fFreqRange[1]>fSampleFrequency/2){
     cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
-    fFreqRange.pop_back(); fFreqRange.push_back(fSampleFrequency/2);
+    fFreqRange.pop_back(); fFreqRange.push_back((double)fSampleFrequency/2.0);
   }
   //*****************************
 
@@ -410,8 +416,12 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
-  if(fChunkDuration<4||fChunkDuration>500||fChunkDuration%2){
+  if(fChunkDuration<4||fChunkDuration>1000||fChunkDuration%2){
     cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
+    return false;
+  }
+  if(fFreqRange[0]<1.0/(double)fChunkDuration){
+    cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable given your frequency range"<<endl;
     return false;
   }
   if(fSegmentDuration<4||fSegmentDuration%2||fSegmentDuration>fChunkDuration){
@@ -423,7 +433,15 @@ bool Omicron::ReadOptions(void){
     return false;
   }
   if(fOverlapDuration<0||fOverlapDuration>fSegmentDuration/2||fOverlapDuration%2){
-    cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/OVERLAPDURATION) is not reasonable"<<endl;
+    cerr<<"Omicron::ReadOptions: Overlap duration (PARAMETER/OVERLAPDURATION) is not reasonable"<<endl;
+    return false;
+  }
+  if(fSegmentDuration<2*fOverlapDuration){
+    cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/BLOCKDURATION) must be at least twice longer than Overlap duration"<<endl;
+    return false;
+  }
+  if(fOverlapDuration < (int)ceil(16.0/fFreqRange[0])){
+    cerr<<"Omicron::ReadOptions: Overlap duration must be larger than "<<(int)ceil(16.0/fFreqRange[0])<<"s to remove high-pass transients"<<endl;
     return false;
   }
   if((fChunkDuration-fOverlapDuration)%(fSegmentDuration-fOverlapDuration)){
