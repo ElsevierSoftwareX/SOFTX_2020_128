@@ -24,7 +24,6 @@ printhelp(){
     echo "                      this option is required"
     echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
     echo "                      The file pattern is [TRIGGER_FILES]"
-    echo "                      this option overides the channel option -c"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -d  [OUTDIR]        output directory where to save plots"
@@ -82,11 +81,6 @@ if [ $tmin -lt 700000000 ]; then
     echo "type  'GetOmicronPlots -h'  for help"
     exit 1
 fi
-if [ $tmax -lt 700000000 ]; then
-    echo "Invalid option: '$tmax' is not a reasonable stop time"
-    echo "type  'GetOmicronPlots -h'  for help"
-    exit 1
-fi
 if [ $tmax -le $tmin ]; then
     echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
     echo "type  'GetOmicronPlots -h'  for help"
@@ -99,7 +93,6 @@ if [ "$channel" = "required" ]; then
     echo "type  'GetOmicronPlots -h'  for help"
     exit 1
 fi
-
 
 ##### check outdir
 if [ ! -d $outdir ] ; then
@@ -114,7 +107,7 @@ if [ ! "$triggerfiles" = "NONE" ]; then
     exit 0
 fi
 
-##### Check the environment
+##### Check the trigger environment
 if [[ -z "$OMICRON_TRIGGERS" ]]; then
     echo "Error: The Omicron trigger environment is not set"
     exit 1
