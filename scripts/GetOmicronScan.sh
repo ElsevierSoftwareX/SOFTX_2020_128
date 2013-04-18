@@ -112,7 +112,7 @@ if [ $tcenter_ -lt 700000000 ]; then
 fi
 
 ##### scan user channel directory
-if [ ! $chandir = "NONE" ]; then
+if [ ! "$chandir" = "NONE" ]; then
     if [ ! -d $chandir ] ; then
 	echo "Invalid option: the channel directory $chandir cannot be found"
 	echo "type  'GetOmicronScan -h'  for help"
