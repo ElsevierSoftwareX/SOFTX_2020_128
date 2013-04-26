@@ -12,6 +12,8 @@
 #include "CUtils.h"
 #include "IO.h"
 #include "Segments.h"
+#include "Network.h"
+#include "Inject.h"
 #include "Triggers.h"
 #include "TMath.h"
 #include "Otile.h"
@@ -81,6 +83,12 @@ class Omicron {
   double fSNRThreshold;         // SNR Threshold
   int fNtriggerMax;             // trigger limit
   double fcldt;                 // clustering dt
+
+  // NETWORK
+  vector <string> fDetectors;   // detectors
+  string fInjFile;              // injection file
+  Network *Net;                 // network
+  Inject *Inj;                  // software injections
 
   // TILING
   Otile *tile;                  // tiling structure

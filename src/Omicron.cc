@@ -21,6 +21,8 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   status_OK*=ReadOptions();
 
   // nulling structures
+  Net=NULL;
+  Inj=NULL;
   tile=NULL;
   c_data[0] = NULL; c_data[1] = NULL;
   for(int c=0; c<(int)fChannels.size(); c++){
@@ -32,6 +34,24 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   if(status_OK){
     c_data[0] = new double [fSegmentDuration*fSampleFrequency/2]; // real part
     c_data[1] = new double [fSegmentDuration*fSampleFrequency/2]; // imaginary part
+  }
+
+  // init network mode
+  if(status_OK){
+    string NetName="";
+    for(int d=0; d<(int)fDetectors.size(); d++) NetName+=fDetectors[d];
+    if(fDetectors.size()){
+      Net = new Network(NetName, fVerbosity);
+      status_OK*=Net->GetNdetectors();
+    }
+  }
+
+  // init inject object
+  if(status_OK){
+    if(fDetectors.size()&&fInjFile.compare("")){
+      Inj = new Inject(Net,fSampleFrequency,fVerbosity);
+      status_OK*=Inj->SetInjectionSet(fInjFile);
+    }
   }
 
   // init trigger objects
@@ -51,6 +71,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
     for(int c=0; c<(int)fChannels.size(); c++){
       odata[c] = new Odata(fFflFile,fChannels[c],fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
       if(fInjChan.size()) status_OK*=odata[c]->SetInjectionChannel(fInjChan[c],fInjFact[c]);// add injection channel
+      if(Inj!=NULL) status_OK*=odata[c]->SetInject(Inj,Net->GetDetIndex(fDetectors[c]));// add inject object
       status_OK*=odata[c]->GetStatus();// update status
     }
   }
@@ -74,6 +95,8 @@ Omicron::~Omicron(void){
     if(fVerbosity>0) cout<<" -> delete triggers for "<<fChannels[c]<<endl;    
     if(triggers[c]!=NULL) delete triggers[c];
   }
+  if(Net!=NULL) delete Net;
+  if(Inj!=NULL) delete Inj;
 
 }
 
@@ -324,6 +347,19 @@ bool Omicron::ReadOptions(void){
   if(fInjFact.size()!=fInjChan.size()){
     cerr<<"Omicron::ReadOptions: INJECTION/FACTORS is inconsistent with the number of channels"<<endl;
     return false;
+  }
+  //*****************************
+
+  //***** network mode *****
+  fDetectors.clear();
+  fInjFile="";
+  io.GetOpt("NETWORK","DETECTORS", fDetectors);
+  if(fDetectors.size()){// network mode activated
+    if(fDetectors.size()!=fChannels.size()){
+      cerr<<"Omicron::ReadOptions: NETWORK/DETECTORS is inconsistent with the number of channels"<<endl;
+      return false;
+    }
+    io.GetOpt("NETWORK","INJFILE", fInjFile);
   }
   //*****************************
 

@@ -42,12 +42,11 @@ alias MakeOmicronWeb       "$(OMICRONROOT)/scripts/MakeOmicronWeb.sh"
 document rootcint OmicronDict Omicron.h LinkDef.h
 
 #### libraries generation
-macro_append Omicron_dependencies " OmicronToolBox" 
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lOmicronToolBox" 
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lNetwork -lSegments -lInject -lOmicronToolBox" 
 library Omicron -no_prototypes -no_static Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
-macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lSegments -lOmicron"
+macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
 
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
