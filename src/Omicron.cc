@@ -46,7 +46,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
     }
   }
 
-  // init inject object
+  // init inject object at the working sampling
   if(status_OK){
     if(fDetectors.size()&&fInjFile.compare("")){
       Inj = new Inject(Net,fSampleFrequency,fVerbosity);
