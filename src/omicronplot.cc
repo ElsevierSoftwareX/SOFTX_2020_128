@@ -62,13 +62,16 @@ int main (int argc, char* argv[]){
   delete insegments;
 
   // input triggers
-  TriggerPlot *triggers = new TriggerPlot(trigfiles,"triggers",1);
+  TriggerPlot *triggers;
+  if(trigfiles.size()<10000) triggers = new TriggerPlot(trigfiles,"triggers",1);
+  else triggers = new TriggerPlot(infiles,"triggers",1);
   if(!triggers->GetNTrig()){
     cerr<<"No triggers to plot"<<endl;
     delete triggers;
     return 2;
   }
- 
+  trigfiles.clear();
+
   // livetime
   double live = triggers->GetSegments()->GetLiveTime(start,stop);
 
