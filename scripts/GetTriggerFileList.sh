@@ -27,8 +27,8 @@ printhelp(){
     echo ""
 } 
 
-##### Check the environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
+##### Check the Omicron environment
+if [[ -z "$OMICRONROOT" ]]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
@@ -63,6 +63,24 @@ tmin=`echo $1 | awk '{print int($1)}'`
 tmax=`echo $2 | awk '{print int($1)}'`
 OPTIND=0
 
+##### check timing
+if [ $tmin -lt 700000000 ]; then
+    echo "Invalid option: '$tmin' is not a reasonable starting time"
+    echo "type  'GetTriggerFileList -h'  for help"
+    exit 1
+fi
+if [ $tmax -le $tmin ]; then
+    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
+    echo "type  'GetTriggerFileList -h'  for help"
+    exit 1
+fi
+
+##### Check the trigger environment
+if [[ -z "$OMICRON_TRIGGERS" ]]; then
+    echo "Error: The Omicron trigger environment is not set"
+    exit 1
+fi
+
 ##### select run
 run="NONE"
 for r in $RUN_NAMES; do
@@ -93,23 +111,6 @@ fi
 ##### check channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
     echo "Invalid option: channel '${channel}' is not available"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-
-##### check timing
-if [ $tmin -lt 700000000 ]; then
-    echo "Invalid option: '$tmin' is not a reasonable starting time"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-if [ $tmax -lt 700000000 ]; then
-    echo "Invalid option: '$tmax' is not a reasonable stop time"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-if [ $tmax -le $tmin ]; then
-    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
     echo "type  'GetTriggerFileList -h'  for help"
     exit 1
 fi
