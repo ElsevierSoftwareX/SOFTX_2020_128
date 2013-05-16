@@ -380,8 +380,12 @@ bool Omicron::ReadOptions(void){
   }
   else{// OK
     lcfset=true;
-    LCF2FFL(fLcfFile,maindir+"/converted_lcf.ffl");
-    fFflFile=maindir+"/converted_lcf.ffl";
+    srand (time(NULL));
+    int randint = rand();
+    ostringstream tmpstream;
+    tmpstream<<maindir<<"/converted_lcf_"<<randint<<".ffl";
+    LCF2FFL(fLcfFile,tmpstream.str());
+    fFflFile=tmpstream.str();
   }
 
   //*****************************
