@@ -1,8 +1,8 @@
 universe = vanilla
-executable = $(OMICRONROOT)/$(OMICRONCONFIG)/omicron.exe
+executable = [OMICRON_PATH]/omicron.exe
 arguments = " $(in_segments) $(in_parameters)"
 getenv = True
-log = /usr1/$(USER)/omicron.log
+log = /usr1/[USER]/omicron.log
 error = logs/omicron-$(cluster)-$(process).err
 output = logs/omicron-$(cluster)-$(process).out
 notification = never

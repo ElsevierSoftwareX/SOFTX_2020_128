@@ -207,7 +207,9 @@ while read line; do
 done < ${workdir}/segments.txt
 
 ##### preparing segment files
-cp -f ${OMICRON_SCRIPTS}/omicron.sub ${workdir}/
+sed -e "s|\[OMICRON_PATH\]|${OMICRONROOT}/${OMICRONCONFIG}|g" \
+    -e "s|\[USER\]|${USER}|g" \
+    ${OMICRON_SCRIPTS}/omicron.sub > ${workdir}/omicron.sub
 
 ##### make omicron jobs
 echo "*** make omicron jobs"
