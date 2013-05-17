@@ -107,10 +107,6 @@ if [ $livetime -eq 0 ] ; then
     exit 3
 fi
 
-##### check merging
-fileformat=`grep OUTPUT ${workdir}/parameters/parameters_0.txt | grep -m FORMAT | awk '{print $3}'`
-if [ ! "$fileformat" = "root" ]; then merging=0; fi
-
 ##### create sub-directories
 mkdir -p ${workdir}/triggers   # trigger directory
 mkdir -p ${workdir}/segments   # segment directory
@@ -140,6 +136,30 @@ if [ $nproc -eq 0 ] ; then
     echo "type  'GetOmicronDAG -h'  for help"
     exit 3
 fi
+
+##### check number of channels
+for file in ${workdir}/parameters/parameters_*.txt; do
+    channels=`grep DATA $file | grep -m 1 CHANNELS`
+    nchannels=`echo $channels | wc -w`
+    if [ $nchannels -le 2 ]; then 
+	echo "There is no channel to process in $file"
+	exit 3
+    fi
+    let "nchannels-=2"
+    if [ $nchannels -gt 10 ]; then 
+	echo ""
+	echo "You have more than 10 channels to process in $file :"
+	echo "$channels"
+	echo ""
+	echo "Are you sure you want to do that?"
+	read -p "Press [ENTER] if yes, [CTRL-C] to cancel"
+    fi
+
+done
+
+##### check merging
+fileformat=`grep OUTPUT ${workdir}/parameters/parameters_0.txt | grep -m1 FORMAT | awk '{print $3}'`
+if [ ! "$fileformat" = "root" ]; then merging=0; fi
 
 ##### preparing segment files
 echo "*** preparing segment files"
