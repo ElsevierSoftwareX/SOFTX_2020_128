@@ -120,13 +120,13 @@ for file in ${workdir}/parameters_*.txt; do
     if [ -e $file ]; then
 
 	# remove output directory option
-	sed '/OUTPUT[ \t]*DIRECTORY/d' $file > ${workdir}/parameters/parameters_${nproc}.txt
+	sed '/OUTPUT[ \t]*DIRECTORY/d' $file > ${workdir}/parameters/parameters${usertag}_${nproc}.txt
 
 	# add new output directory option
-	echo "" >> ${workdir}/parameters/parameters_${nproc}.txt
-	echo "OUTPUT  DIRECTORY  ${workdir}/triggers" >> ${workdir}/parameters/parameters_${nproc}.txt
+	echo "" >> ${workdir}/parameters/parameters${usertag}_${nproc}.txt
+	echo "OUTPUT  DIRECTORY  ${workdir}/triggers" >> ${workdir}/parameters/parameters${usertag}_${nproc}.txt
 
-	echo "parameters_${nproc}.txt = $file"
+	echo "parameters${usertag}_${nproc}.txt = $file"
 	let "nproc+=1"
     fi
 done
@@ -138,7 +138,7 @@ if [ $nproc -eq 0 ] ; then
 fi
 
 ##### check number of channels
-for file in ${workdir}/parameters/parameters_*.txt; do
+for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
     channels=`grep DATA $file | grep -m 1 CHANNELS`
     nchannels=`echo $channels | wc -w`
     if [ $nchannels -le 2 ]; then 
@@ -158,16 +158,16 @@ for file in ${workdir}/parameters/parameters_*.txt; do
 done
 
 ##### check merging
-fileformat=`grep OUTPUT ${workdir}/parameters/parameters_0.txt | grep -m1 FORMAT | awk '{print $3}'`
+fileformat=`grep OUTPUT ${workdir}/parameters/parameters${usertag}_0.txt | grep -m1 FORMAT | awk '{print $3}'`
 if [ ! "$fileformat" = "root" ]; then merging=0; fi
 
 ##### preparing segment files
 echo "*** preparing segment files"
 nseg=0
 #FIXME : this is wrong if durations differ
-chunkduration=`grep -m1 CHUNKDURATION ${workdir}/parameters/parameters_0.txt | awk '{print $3}'`
-overlapduration=`grep -m1 OVERLAPDURATION ${workdir}/parameters/parameters_0.txt | awk '{print $3}'`
-blockduration=`grep -m1 BLOCKDURATION ${workdir}/parameters/parameters_0.txt | awk '{print $3}'`
+chunkduration=`grep -m1 CHUNKDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
+overlapduration=`grep -m1 OVERLAPDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
+blockduration=`grep -m1 BLOCKDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
 dur=$(( $chunkduration - $overlapduration ))
 ndur=$(( $OMICRON_TRIGGERS_BASE / $dur ))
 duration=$(( $ndur * $dur + $overlapduration ))
@@ -198,7 +198,7 @@ while read line; do
 	e=$(( $s + $duration ))
 	if [ $e -gt $ee ]; then e=$ee; fi
     
-	echo "$s $e" > ${workdir}/segments/segments_${nseg}.txt
+	echo "$s $e" > ${workdir}/segments/segments${usertag}_${nseg}.txt
 	let "seg+=1"
 	let "nseg+=1"
  	ss=$(( $ss - $overlapduration ))
@@ -220,7 +220,7 @@ while [ $n -lt $nseg ]; do # loop over segments
     while [ $p -lt $nproc ]; do # loop over parameters
 
 	echo "JOB omicron${usertag}_seg${n}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
-	echo "VARS omicron${usertag}_seg${n}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments_${n}.txt\" in_parameters=\"./parameters/parameters_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
+	echo "VARS omicron${usertag}_seg${n}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${n}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 
 	let "p+=1"
     done
