@@ -218,7 +218,6 @@ rm -fr ${workdir}/omicron${usertag}.dag
 while [ $n -lt $nseg ]; do # loop over segments
     p=0
     while [ $p -lt $nproc ]; do # loop over parameters
-	echo "$nseg $n $p"
 	echo "JOB omicron${usertag}_seg${n}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
 	echo "VARS omicron${usertag}_seg${n}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${n}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 
