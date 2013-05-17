@@ -151,7 +151,7 @@ for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
 	echo "You have more than 10 channels to process in $file :"
 	echo "$channels"
 	echo ""
-	echo "Are you sure you want to do that?"
+	echo "Are you sure you want to perform this search?"
 	read -p "Press [ENTER] if yes, [CTRL-C] to cancel"
     fi
 
@@ -214,11 +214,11 @@ sed -e "s|\[OMICRON_PATH\]|${OMICRONROOT}/${OMICRONCONFIG}|g" \
 ##### make omicron jobs
 echo "*** make omicron jobs"
 n=0
-p=0
 rm -fr ${workdir}/omicron${usertag}.dag
 while [ $n -lt $nseg ]; do # loop over segments
+    p=0
     while [ $p -lt $nproc ]; do # loop over parameters
-
+	echo "$nseg $n $p"
 	echo "JOB omicron${usertag}_seg${n}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
 	echo "VARS omicron${usertag}_seg${n}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${n}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 
