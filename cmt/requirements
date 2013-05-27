@@ -16,13 +16,13 @@ set OMICRON_LIB        "$(OMICRONROOT)/lib"
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
     Cascina		    "/data/procdata/detchar/triggers/Omicron"\
-    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"
+    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
     LIGO		    "/home/detchar/Omicron/triggers"
 set OMICRON_ONLINE_TRIGGERS ""\
     Cascina		    "/data/procdata/bufferv29/OnlineOmicron"
 set OMICRON_WEB             ""\
     Florent		    "/home/florent/Analysis/Omicron/web"\
-    Cascina		    "/data/procdata/web/Omicron"
+    Cascina		    "/data/procdata/web/Omicron"\
     LIGO		    "/home/detchar/public_html/Omicron"
 set OMICRON_TRIGGERS_BASE   "100000"
 
