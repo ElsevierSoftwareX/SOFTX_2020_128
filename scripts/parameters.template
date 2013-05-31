@@ -1,0 +1,23 @@
+//***********************************************************************
+//*****************   Omicron configuration file   **********************
+//***********************************************************************
+
+DATA	FFL		/sps/virgo/USERS/frobinet/Omicron/L1/l1.rds.ffl
+
+PARAMETER	CHUNKDURATION	456
+PARAMETER	BLOCKDURATION	64
+PARAMETER	OVERLAPDURATION	 8
+
+PARAMETER	FREQUENCYRANGE	2	1024
+PARAMETER	QRANGE		3.3166	100
+PARAMETER	MISMATCHMAX	0.35
+
+TRIGGER		SNRTHRESHOLD	8
+TRIGGER		NMAX		300000
+
+OUTPUT	DIRECTORY		.
+OUTPUT	FORMAT			root
+OUTPUT	VERBOSITY		0
+OUTPUT  WRITEPSD		0
+OUTPUT  WRITETIMESERIES		0
+OUTPUT  WRITEWHITENEDDATA	0
