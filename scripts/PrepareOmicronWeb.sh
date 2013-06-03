@@ -7,11 +7,7 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-##### default options
-channel="h_4096Hz" # channel name
-stopgps=0
-dayoption=0
-houroption=1
+webdir="./no.chance.this.exists"
 
 printhelp(){
     echo ""
@@ -53,7 +49,7 @@ done
 
 ##### check web directory
 if [ ! -d $webdir ]; then
-    echo "Invalid option: directory $webdir does not exist"
+    echo "Invalid option: directory '$webdir' does not exist"
     echo "type  'PrepareOmicronWeb -h'  for help"
     exit 1
 fi
