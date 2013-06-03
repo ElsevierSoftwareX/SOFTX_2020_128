@@ -117,7 +117,7 @@ mkdir -p ${TMP}/${channel}-${now}
 # merge online file
 while [ $b1000 -lt $now_base1000 ]; do
     echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" | grep "nothing to merge"; then
+    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" | grep "no livetime"; then
 	echo "skip this file"
     else
 	rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
