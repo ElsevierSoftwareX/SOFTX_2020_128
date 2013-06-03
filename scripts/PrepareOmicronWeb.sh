@@ -67,10 +67,10 @@ ln -s $OMICRON_HTML/monitoringweb/omiscan.html
 ln -s $OMICRON_HTML/monitoringweb/index.html
 ln -s $GWOLLUM_DOC/Pics/gwollum_logo_min_trans.gif icon.gif
 ln -s $GWOLLUM_DOC/Pics/WebReport/nodata1.gif nodata.gif
-ln -s $GWOLLUM_DOC/Pics/WebReport/omicronlogo_l.gif
-ln -s $GWOLLUM_DOC/Pics/WebReport/omicronlogo_s.gif
-ln -s $GWOLLUM_DOC/Pics/WebReport/omicronlogo_xl.gif
-ln -s $GWOLLUM_DOC/Pics/WebReport/style.css
+ln -s $OMICRON_HTML/pics/omicronlogo_l.gif
+ln -s $OMICRON_HTML/pics/omicronlogo_s.gif
+ln -s $OMICRON_HTML/pics/omicronlogo_xl.gif
+ln -s $GWOLLUM_DOC/style.css
 ln -s $GWOLLUM_HTML/php/tconvert.php
 
 cp -f $OMICRON_HTML/monitoringweb/header.html .
