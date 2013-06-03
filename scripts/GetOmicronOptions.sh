@@ -8,15 +8,9 @@
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronOptions [OPTION FILE]"
+    echo "GetOmicronOptions -o [OPTION FILE]"
     echo ""
 } 
-
-##### needs argument
-if [ $# -lt 1 ]; then
-    printhelp
-    exit 1
-fi
 
 ##### Check the Omicron environment
 if [[ -z "$OMICRONROOT" ]]; then
