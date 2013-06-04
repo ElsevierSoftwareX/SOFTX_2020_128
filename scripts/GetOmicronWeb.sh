@@ -58,7 +58,7 @@ if [ $# -lt 1 ]; then
 fi
 
 ##### read options
-while getopts ":c:d:n:t:p:u:t:wh" opt; do
+while getopts ":c:d:n:t:p:u:o:wh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
