@@ -38,7 +38,7 @@ printhelp(){
     echo "  -n  [HTMLPATH]      add -next- button pointing to [HTMLPATH]"
     echo "  -p  [HTMLPATH]      add -previous- button pointing to [HTMLPATH]"
     echo "  -u  [HTMLPATH]      add -up- button pointing to [HTMLPATH]"
-    echo "  -t  [DAYPATH]/      add hour links found in [DAYPATH]/"
+    echo "  -o  [DAYPATH]/      add hour links found in [DAYPATH]/"
     echo "  -w                  full web architecture flag"
     echo ""
     echo "  -h                  print this help"
@@ -78,7 +78,7 @@ while getopts ":c:d:n:t:p:u:t:wh" opt; do
 	u)
 	    up="$OPTARG"
 	    ;;
-	t)
+	o)
 	    hlinks="$OPTARG"
 	    ;;
 	w)
