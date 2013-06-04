@@ -114,11 +114,11 @@ echo "Starting base1000 = ${b1000}"
 # tmp place holder
 mkdir -p ${TMP}/${channel}-${now}
 
-# merge online files
+# merge online file
 while [ $b1000 -lt $now_base1000 ]; do
     echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" | grep -q "no livetime"; then
-	echo "skip this files"
+    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" | grep "no livetime"; then
+	echo "skip this file"
     else
 	rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
 	mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
