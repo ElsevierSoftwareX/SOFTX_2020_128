@@ -8,7 +8,7 @@
 
 <body>
 
-<!-- check arguments from file -->
+<h1>List of available channel reports</h1>
 
 <?php
 include "tconvert.php";
@@ -26,26 +26,9 @@ $day = $_REQUEST['day'];
 $hour = $_REQUEST['hour'];
 $predefvalue = $_REQUEST['predefvalue'];
 $fullday = $_REQUEST['fullday'];
-   
-// Only list available channels
-if($_REQUEST['getchannel'] == 'Get Available Channels'){
-  $chandirs = array();
-  
-  // loop over channel directories
-  if ($handle = opendir("{$OMICRONTRIGGERS}")) {
-    while (false !== ($chandir = readdir($handle))) {
-      if(!strpos($chandir,'_')) continue;
-      $chandirs[] = $chandir;
-    }
-    closedir($handle);
-  }
-  sort($chandirs);
-  echo "<pre>\n";
-  print_r($chandirs);
-  //foreach($chandir in $chandirs) echo "$chandir\n";
-  echo "</pre>\n";
-}
 
+$found=0;
+   
 if($timemode=="date"){// ----------- Date input
   if($hour=="all") $fullday="yes";
   else $fullday="no";
@@ -60,18 +43,27 @@ else{
   }
   else{// ----------- Predefined time input
     if($predefvalue=="latestday"){// latest day
-      if(file_exists("./latestday/{$channel}.html")){
-	header("Location: ./latestday/{$channel}.html");
-	exit;
+
+      foreach (glob("./latestday/*.html") as $html_link) {
+	
+	// retrieve channel name
+	$channel_path=explode("/",$html_link);
+	$channel=$channel_path[count($channel_path)-1];
+	$channel=substr($channel, 0, -5);
+	echo "<a href=\"$html_link\">$channel</a><br>";
       }
-      else die("Channel {$channel} is not available for the last day");
+      exit;
     }
     if($predefvalue=="latesthour"){// latest hour
-      if(file_exists("./latesthour/{$channel}.html")){
-	header("Location: ./latesthour/{$channel}.html");
-	exit;
+      foreach (glob("./latesthour/*.html") as $html_link) {
+	
+	// retrieve channel name
+	$channel_path=explode("/",$html_link);
+	$channel=$channel_path[count($channel_path)-1];
+	$channel=substr($channel, 0, -5);
+	echo "<a href=\"$html_link\">$channel</a><br>";
       }
-      else die("Channel {$channel} is not available for the last hour");
+      exit;
     }
     elseif($predefvalue=="thishour"){// this hour
       $date_elmt = explode(" ",date("Y m d H"));
@@ -92,12 +84,38 @@ else{
   
 // list channels for this day
 if($fullday=="yes"){
-
-  foreach (glob("./{$year}/{$month}/{$day}/*.html") as $filename) {
-    echo "$filename size " . filesize($filename) . "<br>\n";
+  
+  foreach (glob("./{$year}/{$month}/{$day}/*.html") as $html_link) {
+    
+    // retrieve channel name
+    $channel_path=explode("/",$html_link);
+    $channel=$channel_path[count($channel_path)-1];
+    $channel=substr($channel, 0, -5);
+    $found=1;
+    echo "<a href=\"$html_link\">$channel</a><br>";
   }
   
 }
+else{
+
+  foreach (glob("./{$year}/{$month}/{$day}/{$hour}/*.html") as $html_link) {
+    
+    // retrieve channel name
+    $channel_path=explode("/",$html_link);
+    $channel=$channel_path[count($channel_path)-1];
+    $channel=substr($channel, 0, -5);
+    $found=1;
+    echo "<a href=\"$html_link\">$channel</a><br>";
+  }
+}
+
+if($found==0){
+  echo"Sorry, there is no channel report available for your request: ";
+  if($fullday=="yes") echo"{$year}-{$month}-{$day}<br/>";
+  else                echo"{$year}-{$month}-{$day} {$hour}h<br/>";
+  echo"<br/>";
+ }
+
 ?>  
 
 
