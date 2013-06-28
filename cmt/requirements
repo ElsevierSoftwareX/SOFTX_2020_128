@@ -2,7 +2,7 @@ package Omicron
 
 use VirgoPolicy v2r6
 use root v5r34p050
-use GWOLLUM v1r0
+use GWOLLUM v1r1
 
 #### LOCALS
 
