@@ -156,6 +156,7 @@ if [ "$triggers" = "" ]; then
 fi
 
 ##### retrieve triggers
+echo "omicronplot.exe $channel $outdir \"$triggers\" $tmin $tmax"
 omicronplot.exe $channel $outdir "$triggers" $tmin $tmax
 
 exit 0

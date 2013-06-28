@@ -45,7 +45,7 @@ int main (int argc, char* argv[]){
   string sstop = (string)argv[5];
  
   // input segments
-  ReadTriggerSegments *insegments = new ReadTriggerSegments(infiles,0);
+  ReadTriggerSegments *insegments = new ReadTriggerSegments(infiles,"",0);
   if(!insegments->GetNFiles()){
     cerr<<"No trigger files for this time segment"<<endl;
     delete insegments;
@@ -60,11 +60,11 @@ int main (int argc, char* argv[]){
     return 1;
   }
   delete insegments;
-
+  
   // input triggers
   TriggerPlot *triggers;
-  if(trigfiles.size()<10000) triggers = new TriggerPlot(trigfiles,"triggers",1);
-  else triggers = new TriggerPlot(infiles,"triggers",1);
+  if(trigfiles.size()<10000) triggers = new TriggerPlot(trigfiles,"",1);
+  else triggers = new TriggerPlot(infiles,"",1);
   if(!triggers->GetNTrig()){
     cerr<<"No triggers to plot"<<endl;
     delete triggers;
@@ -113,7 +113,7 @@ int main (int argc, char* argv[]){
   infofile.close();
 
   // event mapping of the loudest event
-  EventMap *loudestevent= new EventMap(triggers->GetTriggerFile(triggers->GetTimeSNRMaxPlot(1)),"triggers", 0);
+  EventMap *loudestevent= new EventMap(triggers->GetTriggerFile(triggers->GetTimeSNRMaxPlot(1)),"", 0);
   loudestevent->BuildMap(0,triggers->GetTimeSNRMaxPlot(1));
   loudestevent->PrintMap(0,outdir+"/loudest_"+sstart+"_"+sstop+".gif");
   delete loudestevent;
