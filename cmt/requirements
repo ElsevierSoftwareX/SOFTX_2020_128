@@ -19,7 +19,8 @@ set OMICRON_TRIGGERS        ""\
     CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
     LIGO		    "/home/detchar/Omicron/triggers"
 set OMICRON_ONLINE_TRIGGERS ""\
-    Cascina		    "/data/procdata/detchar/onlineomicron"
+    Cascina		    "/data/procdata/detchar/onlineomicron"\
+    LIGO		    "/home/detchar/Omicron/Prod/triggers"
 set OMICRON_WEB             ""\
     Florent		    "/home/florent/Analysis/Omicron/web"\
     Cascina		    "/data/procdata/web/Omicron"\

@@ -11,6 +11,7 @@
 workdir=`pwd`    # working directory
 usertag=""
 merging=0
+forceprompt=0
 
 printhelp(){
     echo ""
@@ -46,6 +47,8 @@ printhelp(){
     echo "                      This option is only available for ROOT file format"
     echo "                      --- NOT AVAILABLE OPTION ---"
     echo ""
+    echo "  -f                  Flag to shortcut the user prompt"
+    echo ""
     echo ""
     echo "  -h                  Print this help"
     echo ""
@@ -62,7 +65,7 @@ if [[ -z "$USER" ]]; then
 fi
 
 ##### read options
-while getopts ":d:t:mh" opt; do
+while getopts ":d:t:mfh" opt; do
     case $opt in
 	d)
 	    workdir="$OPTARG"
@@ -72,6 +75,9 @@ while getopts ":d:t:mh" opt; do
 	    ;;
 	m)
 	    merging=1
+	    ;;
+	f)
+	    forceprompt=1
 	    ;;
 	h)
 	    printhelp
@@ -146,6 +152,7 @@ for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
 	exit 3
     fi
     let "nchannels-=2"
+    if [ $forceprompt -eq 1 ]; then continue; fi
     if [ $nchannels -gt 10 ]; then 
 	echo ""
 	echo "You have more than 10 channels to process in $file :"

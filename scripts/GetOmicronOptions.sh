@@ -20,12 +20,16 @@ fi
 
 ##### default options
 optfile="./no.chance.this.file.exists"
+chanfile="./no.chance.this.file.exists"
 
 ##### read options
-while getopts ":o:h" opt; do
+while getopts ":o:c:h" opt; do
     case $opt in
 	o)
 	    optfile="$OPTARG"
+	    ;;
+	c)
+	    chanfile="$OPTARG"
 	    ;;
 	h)
 	    printhelp
@@ -52,33 +56,39 @@ if [ ! -e $optfile ]; then
     optfile="./parameters.template"
 fi
 
-##### get reference frame file
-fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
-if [ -e $fflfile ]; then
-    framefile=`head -1 $fflfile | awk '{print $1}'`
-    gps=`head -1 $fflfile | awk '{print $2}'`
-else # let's try LCF 
-    lcffile=`grep DATA $optfile | grep -m1 LCF | awk '{print $3}'`
-    if [ -e $lcffile ]; then
-	framefile=`head -1 $lcffile | awk '{print $5}'`
-	gps=`head -1 $lcffile | awk '{print $3}'`
-    else
-	echo "No FFL/LCF file in the option file"
-	exit 2
-    fi
-fi
-if [ ! -e $framefile ]; then
-    echo "No reference frame file"
-    exit 2
+##### user channel list
+if [ -e $chanfile ]; then
+    cp $chanfile ./channel.list
+
 else
-    echo "Reference frame file: $framefile"
-fi
+##### get reference frame file
+    fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
+    if [ -e $fflfile ]; then
+	framefile=`head -1 $fflfile | awk '{print $1}'`
+	gps=`head -1 $fflfile | awk '{print $2}'`
+    else # let's try LCF 
+	lcffile=`grep DATA $optfile | grep -m1 LCF | awk '{print $3}'`
+	if [ -e $lcffile ]; then
+	    framefile=`head -1 $lcffile | awk '{print $5}'`
+	    gps=`head -1 $lcffile | awk '{print $3}'`
+	else
+	    echo "No FFL/LCF file in the option file"
+	    exit 2
+	fi
+    fi
+    if [ ! -e $framefile ]; then
+	echo "No reference frame file"
+	exit 2
+    else
+	echo "Reference frame file: $framefile"
+    fi
 
 ##### get channel list
-${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
-if [ ! -s ./channel.list ]; then
-    echo "No channel"
-    exit 2
+    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6<0.0625{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
+    if [ ! -s ./channel.list ]; then
+	echo "No channel"
+	exit 2
+    fi
 fi
 
 ##### break into freq
