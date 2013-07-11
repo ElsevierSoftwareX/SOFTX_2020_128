@@ -117,7 +117,7 @@ mkdir -p ${TMP}/${channel}-${now}
 # merge online files
 while [ $b1000 -lt $now_base1000 ]; do
     echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-    nfiles=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root 2>&1 | wc`
+    nfiles=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root 2>&1 | wc -l`
     if [ $nfiles -lt 2 ]; then
 	echo "nothing to merge"
 	let "b1000+=1"
