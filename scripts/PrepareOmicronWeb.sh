@@ -60,18 +60,18 @@ mkdir -p ./latestday
 mkdir -p ./latesthour
 
 # soft links
-ln -s $OMICRON_HTML/monitoringweb/getomicronpage.php
-ln -s $OMICRON_HTML/monitoringweb/getomiscan.php
-ln -s $OMICRON_HTML/monitoringweb/logo.html
-ln -s $OMICRON_HTML/monitoringweb/omiscan.html
-ln -s $OMICRON_HTML/monitoringweb/index.html
-ln -s $GWOLLUM_DOC/Pics/gwollum_logo_min_trans.gif icon.gif
-ln -s $GWOLLUM_DOC/Pics/WebReport/nodata1.gif nodata.gif
-ln -s $OMICRON_HTML/pics/omicronlogo_l.gif
-ln -s $OMICRON_HTML/pics/omicronlogo_s.gif
-ln -s $OMICRON_HTML/pics/omicronlogo_xl.gif
-ln -s $GWOLLUM_DOC/style.css
-ln -s $GWOLLUM_HTML/php/tconvert.php
+ln -sf $OMICRON_HTML/monitoringweb/getomicronpage.php
+ln -sf $OMICRON_HTML/monitoringweb/getomiscan.php
+ln -sf $OMICRON_HTML/monitoringweb/logo.html
+ln -sf $OMICRON_HTML/monitoringweb/omiscan.html
+ln -sf $OMICRON_HTML/monitoringweb/index.html
+ln -sf $GWOLLUM_DOC/Pics/gwollum_logo_min_trans.gif icon.gif
+ln -sf $GWOLLUM_DOC/Pics/WebReport/nodata1.gif nodata.gif
+ln -sf $OMICRON_HTML/pics/omicronlogo_l.gif
+ln -sf $OMICRON_HTML/pics/omicronlogo_s.gif
+ln -sf $OMICRON_HTML/pics/omicronlogo_xl.gif
+ln -sf $GWOLLUM_DOC/style.css
+ln -sf $GWOLLUM_HTML/php/tconvert.php
 
 cp -f $OMICRON_HTML/monitoringweb/header.html .
 cp -f $OMICRON_HTML/monitoringweb/calendar.html .

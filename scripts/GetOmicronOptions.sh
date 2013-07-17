@@ -84,6 +84,7 @@ else
     fi
 
 ##### get channel list
+##### FIXME: this is very dirty!! I found some cases where $7 should be used instead of $6
     ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6<0.0039{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
     if [ ! -s ./channel.list ]; then
 	echo "No channel"
