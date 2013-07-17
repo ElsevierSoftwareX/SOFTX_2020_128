@@ -84,7 +84,7 @@ else
     fi
 
 ##### get channel list
-    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6<0.0625{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
+    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6<0.0039{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
     if [ ! -s ./channel.list ]; then
 	echo "No channel"
 	exit 2
