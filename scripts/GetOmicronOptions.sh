@@ -46,12 +46,12 @@ done
 
 ##### check option file
 if [ ! -e $optfile ]; then
-    echo""
-    echo"******************************************"
-    echo"**  No template option file was given!  **"
-    echo"**  A default option file will be used  **"
-    echo"******************************************"
-    echo""
+    echo ""
+    echo "******************************************"
+    echo "**  No template option file was given!  **"
+    echo "**  A default option file will be used  **"
+    echo "******************************************"
+    echo ""
     cp -f $OMICRON_SCRIPTS/parameters.template ./parameters.template
     optfile="./parameters.template"
 fi
