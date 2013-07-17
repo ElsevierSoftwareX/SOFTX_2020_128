@@ -60,6 +60,7 @@ mkdir -p ./latestday
 mkdir -p ./latesthour
 
 # soft links
+ln -sf $OMICRON_HTML/monitoringweb/getomicronchannels.php
 ln -sf $OMICRON_HTML/monitoringweb/getomicronpage.php
 ln -sf $OMICRON_HTML/monitoringweb/getomiscan.php
 ln -sf $OMICRON_HTML/monitoringweb/logo.html
