@@ -126,8 +126,10 @@ while [ $b1000 -lt $now_base1000 ]; do
     if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" 2>&1 | grep -q "no livetime"; then
 	echo "no files -> skip"
     else
-	rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
-	mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+	if [ "$(ls -A ${TMP}/${channel}-${now})" ]; then
+	    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
+	    mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+	fi
     fi
     let "b1000+=1"
 done
