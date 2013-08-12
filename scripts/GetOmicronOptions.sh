@@ -126,7 +126,7 @@ for file in ./channel.*Hz; do
     
     # frequency range
     if [ $freq -le 1024 ]; then 
-	freqsample=64
+	freqsample=128
 	freqmin=0.1; 
 	overlap=160;
 	chunk=864;
