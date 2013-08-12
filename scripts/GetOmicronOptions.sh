@@ -125,8 +125,8 @@ for file in ./channel.*Hz; do
     if [ $freqsample -gt 4096 ]; then freqsample=4096; fi
     
     # frequency range
-    freqmax=$(( $freqsample / 2 ))
     if [ $freq -le 1024 ]; then 
+	freqsample=64
 	freqmin=0.1; 
 	overlap=160;
 	chunk=864;
@@ -137,6 +137,7 @@ for file in ./channel.*Hz; do
 	chunk=484;
 	block=64;
     fi
+    freqmax=$(( $freqsample / 2 ))
 
     n=0
     p=0
