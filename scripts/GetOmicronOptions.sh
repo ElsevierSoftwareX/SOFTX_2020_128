@@ -103,7 +103,7 @@ fi
 
 ##### user channel list
 if [ -e $chanfile ]; then
-    sort -n $chanfile | uniq > ${TMP}/channel.list
+    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.list
     mv ${TMP}/channel.list ./channel.list
 else
 ##### get reference frame file
