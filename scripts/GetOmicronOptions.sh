@@ -103,7 +103,8 @@ fi
 
 ##### user channel list
 if [ -e $chanfile ]; then
-    sort -n $chanfile | uniq > ./channel.list
+    sort -n $chanfile | uniq > ${TMP}/channel.list
+    mv ${TMP}/channel.list ./channel.list
 else
 ##### get reference frame file
     fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
