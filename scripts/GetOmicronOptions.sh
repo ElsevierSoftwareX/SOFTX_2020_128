@@ -111,7 +111,6 @@ else
 	if [ -e $fflfile ]; then
 	    framefile=`head -1 $fflfile | awk '{print $1}'`
 	    gps=`head -1 $fflfile | awk '{print $2}'`
-	    echo $fflfile
 	fi
     else # let's try LCF 
 	lcffile=`grep DATA $optfile | grep -m1 LCF | awk '{print $3}'`
@@ -133,10 +132,10 @@ else
     fi
 
 ##### get channel list
-##### FIXME: this is very dirty!! I found some cases where $7 should be used instead of $6
-    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.0039{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
+##### FIXME: this is very dirty!!
+    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.0039{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.list
     if [ ! -s ./channel.list ]; then
-	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.0039{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.list
+	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.0039{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
 	if [ ! -s ./channel.list ]; then
 	    echo "No channel"
 	    exit 2
