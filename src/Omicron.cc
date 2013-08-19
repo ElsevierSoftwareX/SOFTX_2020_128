@@ -48,7 +48,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
 
   // init inject object at the working sampling
   if(status_OK){
-    if(fDetectors.size()&&fInjFile.compare("")){
+    if(fDetectors.size()&&fInjFile.compare("none")){
       Inj = new Inject(Net,fSampleFrequency,fVerbosity);
       status_OK*=Inj->SetInjectionSet(fInjFile);
     }
@@ -64,6 +64,44 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
 	status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
       }
     }
+  }
+
+  // save meta-data
+  //if(status_OK){
+  if(0){
+     for(int c=0; c<(int)fChannels.size(); c++){
+       status_OK*=triggers[c]->InitMetaData(fOptionName,fOptionType);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[0],fOutdir[c]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[1],fChannels[c]);
+       if(fInjChan.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[2],fInjChan[c]);
+       else status_OK*=triggers[c]->SetMetaData(fOptionName[2],"none");
+       if(fInjFact.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[3],fInjFact[c]);
+       else  status_OK*=triggers[c]->SetMetaData(fOptionName[3],0.0);
+       if(fDetectors.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[4],fDetectors[c]);
+       else status_OK*=triggers[c]->SetMetaData(fOptionName[4],"none");
+       status_OK*=triggers[c]->SetMetaData(fOptionName[5],fInjFile);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[6],fLcfFile);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[7],fFflFile);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[8],fNativeFrequency[c]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[9],fSampleFrequency);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[10],fFreqRange[0]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[11],fFreqRange[1]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[12],fQRange[0]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[13],fQRange[1]);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[14],fChunkDuration);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[15],fSegmentDuration);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[16],fOverlapDuration);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[17],fMismatchMax);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[18],fSNRThreshold);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[19],fNtriggerMax);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[20],fClusterAlgo);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[21],fcldt);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[22],fVerbosity);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[23],fOutFormat);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[24],(int)writepsd);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[25],(int)writetimeseries);
+       status_OK*=triggers[c]->SetMetaData(fOptionName[26],(int)writewhiteneddata);
+     }
   }
 
   // init data objects
@@ -308,6 +346,8 @@ bool Omicron::ReadOptions(void){
 
   fOptions = new IO(fOptionFile.c_str());
   IO& io = *fOptions;
+  fOptionName.clear();
+  fOptionType.clear();
 
   //***** output directory *****
   string maindir="";
@@ -320,6 +360,8 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY"<<endl;
     return false;
   }
+  fOptionName.push_back("OUTPUT_DIRECTORY");
+  fOptionType.push_back("s");
   //*****************************
 
   //***** List of channels *****
@@ -333,6 +375,8 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: The number of channels cannot exceed "<<NDATASTREAMS<<endl;
     return false;
   }
+  fOptionName.push_back("GWOLLUM_channel");
+  fOptionType.push_back("s");
   //*****************************
 
   //***** injection channels *****
@@ -342,17 +386,21 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: INJECTION/CHANNELS is inconsistent with the number of channels"<<endl;
     return false;
   }
+  fOptionName.push_back("INJECTION_CHANNEL");
+  fOptionType.push_back("s");
   fInjFact.clear();
   io.GetOpt("INJECTION","FACTORS", fInjFact);
   if(fInjFact.size()!=fInjChan.size()){
     cerr<<"Omicron::ReadOptions: INJECTION/FACTORS is inconsistent with the number of channels"<<endl;
     return false;
   }
+  fOptionName.push_back("INJECTION_FACTOR");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** network mode *****
   fDetectors.clear();
-  fInjFile="";
+  fInjFile="none";
   io.GetOpt("NETWORK","DETECTORS", fDetectors);
   if(fDetectors.size()){// network mode activated
     if(fDetectors.size()!=fChannels.size()){
@@ -361,6 +409,10 @@ bool Omicron::ReadOptions(void){
     }
     io.GetOpt("NETWORK","INJFILE", fInjFile);
   }
+  fOptionName.push_back("GWOLLUM_detector");
+  fOptionType.push_back("s");
+  fOptionName.push_back("NETWORK_INJFILE");
+  fOptionType.push_back("s");
   //*****************************
 
   //***** lcf file *****
@@ -387,7 +439,8 @@ bool Omicron::ReadOptions(void){
     LCF2FFL(fLcfFile,tmpstream.str());
     fFflFile=tmpstream.str();
   }
-
+  fOptionName.push_back("DATA_LCF");
+  fOptionType.push_back("s");
   //*****************************
 
   //***** ffl file *****
@@ -407,6 +460,8 @@ bool Omicron::ReadOptions(void){
     else// OK
       online=false;
   }
+  fOptionName.push_back("DATA_FFL");
+  fOptionType.push_back("s");
   //*****************************
     
   //***** Native channel frequencies *****
@@ -416,6 +471,8 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Each channel must be given a native frequency: PARAMETER/NATIVEFREQUENCY"<<endl;
     return false;
   }
+  fOptionName.push_back("DATA_NATIVEFREQUENCY");
+  fOptionType.push_back("i");
   //*****************************
 
   //***** Sampling frequency *****
@@ -425,6 +482,8 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
+  fOptionName.push_back("GWOLLUM_sampling");
+  fOptionType.push_back("i");
   //*****************************
 
   //***** Frequency range *****
@@ -438,6 +497,10 @@ bool Omicron::ReadOptions(void){
     cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
     fFreqRange.pop_back(); fFreqRange.push_back((double)fSampleFrequency/2.0);
   }
+  fOptionName.push_back("GWOLLUM_fmin");
+  fOptionType.push_back("d");
+  fOptionName.push_back("GWOLLUM_fmax");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** Q range *****
@@ -447,6 +510,10 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct"<<endl;
     return false;
   }
+  fOptionName.push_back("GWOLLUM_qmin");
+  fOptionType.push_back("d");
+  fOptionName.push_back("GWOLLUM_qmax");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** timing *****
@@ -456,7 +523,7 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
-  if(fChunkDuration<4||fChunkDuration>5000||fChunkDuration%2){
+  if(fChunkDuration<4||fChunkDuration>100000||fChunkDuration%2){
     cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
     return false;
   }
@@ -491,6 +558,12 @@ bool Omicron::ReadOptions(void){
     cerr<<"PARAMETER/OVERLAPDURATION: "<<fOverlapDuration<<endl;
     return false;
   }
+  fOptionName.push_back("PARAMETER_CHUNKDURATION");
+  fOptionType.push_back("i");
+  fOptionName.push_back("PARAMETER_BLOCKDURATION");
+  fOptionType.push_back("i");
+  fOptionName.push_back("PARAMETER_OVERLAPDURATION");
+  fOptionType.push_back("i");
   //*****************************
 
   //***** maximum mismatch *****
@@ -500,27 +573,39 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: maximum mismatch (PARAMETER/MISMATCHMAX) is not reasonable"<<endl;
     return false;
   }
+  fOptionName.push_back("PARAMETER_MISMATCHMAX");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** SNR Threshold *****
   fSNRThreshold=8.0;
   io.GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold);
+  fOptionName.push_back("GWOLLUM_snrmin");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** set trigger limit *****
   fNtriggerMax=1000000;
   io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
+  fOptionName.push_back("TRIGGER_NMAX");
+  fOptionType.push_back("i");
   //*****************************
 
   //***** set clustering *****
   fcldt=0.1;
   io.GetOpt("TRIGGER","CLUSTERING", fClusterAlgo);
   io.GetOpt("TRIGGER","CLUSTERDT", fcldt);
+  fOptionName.push_back("TRIGGER_CLUSTERING");
+  fOptionType.push_back("s");
+  fOptionName.push_back("TRIGGER_CLUSTERDT");
+  fOptionType.push_back("d");
   //*****************************
 
   //***** set verbosity *****
   fVerbosity=0;
   io.GetOpt("OUTPUT","VERBOSITY", fVerbosity);
+  fOptionName.push_back("OUTPUT_VERBOSITY");
+  fOptionType.push_back("i");
   //*****************************
 
   //***** set verbosity ***** 
@@ -530,6 +615,8 @@ bool Omicron::ReadOptions(void){
     cerr<<"                      --> root format will be used"<<endl;
     fOutFormat="root";
   }
+  fOptionName.push_back("OUTPUT_FORMAT");
+  fOptionType.push_back("s");
   //*****************************
 
   //***** set writing flags *****
@@ -537,6 +624,12 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("OUTPUT","WRITEPSD", writepsd);
   io.GetOpt("OUTPUT","WRITETIMESERIES", writetimeseries);
   io.GetOpt("OUTPUT","WRITEWHITENEDDATA", writewhiteneddata);
+  fOptionName.push_back("OUTPUT_WRITEPSD");
+  fOptionType.push_back("i");
+  fOptionName.push_back("OUTPUT_WRITETIMESERIES");
+  fOptionType.push_back("i");
+  fOptionName.push_back("OUTPUT_WRITEWHITENEDDATA");
+  fOptionType.push_back("i");
   //*****************************
 
   // create output directories

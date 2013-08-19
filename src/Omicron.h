@@ -62,6 +62,8 @@ class Omicron {
   int fVerbosity;
   string fOptionFile;
   IO *fOptions;
+  vector <string> fOptionName;  // option name
+  vector <string> fOptionType;  // option type
   string fFflFile;              // path to FFL file (Virgo)
   string fLcfFile;              // path to LCF file (LIGO)
   vector <string> fChannels;    // list of channels
