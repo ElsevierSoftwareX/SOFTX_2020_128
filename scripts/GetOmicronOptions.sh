@@ -17,7 +17,7 @@ printhelp(){
     echo "  -c  [CHANNEL_FILE]  path to a text file listing all the channels to process"
     echo "                      The channel file must contain 2 columns:"    
     echo "                      [channel_name]  [sampling_frequency]"    
-    echo "                      Default: all channels with f0 > 256Hz"
+    echo "                      Default: all channels with f0 >= 256Hz"
     echo "  -d  [OUTDIR]        trigger output directory (inactive if template given)"
     echo "  -f  [FFL_FILE]      path to FFL file to consider (inactive if template given)"
     echo "  -l                  only produce the list of available channels"
@@ -134,9 +134,9 @@ else
 
 ##### get channel list
 ##### FIXME: this is very dirty!!
-    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.0039{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.list
+    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.004{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.list
     if [ ! -s ./channel.list ]; then
-	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.0039{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
+	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.004{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
 	if [ ! -s ./channel.list ]; then
 	    echo "No channel"
 	    exit 2
@@ -187,9 +187,9 @@ for file in ./channel.*Hz; do
 	freqsample=64
 	freqmin=0.1; 
 	overlap=160;
-	chunk=65536;
-	block=65536;
-	trigmax=5000000000;
+	chunk=8192;
+	block=8192;
+	trigmax=500000;
     else
 	freqmin=32; 
 	overlap=4;
