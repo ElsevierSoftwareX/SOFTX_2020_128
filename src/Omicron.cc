@@ -67,41 +67,43 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   }
 
   // save meta-data
-  //if(status_OK){
-  if(0){
-     for(int c=0; c<(int)fChannels.size(); c++){
-       status_OK*=triggers[c]->InitMetaData(fOptionName,fOptionType);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[0],fOutdir[c]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[1],fChannels[c]);
-       if(fInjChan.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[2],fInjChan[c]);
-       else status_OK*=triggers[c]->SetMetaData(fOptionName[2],"none");
-       if(fInjFact.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[3],fInjFact[c]);
-       else  status_OK*=triggers[c]->SetMetaData(fOptionName[3],0.0);
-       if(fDetectors.size()) status_OK*=triggers[c]->SetMetaData(fOptionName[4],fDetectors[c]);
-       else status_OK*=triggers[c]->SetMetaData(fOptionName[4],"none");
-       status_OK*=triggers[c]->SetMetaData(fOptionName[5],fInjFile);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[6],fLcfFile);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[7],fFflFile);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[8],fNativeFrequency[c]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[9],fSampleFrequency);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[10],fFreqRange[0]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[11],fFreqRange[1]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[12],fQRange[0]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[13],fQRange[1]);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[14],fChunkDuration);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[15],fSegmentDuration);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[16],fOverlapDuration);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[17],fMismatchMax);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[18],fSNRThreshold);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[19],fNtriggerMax);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[20],fClusterAlgo);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[21],fcldt);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[22],fVerbosity);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[23],fOutFormat);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[24],(int)writepsd);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[25],(int)writetimeseries);
-       status_OK*=triggers[c]->SetMetaData(fOptionName[26],(int)writewhiteneddata);
-     }
+  if(status_OK){
+    for(int c=0; c<(int)fChannels.size(); c++){
+      status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fOutdir[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
+      if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
+      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],"none");
+      if(fInjFact.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
+      else  status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],0.0);
+      if(fDetectors.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fDetectors[c]);
+      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],"none");
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fLcfFile);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFflFile);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fNativeFrequency[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fSampleFrequency);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fFreqRange[0]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fFreqRange[1]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fQRange[0]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fQRange[1]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fChunkDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fSegmentDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fOverlapDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fMismatchMax);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fSNRThreshold);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fNtriggerMax);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fClusterAlgo);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fcldt);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fVerbosity);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutFormat);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writepsd);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],(int)writetimeseries);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],(int)writewhiteneddata);
+      triggers[c]->SetMprocessname("Omicron");
+      triggers[c]->SetMstreamname(fChannels[c]);
+      triggers[c]->SetMdetindex(GetDetIndex(fChannels[c].substr(0,2)));
+    }
   }
 
   // init data objects
@@ -360,7 +362,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY"<<endl;
     return false;
   }
-  fOptionName.push_back("OUTPUT_DIRECTORY");
+  fOptionName.push_back("omicron_OUTPUT_DIRECTORY");
   fOptionType.push_back("s");
   //*****************************
 
@@ -375,7 +377,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: The number of channels cannot exceed "<<NDATASTREAMS<<endl;
     return false;
   }
-  fOptionName.push_back("GWOLLUM_channel");
+  fOptionName.push_back("omicron_DATA_CHANNEL");
   fOptionType.push_back("s");
   //*****************************
 
@@ -386,7 +388,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: INJECTION/CHANNELS is inconsistent with the number of channels"<<endl;
     return false;
   }
-  fOptionName.push_back("INJECTION_CHANNEL");
+  fOptionName.push_back("omicron_INJECTION_CHANNEL");
   fOptionType.push_back("s");
   fInjFact.clear();
   io.GetOpt("INJECTION","FACTORS", fInjFact);
@@ -394,7 +396,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: INJECTION/FACTORS is inconsistent with the number of channels"<<endl;
     return false;
   }
-  fOptionName.push_back("INJECTION_FACTOR");
+  fOptionName.push_back("omicron_INJECTION_FACTOR");
   fOptionType.push_back("d");
   //*****************************
 
@@ -409,9 +411,9 @@ bool Omicron::ReadOptions(void){
     }
     io.GetOpt("NETWORK","INJFILE", fInjFile);
   }
-  fOptionName.push_back("GWOLLUM_detector");
+  fOptionName.push_back("omicron_NETWORK_DETECTORS");
   fOptionType.push_back("s");
-  fOptionName.push_back("NETWORK_INJFILE");
+  fOptionName.push_back("omicron_NETWORK_INJFILE");
   fOptionType.push_back("s");
   //*****************************
 
@@ -439,7 +441,7 @@ bool Omicron::ReadOptions(void){
     LCF2FFL(fLcfFile,tmpstream.str());
     fFflFile=tmpstream.str();
   }
-  fOptionName.push_back("DATA_LCF");
+  fOptionName.push_back("omicron_DATA_LCF");
   fOptionType.push_back("s");
   //*****************************
 
@@ -460,7 +462,7 @@ bool Omicron::ReadOptions(void){
     else// OK
       online=false;
   }
-  fOptionName.push_back("DATA_FFL");
+  fOptionName.push_back("omicron_DATA_FFL");
   fOptionType.push_back("s");
   //*****************************
     
@@ -471,7 +473,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Each channel must be given a native frequency: PARAMETER/NATIVEFREQUENCY"<<endl;
     return false;
   }
-  fOptionName.push_back("DATA_NATIVEFREQUENCY");
+  fOptionName.push_back("omicron_DATA_NATIVEFREQUENCY");
   fOptionType.push_back("i");
   //*****************************
 
@@ -482,7 +484,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
-  fOptionName.push_back("GWOLLUM_sampling");
+  fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");
   fOptionType.push_back("i");
   //*****************************
 
@@ -497,9 +499,9 @@ bool Omicron::ReadOptions(void){
     cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
     fFreqRange.pop_back(); fFreqRange.push_back((double)fSampleFrequency/2.0);
   }
-  fOptionName.push_back("GWOLLUM_fmin");
+  fOptionName.push_back("omicron_PARAMETER_FMIN");
   fOptionType.push_back("d");
-  fOptionName.push_back("GWOLLUM_fmax");
+  fOptionName.push_back("omicron_PARAMETER_FMAX");
   fOptionType.push_back("d");
   //*****************************
 
@@ -510,9 +512,9 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct"<<endl;
     return false;
   }
-  fOptionName.push_back("GWOLLUM_qmin");
+  fOptionName.push_back("omicron_PARAMETER_QMIN");
   fOptionType.push_back("d");
-  fOptionName.push_back("GWOLLUM_qmax");
+  fOptionName.push_back("omicron_PARAMETER_QMAX");
   fOptionType.push_back("d");
   //*****************************
 
@@ -558,11 +560,11 @@ bool Omicron::ReadOptions(void){
     cerr<<"PARAMETER/OVERLAPDURATION: "<<fOverlapDuration<<endl;
     return false;
   }
-  fOptionName.push_back("PARAMETER_CHUNKDURATION");
+  fOptionName.push_back("omicron_PARAMETER_CHUNKDURATION");
   fOptionType.push_back("i");
-  fOptionName.push_back("PARAMETER_BLOCKDURATION");
+  fOptionName.push_back("omicron_PARAMETER_BLOCKDURATION");
   fOptionType.push_back("i");
-  fOptionName.push_back("PARAMETER_OVERLAPDURATION");
+  fOptionName.push_back("omicron_PARAMETER_OVERLAPDURATION");
   fOptionType.push_back("i");
   //*****************************
 
@@ -573,21 +575,21 @@ bool Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: maximum mismatch (PARAMETER/MISMATCHMAX) is not reasonable"<<endl;
     return false;
   }
-  fOptionName.push_back("PARAMETER_MISMATCHMAX");
+  fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");
   fOptionType.push_back("d");
   //*****************************
 
   //***** SNR Threshold *****
   fSNRThreshold=8.0;
   io.GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold);
-  fOptionName.push_back("GWOLLUM_snrmin");
+  fOptionName.push_back("omicron_TRIGGER_SNRTHRESHOLD");
   fOptionType.push_back("d");
   //*****************************
 
   //***** set trigger limit *****
   fNtriggerMax=1000000;
   io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
-  fOptionName.push_back("TRIGGER_NMAX");
+  fOptionName.push_back("omicron_TRIGGER_NMAX");
   fOptionType.push_back("i");
   //*****************************
 
@@ -595,16 +597,16 @@ bool Omicron::ReadOptions(void){
   fcldt=0.1;
   io.GetOpt("TRIGGER","CLUSTERING", fClusterAlgo);
   io.GetOpt("TRIGGER","CLUSTERDT", fcldt);
-  fOptionName.push_back("TRIGGER_CLUSTERING");
+  fOptionName.push_back("omicron_TRIGGER_CLUSTERING");
   fOptionType.push_back("s");
-  fOptionName.push_back("TRIGGER_CLUSTERDT");
+  fOptionName.push_back("omicron_TRIGGER_CLUSTERDT");
   fOptionType.push_back("d");
   //*****************************
 
   //***** set verbosity *****
   fVerbosity=0;
   io.GetOpt("OUTPUT","VERBOSITY", fVerbosity);
-  fOptionName.push_back("OUTPUT_VERBOSITY");
+  fOptionName.push_back("omicron_OUTPUT_VERBOSITY");
   fOptionType.push_back("i");
   //*****************************
 
@@ -615,7 +617,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"                      --> root format will be used"<<endl;
     fOutFormat="root";
   }
-  fOptionName.push_back("OUTPUT_FORMAT");
+  fOptionName.push_back("omicron_OUTPUT_FORMAT");
   fOptionType.push_back("s");
   //*****************************
 
@@ -624,11 +626,11 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("OUTPUT","WRITEPSD", writepsd);
   io.GetOpt("OUTPUT","WRITETIMESERIES", writetimeseries);
   io.GetOpt("OUTPUT","WRITEWHITENEDDATA", writewhiteneddata);
-  fOptionName.push_back("OUTPUT_WRITEPSD");
+  fOptionName.push_back("omicron_OUTPUT_WRITEPSD");
   fOptionType.push_back("i");
-  fOptionName.push_back("OUTPUT_WRITETIMESERIES");
+  fOptionName.push_back("omicron_OUTPUT_WRITETIMESERIES");
   fOptionType.push_back("i");
-  fOptionName.push_back("OUTPUT_WRITEWHITENEDDATA");
+  fOptionName.push_back("omicron_OUTPUT_WRITEWHITENEDDATA");
   fOptionType.push_back("i");
   //*****************************
 
