@@ -168,69 +168,71 @@ done
 fileformat=`grep OUTPUT ${workdir}/parameters/parameters${usertag}_0.txt | grep -m1 FORMAT | awk '{print $3}'`
 if [ ! "$fileformat" = "root" ]; then merging=0; fi
 
-##### preparing segment files
-echo "*** preparing segment files"
-nseg=0
-#FIXME : this is wrong if durations differ
-chunkduration=`grep -m1 CHUNKDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
-overlapduration=`grep -m1 OVERLAPDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
-blockduration=`grep -m1 BLOCKDURATION ${workdir}/parameters/parameters${usertag}_0.txt | awk '{print $3}'`
-dur=$(( $chunkduration - $overlapduration ))
-ndur=$(( $OMICRON_TRIGGERS_BASE / $dur ))
-duration=$(( $ndur * $dur + $overlapduration ))
-seg_start=`head -1 ${workdir}/segments.txt | awk '{print $1}'`
-seg_stop=`tail -1 ${workdir}/segments.txt | awk '{print $2}'`
-seg_start_base=$(( $seg_start / $OMICRON_TRIGGERS_BASE ))
-seg_stop_base=$(( $seg_stop / $OMICRON_TRIGGERS_BASE ))
-
-# loop over segments
-while read line; do
-    if [ "$line" = "" ]; then continue; fi
-    
-    # timing
-    dur=`echo $line | awk '{print int($2-$1)}'`
-    ss=`echo $line | awk '{print int($1)}'`
-    ee=`echo $line | awk '{print int($2)}'`
-
-    # too short
-    if [ $dur -lt $blockduration ]; then continue; fi
-
-    # get number of sub-segments
-    nsubseg=$(( $dur / $duration + 1 ))
-    
-    # loop over sub-segments
-    seg=0
-    while [ $seg -lt $nsubseg ]; do
-	s=$(( $ss + $seg * $duration ))
-	e=$(( $s + $duration ))
-	if [ $e -gt $ee ]; then e=$ee; fi
-    
-	echo "$s $e" > ${workdir}/segments/segments${usertag}_${nseg}.txt
-	let "seg+=1"
-	let "nseg+=1"
- 	ss=$(( $ss - $overlapduration ))
-    done
-
-done < ${workdir}/segments.txt
-
-##### preparing segment files
+##### preparing .sub
 sed -e "s|\[OMICRON_PATH\]|${OMICRONROOT}/${OMICRONCONFIG}|g" \
     -e "s|\[USER\]|${USER}|g" \
     ${OMICRON_SCRIPTS}/omicron.sub > ${workdir}/omicron.sub
-
-##### make omicron jobs
-echo "*** make omicron jobs"
-n=0
 rm -fr ${workdir}/omicron${usertag}.dag
-while [ $n -lt $nseg ]; do # loop over segments
-    p=0
-    while [ $p -lt $nproc ]; do # loop over parameters
-	echo "JOB omicron${usertag}_seg${n}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
-	echo "VARS omicron${usertag}_seg${n}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${n}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 
-	let "p+=1"
-    done
-    let "n+=1"
+##### preparing segment files
+echo "*** preparing segment files and jobs"
+nseg=0
+
+# loop over parameter files
+p=0
+while [ $p -lt $nproc ]; do # loop over parameters
+
+    # timing of the proc
+    chunkduration=`grep -m1 CHUNKDURATION ${workdir}/parameters/parameters${usertag}_${p}.txt | awk '{print $3}'`
+    overlapduration=`grep -m1 OVERLAPDURATION ${workdir}/parameters/parameters${usertag}_${p}.txt | awk '{print $3}'`
+    blockduration=`grep -m1 BLOCKDURATION ${workdir}/parameters/parameters${usertag}_${p}.txt | awk '{print $3}'`
+    dur=$(( $chunkduration - $overlapduration ))
+    ndur=$(( $OMICRON_TRIGGERS_BASE / $dur ))
+    duration=$(( $ndur * $dur + $overlapduration ))
+    seg_start=`head -1 ${workdir}/segments.txt | awk '{print $1}'`
+    seg_stop=`tail -1 ${workdir}/segments.txt | awk '{print $2}'`
+    seg_start_base=$(( $seg_start / $OMICRON_TRIGGERS_BASE ))
+    seg_stop_base=$(( $seg_stop / $OMICRON_TRIGGERS_BASE ))
+
+    # loop over segments
+    while read line; do
+	if [ "$line" = "" ]; then continue; fi
+	
+        # timing
+	dur=`echo $line | awk '{print int($2-$1)}'`
+	ss=`echo $line | awk '{print int($1)}'`
+	ee=`echo $line | awk '{print int($2)}'`
+
+        # too short
+	if [ $dur -lt $blockduration ]; then continue; fi
+
+        # get number of sub-segments
+	nsubseg=$(( $dur / $duration + 1 ))
+    
+        # loop over sub-segments
+	seg=0
+	while [ $seg -lt $nsubseg ]; do
+	    s=$(( $ss + $seg * $duration ))
+	    e=$(( $s + $duration ))
+	    if [ $e -gt $ee ]; then e=$ee; fi
+    
+	    echo "    ** parameters #${p}, segment #${nseg}..."
+	    echo "$s $e" > ${workdir}/segments/segments${usertag}_${p}_${nseg}.txt
+	    echo "       $s $e ---> livetime = $(( $e - $s )) sec"
+
+	    # Fill DAG with omicron job
+	    echo "JOB omicron${usertag}_seg${nseg}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
+	    echo "VARS omicron${usertag}_seg${nseg}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${p}_${nseg}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
+
+	    # increment
+	    let "seg+=1"
+	    let "nseg+=1"
+ 	    ss=$(( $ss - $overlapduration ))
+	done
+
+    done < ${workdir}/segments.txt
+
+    let "p+=1"
 done
 
 ##### make merging jobs
