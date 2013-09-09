@@ -173,7 +173,7 @@ for file in ./channel.*Hz; do
     echo ""
 
     # maximum number of channels to process
-    if [ $freq -le 1024 ]; then nmax=30;
+    if [ $freq -le 1024 ]; then nmax=12;
     elif [ $freq -le 2048 ]; then nmax=20;
     elif [ $freq -le 4096 ]; then nmax=10;
     else nmax=5; fi
