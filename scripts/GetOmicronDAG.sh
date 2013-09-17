@@ -190,7 +190,7 @@ while [ $p -lt $nproc ]; do # loop over parameters
     ndur=$(( $OMICRON_TRIGGERS_BASE / $dur ))
     duration=$(( $ndur * $dur + $overlapduration ))
     seg_start=`head -1 ${workdir}/segments.txt | awk '{print $1}'`
-    seg_stop=`tail -1 ${workdir}/segments.txt | awk '{print $2}'`
+    seg_stop=`awk '/./{line=$0} END{print line}' ${workdir}/segments.txt | awk '{print $2}'`
     seg_start_base=$(( $seg_start / $OMICRON_TRIGGERS_BASE ))
     seg_stop_base=$(( $seg_stop / $OMICRON_TRIGGERS_BASE ))
 

@@ -179,6 +179,7 @@ for file in ./channel.*Hz; do
     else nmax=5; fi
     
     # sampling frequency
+    # FIXME = it does not work if $freq is not a power of 2 and if 1024<$freq<4096
     freqsample=$freq
     if [ $freqsample -gt 4096 ]; then freqsample=4096; fi
     
