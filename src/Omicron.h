@@ -36,8 +36,12 @@ class Omicron {
   // PROCESSES
   bool MakeTiling(void);
   bool Process();
-  int ProcessOnline(const int aChNumber, FrVect *aVect);
 
+  // ONLINE
+  int ProcessOnline(const int aChNumber, FrVect *aVect);
+  bool WriteOnline(const int aChNumber);
+  Segments* GetOnlineSegments(const int aChNumber, TH1I *aThr, const double aPadding=0.0);
+  
   //INFO
   inline int GetChunkDuration(void){return fChunkDuration;};
   inline int GetSegmentDuration(void){return fSegmentDuration;};

@@ -302,12 +302,44 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   }
 
   // save triggers
-  if(!triggers[aChNumber]->Write("ALL","default")){
-    cerr<<"Omicron::ProcessOnline: writing events failed for channel "<<fChannels[aChNumber]<<endl;
-    return 5;
-  }
+  //if(!triggers[aChNumber]->Write("PROC","default")){
+  //  cerr<<"Omicron::ProcessOnline: writing events failed for channel "<<fChannels[aChNumber]<<endl;
+  //  return 5;
+  //}
       
   return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::WriteOnline(const int aChNumber){
+  ////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::WriteOnline: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
+    cerr<<"Omicron::WriteOnline: channel number "<<aChNumber<<" does not exist"<<endl;
+    return -3;
+  }
+  if(fVerbosity>0) cout<<"writing triggers for channel "<<fChannels[aChNumber]<<"..."<<endl;
+  return triggers[aChNumber]->Write("PROC","default");
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1I *aThr, const double aPadding){
+////////////////////////////////////////////////////////////////////////////////////
+  Segments* empty = new Segments();
+  if(!status_OK){
+    cerr<<"Omicron::GetOnlineSegments: the Omicron object is corrupted"<<endl;
+    return empty;
+  }
+  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
+    cerr<<"Omicron::GetOnlineSegments: channel number "<<aChNumber<<" does not exist"<<endl;
+    return empty;
+  }
+  delete empty;
+
+  return triggers[aChNumber]->GetTriggerSegments(aThr,aPadding);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
