@@ -82,8 +82,11 @@ int main (int argc, char* argv[]){
     delete segments;
     return 1;
   }
+
+  // prints summary
+  O->PrintStatusInfo();
   
-  
+  // cleaning  
   delete O;
   delete segments;
   return 0;

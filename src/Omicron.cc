@@ -12,7 +12,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   // init
   status_OK=true;
   tiling_OK=false;
-  
+
   // segments
   fSegments = aSegments;
 
@@ -28,6 +28,16 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++){
     odata[c]=NULL;
     triggers[c]=NULL;
+  }
+
+  // init monitoring
+  outSegments    = new Segments* [(int)fChannels.size()];
+  chunk_ctr      = new int       [(int)fChannels.size()];
+  lost_chunk_ctr = new int       [(int)fChannels.size()];
+  for(int c=0; c<(int)fChannels.size(); c++){
+    outSegments[c]    = new Segments();
+    chunk_ctr[c]      = 0;
+    lost_chunk_ctr[c] = 0;
   }
 
   // conditioned data vector
@@ -130,11 +140,15 @@ Omicron::~Omicron(void){
   if(c_data[0]!=NULL) delete c_data[0];
   if(c_data[1]!=NULL) delete c_data[1];
   for(int c=0; c<(int)fChannels.size(); c++){
+    delete outSegments[c];
     if(fVerbosity>0) cout<<" -> delete data for "<<fChannels[c]<<endl;
     if(odata[c]!=NULL) delete odata[c];
     if(fVerbosity>0) cout<<" -> delete triggers for "<<fChannels[c]<<endl;    
     if(triggers[c]!=NULL) delete triggers[c];
   }
+  delete outSegments;
+  delete chunk_ctr;
+  delete lost_chunk_ctr;
   if(Net!=NULL) delete Net;
   if(Inj!=NULL) delete Inj;
 
@@ -228,6 +242,8 @@ bool Omicron::Process(){
       if(triggers[c]->GetMaxFlag()){
 	cerr<<"Omicron::Process: channel "<<fChannels[c]<<" is maxed-out. This chunk is not saved"<<endl;
 	triggers[c]->Reset();
+	lost_chunk_ctr[c]++;
+	chunk_ctr[c]++;
 	continue;
       }
       
@@ -236,6 +252,11 @@ bool Omicron::Process(){
 	cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[c]<<endl;
 	return false;
       }
+      else{
+	outSegments[c]->AddSegment(odata[c]->GetChunkTimeStart()+fOverlapDuration/2,odata[c]->GetChunkTimeEnd()-fOverlapDuration/2);
+	chunk_ctr[c]++;
+      }
+
     }
   }
 
@@ -272,7 +293,7 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
                   
   // write chunk info if requested
   if(writetimeseries) status_OK*=odata[aChNumber]->WriteTimeSeries(fOutdir[aChNumber]);
-  if(writepsd) status_OK*=odata[aChNumber]->WritePSD(fOutdir[aChNumber]);
+  if(writepsd)        status_OK*=odata[aChNumber]->WritePSD(fOutdir[aChNumber]);
 
   // get conditioned data
   int psdsize;
@@ -293,7 +314,7 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   }
   else
     triggers[aChNumber]->AddSegment(odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2,odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2);
-	
+    	
   // don't save if max flag
   if(triggers[aChNumber]->GetMaxFlag()){
     cerr<<"Omicron::ProcessOnline: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk is not saved"<<endl;
@@ -726,5 +747,33 @@ bool Omicron::LCF2FFL(const string lcf_file, const string ffl_file){
 
   ffile.close();
   delete RA;
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::PrintStatusInfo(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  
+  cout<<"\n************* Omicron status info *************"<<endl;
+  cout<<"start_in = "<<fSegments->GetStart(0)<<endl;
+  cout<<"end_in   = "<<fSegments->GetEnd(fSegments->GetNsegments()-1)<<endl;
+  for(int c=0; c<(int)fChannels.size(); c++){
+    cout<<"\n*** "<<fChannels[c]<<endl;
+    if(outSegments[c]->GetNsegments()){
+      cout<<"start_out             = "<<outSegments[c]->GetStart(0)<<endl;
+      cout<<"end_out               = "<<outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
+      cout<<"processed livetime    = "<<outSegments[c]->GetLiveTime()<<" ("<<outSegments[c]->GetLiveTime()/fSegments->GetLiveTime()*100<<"%)"<<endl;
+    }
+    else{
+      cout<<"start_out             = -1"<<endl;
+      cout<<"end_out               = -1"<<endl;
+      cout<<"processed livetime    = "<<"0 (0%)"<<endl;
+    }
+    cout<<"number of chunks      = "<<chunk_ctr[c]<<endl;
+    cout<<"number of lost chunks = "<<lost_chunk_ctr[c]<<endl;
+  }
+  cout<<"***********************************************\n"<<endl;
+
   return true;
 }

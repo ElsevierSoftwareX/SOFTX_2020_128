@@ -49,6 +49,7 @@ class Omicron {
   int GetNativeSampleFrequency(const int aChNumber);
   inline int GetSampleFrequency(void){return fSampleFrequency;};
   inline vector <string> GetChannelList(void){return fChannels;};
+  bool PrintStatusInfo(void);
 
  protected:
 
@@ -56,6 +57,11 @@ class Omicron {
   bool status_OK;               // general status
   bool tiling_OK;               // tiling status
   bool online;                  // online running
+
+  // MONITORING
+  Segments **outSegments;       // segments currently processed
+  int *chunk_ctr;               // number of chunks
+  int *lost_chunk_ctr;          // number of lost chunks
 
   // OUTPUT FLAGS
   bool writepsd;                // writing PSD flag
