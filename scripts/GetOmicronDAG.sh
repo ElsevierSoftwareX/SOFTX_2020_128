@@ -145,6 +145,7 @@ fi
 
 ##### check number of channels
 for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
+    if [ ! -e $file ]; then continue; fi
     channels=`grep DATA $file | grep -m 1 CHANNELS`
     nchannels=`echo $channels | wc -w`
     if [ $nchannels -le 2 ]; then 
