@@ -248,7 +248,7 @@ bool Omicron::Process(){
       }
       
       // save triggers
-      if(!triggers[c]->Write("ALL", "default")){
+      if(!triggers[c]->Write("ALL", "default").compare("none")){
 	cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[c]<<endl;
 	return false;
       }
@@ -343,7 +343,8 @@ bool Omicron::WriteOnline(const int aChNumber){
     return -3;
   }
   if(fVerbosity>0) cout<<"writing triggers for channel "<<fChannels[aChNumber]<<"..."<<endl;
-  return triggers[aChNumber]->Write("PROC","default");
+  if(triggers[aChNumber]->Write("PROC","default").compare("none")) return true;
+  return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

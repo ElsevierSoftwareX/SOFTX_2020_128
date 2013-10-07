@@ -12,7 +12,7 @@ printhelp(){
     echo "Usage:"
     echo "Online2Offline -c[CHANNEL_NAME]"
     echo ""
-    echo "Example: Online2Offline -c h_4096Hz"
+    echo "Example: Online2Offline -c V1:h_4096Hz"
     echo ""
     echo "TRIGGER SELECTION"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
