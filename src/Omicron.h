@@ -40,7 +40,7 @@ class Omicron {
   // ONLINE
   int ProcessOnline(const int aChNumber, FrVect *aVect);
   bool WriteOnline(const int aChNumber);
-  Segments* GetOnlineSegments(const int aChNumber, TH1I *aThr, const double aPadding=0.0);
+  Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0);
   
   //INFO
   inline int GetChunkDuration(void){return fChunkDuration;};

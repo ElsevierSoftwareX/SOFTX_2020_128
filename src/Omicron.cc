@@ -348,7 +348,7 @@ bool Omicron::WriteOnline(const int aChNumber){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1I *aThr, const double aPadding){
+Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding){
 ////////////////////////////////////////////////////////////////////////////////////
   Segments* empty = new Segments();
   if(!status_OK){
