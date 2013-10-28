@@ -57,3 +57,5 @@ application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
 application omicronplot omicronplot.cc
 alias omicronplot         "$(OMICRONROOT)/$(Omicron_tag)/omicronplot.exe"
+application omiscan omiscan.cc
+alias omiscan             "$(OMICRONROOT)/$(Omicron_tag)/omiscan.exe"
