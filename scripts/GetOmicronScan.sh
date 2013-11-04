@@ -281,7 +281,7 @@ if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
     if [ "$chan_des" = "" ]; then
 	description="No description for this channel"
     else
-	description=`echo $chan_des | sed -e 's/^\w*\ *//'`
+	description=`echo $chan_des | awk '{$1="";print}'`
     fi
 else
     description="No description for this channel"
@@ -373,6 +373,7 @@ done
 ##### fill static variables
 sed -e "s|\[GPS_CENTER\]|${tcenter}|g" \
     -e "s|\[DATEUTC\]|${dateUTC}|g" \
+    -e "s|\[USERNAME\]|${user}|g" \
     $template > ${outdir}/index.html
 
 ##### cleaning

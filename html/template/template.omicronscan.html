@@ -4,6 +4,18 @@
 <link rel="stylesheet" href="style.css" type="text/css">
 <link rel="icon" type="image/x-icon" href="icon.gif" />
 <link rel="shortcut icon" type="image/x-icon" href="icon.gif" />
+<script type="text/javascript">
+function showImage(dir, channel, type, timerange) {
+  for (var dt in timerange) {
+    var basename =
+      channel + "_" + type + "_" + timerange[dt];
+    document.getElementById("a_" + channel + "_" + timerange[dt]).href =
+      dir + "/" + basename + ".gif";
+    document.getElementById("img_" + channel + "_" + timerange[dt]).src =
+     dir + "/" + "th_" + basename + ".gif";
+  }
+}
+</script>
 </head>
 
 <body class="omiscan">
@@ -17,6 +29,7 @@
 	<pre>
 Central GPS time:   [GPS_CENTER]
 Central Date (UTC): [DATEUTC]
+Scan run by:        [USERNAME]
 	</pre>
 	<a href="./log.txt">Omiscan log file</a>
       </td>
