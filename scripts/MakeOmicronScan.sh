@@ -170,7 +170,7 @@ currentdate=`date -u`
 echo "MakeOmicronScan: Output directory = ${outdir}/${gps}"
 outdir="${outdir}/${gps}"
 mkdir -p ${outdir}; #rm -fr ${outdir}/*
-cp -f $channelfile ${outdir}/channels.list
+uniq -u $channelfile > ${outdir}/channels.list
 
 ##### prepare option file
 echo "MakeOmicronScan: Make option file..."
@@ -194,14 +194,6 @@ if ! grep -qw "omiscan done" ${outdir}/summary.txt; then
     exit 2
 fi
 
-##### make thunbnails
-echo "MakeOmicronScan: Make thunbnails..."
-for file in ${outdir}/plots/??:*.gif; do
-    if [ -e $file ]; then
-	convert -density 100 -thumbnail 320  ${file} ${outdir}/plots/th_${file##*/}
-    fi
-done
-    
 ##### html template and web material
 echo "MakeOmicronScan: Make web report..."
 template=${outdir}/index.template

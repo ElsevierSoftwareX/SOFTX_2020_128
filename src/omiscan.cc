@@ -248,6 +248,11 @@ int main (int argc, char* argv[]){
       FrVectFree(chanvect);
       continue;
     }
+    if(chanvect->dataD[0]==0.0&&chanvect->dataD[chanvect->nData-1]==0.0){
+      cout<<"Omiscan WARNING: zero data --> skip"<<endl;
+      FrVectFree(chanvect);
+      continue;
+    }
 
     // sampling
     sampling=chanvect->nData/(timerange);
@@ -329,6 +334,9 @@ int main (int argc, char* argv[]){
       tmpstream<<outdir<<"/plots/"<<channels[c]<<"_raw_dt"<<windows[w]<<".gif";
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
+      tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_raw_dt"<<windows[w]<<".gif";
+      GPlot->Print(tmpstream.str(),0.5);
+      tmpstream.str(""); tmpstream.clear();
     }
     delete graph;
 
@@ -356,6 +364,9 @@ int main (int argc, char* argv[]){
     // save PSD plot
     tmpstream<<outdir<<"/plots/"<<channels[c]<<"_psd.gif";
     GPlot->Print(tmpstream.str());
+    tmpstream.str(""); tmpstream.clear();
+    tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_psd.gif";
+    GPlot->Print(tmpstream.str(),0.5);
     tmpstream.str(""); tmpstream.clear();
     delete graph;
 
@@ -443,6 +454,9 @@ int main (int argc, char* argv[]){
 	tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_Q"<<q<<"_dt"<<windows[w]<<".gif";
 	GPlot->Print(tmpstream.str());
 	tmpstream.str(""); tmpstream.clear();
+	tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_map_Q"<<q<<"_dt"<<windows[w]<<".gif";
+	GPlot->Print(tmpstream.str(),0.5);
+	tmpstream.str(""); tmpstream.clear();
       }
 
 
@@ -491,6 +505,9 @@ int main (int argc, char* argv[]){
       // save map
       tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
       GPlot->Print(tmpstream.str());
+      tmpstream.str(""); tmpstream.clear();
+      tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
+      GPlot->Print(tmpstream.str(),0.5);
       tmpstream.str(""); tmpstream.clear();
       delete map[w];
     }
