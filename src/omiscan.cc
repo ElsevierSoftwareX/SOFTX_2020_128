@@ -83,20 +83,48 @@ int main (int argc, char* argv[]){
   }
   else{// default windows
     windows.clear();
-    windows.push_back(4); windows.push_back(16); windows.push_back(64);
+    windows.push_back(2); windows.push_back(8); windows.push_back(32);
   }
 
-  //**** frequency range
+  //**** frequency ranges
+  vector <int> fsample_cat;
   vector <double> frange;
-  if(io->GetOpt("PARAMETER","FRANGE", frange)){
-    if(frange.size()!=2||frange[0]>=frange[1]){
-      cerr<<"Omiscan ERROR: the frequency range option is not correct"<<endl;
+  if(io->GetOpt("PARAMETER","SAMPLING_CAT", fsample_cat)){
+    if(!fsample_cat.size()){
+      cerr<<"Omiscan ERROR: the sampling frequency category option is not correct"<<endl;
+      return 3;
+    }
+    if(io->GetOpt("PARAMETER","FRANGE", frange)){
+      if(frange.size()!=2*(fsample_cat.size()+1)){
+	cerr<<"Omiscan ERROR: the frequency ranges option is incompatible with the sampling categories"<<endl;
+	return 3;
+      }
+      for(int f=0; f<(int)frange.size(); f+=2){
+	if(frange[f]>=frange[f+1]){
+	  cerr<<"Omiscan ERROR: the frequency range "<<frange[f]<<" "<<frange[f+1]<<" is incorrect"<<endl;
+	  return 3;
+	}
+      }
+    }
+    else{
+      cerr<<"Omiscan ERROR: the frequency ranges option is missing"<<endl;
       return 3;
     }
   }
-  else{// default frequency range
-    frange.clear();
-    frange.push_back(16); frange.push_back(2048);
+  else{// default
+    if(io->GetOpt("PARAMETER","FRANGE", frange)){
+      fsample_cat.clear();
+      if(frange.size()!=2||frange[0]>=frange[1]){
+	cerr<<"Omiscan ERROR: the frequency range "<<frange[0]<<" "<<frange[1]<<" is incorrect"<<endl;
+	return 3;
+      }
+    }
+    else{
+      fsample_cat.clear(); fsample_cat.push_back(1025);
+      frange.clear(); 
+      frange.push_back(0.1); frange.push_back(64);
+      frange.push_back(16); frange.push_back(1024);
+    }
   }
 
   //**** SNR threshold
@@ -110,7 +138,7 @@ int main (int argc, char* argv[]){
   else{// default SNR threshold
     snrthr=5;
   }
-
+  
   //**** verbosity
   int verbose;
   if(io->GetOpt("VERBOSITY","LEVEL", verbose)){
@@ -131,7 +159,6 @@ int main (int argc, char* argv[]){
     cout<<"         time ranges      = ";
     for(int w=0; w<(int)windows.size(); w++) cout<<windows[w]<<"s ";
     cout<<endl;
-    cout<<"         frequency range  = "<<frange[0]<<"Hz "<<frange[1]<<"Hz"<<endl;
     cout<<"         SNR threshold    = "<<snrthr<<endl;
   }
   
@@ -168,32 +195,17 @@ int main (int argc, char* argv[]){
   // data vector
   FrVect *chanvect = NULL;
 
-  // timing
-  int timerange=2*windows[(int)windows.size()-1];// take twice the largest window
-  double start=gps-(double)timerange/2.0;
-  double stop=gps+(double)timerange/2.0;
-  if(verbose>1){
-    cout<<"Omiscan: analysis timerange =  "<<timerange<<endl;
-    cout<<"Omiscan: start              =  "<<setprecision(13)<<start<<endl;
-    cout<<"Omiscan: stop               =  "<<setprecision(13)<<stop<<endl;
-  }
-
-  // segment structure
-  if(verbose) cerr<<"Omiscan: create segment window..."<<endl;
-  Segments *segment = new Segments();
-  if(!segment->AddSegment(start,stop)){
-    cerr<<"Omiscan ERROR: problem with generating segment window"<<endl;
-    delete segment;
-    return 4;
-  }
-
   // gwollum plots
   GwollumPlot *GPlot = new GwollumPlot ("omiscan");
   
   // declarations
+  int timerange, pad;        // analysis time window and padding
+  int start, stop;           // analysis starting/ending time
+  Segments *segment = new Segments();// analysis segment
   int sampling, sampling_new;// sampling frequency before-after
   int psdsize;               // psd size
   int powerof2;              // closest power of 2 below
+  double fmin, fmax;         // search frequency range
   Odata *data;               // data structure
   Otile *tiles;              // tiling structure
   double *c_data[2];         // condition data
@@ -229,9 +241,73 @@ int main (int argc, char* argv[]){
     cout<<"\nOmiscan: process channel "<<channels[c]<<"..."<<endl;
     
     // get data
-    if(verbose) cout<<"         Loading data vector..."<<endl;
+    if(verbose) cout<<"         Optimizing parameters..."<<endl;
     chanvect = NULL;
-    chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),start,stop-start);
+    chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),(int)floor(gps),1);
+ 
+    // check data vector
+    if(chanvect==NULL){
+      cout<<"Omiscan WARNING: missing channel --> skip"<<endl;
+      continue;
+    }
+    if(!chanvect->nData){
+      cout<<"Omiscan WARNING: no data --> skip"<<endl;
+      FrVectFree(chanvect);
+      continue;
+    }
+    if(chanvect->dataD[0]==0.0&&chanvect->dataD[chanvect->nData-1]==0.0){
+      cout<<"Omiscan WARNING: zero data --> skip"<<endl;
+      FrVectFree(chanvect);
+      continue;
+    }
+
+    // native sampling
+    sampling=chanvect->nData;
+
+    // get frequency range for this category
+    fmin=frange[2*fsample_cat.size()];
+    fmax=frange[2*fsample_cat.size()+1];
+    for(int f=0; f<(int)fsample_cat.size(); f++){
+      if(sampling<fsample_cat[f]){
+	fmin=frange[2*f];
+	fmax=frange[2*f+1];
+	break;
+      }
+    }
+    
+    // optimize sampling for this range
+    powerof2=(int)floor(log(TMath::Min(sampling,2*(int)fmax))/log(2.0));
+    sampling_new=(double)pow(2,powerof2);// optimized sampling for this range
+    fmax=TMath::Min(fmax,(double)sampling_new/2.0);
+
+    // print sampling info
+    if(verbose) cout<<"           native sampling    = "<<sampling<<"Hz"<<endl;
+    if(verbose) cout<<"           re-sampling        = "<<sampling_new<<"Hz"<<endl;
+    if(verbose) cout<<"           frequency range    = "<<setprecision(2)<<fmin<<"Hz --> "<<fmax<<"Hz"<<endl;
+    if(fmax<=fmin){
+      cout<<"Omiscan WARNING: frequency range is not adapted --> skip"<<endl;
+      FrVectFree(chanvect);
+      continue;
+    }
+
+    // optimized analysis time window
+    pad=TMath::Max((int)ceil(8.0/fmin),4);// padding
+    timerange=windows[(int)windows.size()-1]+2*pad;
+    powerof2=(int)ceil(log(timerange)/log(2.0));
+    timerange=(int)pow(2,powerof2);
+    start=(int)floor(gps)-(double)timerange/2.0;
+    stop=(int)floor(gps)+(double)timerange/2.0;
+    if(verbose){
+      cout<<"           analysis timerange = "<<timerange<<"s"<<endl;
+      cout<<"           GPS start          = "<<start<<endl;
+      cout<<"           GPS stop           = "<<stop<<endl;
+      if(verbose>1) cout<<"           analysis pad       = "<<pad<<"s"<<endl;
+    }
+
+    // get data vector
+    if(verbose) cout<<"         Loading data vector..."<<endl;
+    FrVectFree(chanvect); chanvect = NULL;
+    chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),start,timerange);
  
     // check data vector
     if(chanvect==NULL){
@@ -254,16 +330,18 @@ int main (int argc, char* argv[]){
       continue;
     }
 
-    // sampling
-    sampling=chanvect->nData/(timerange);
-    powerof2=(int)floor(log(TMath::Min(sampling,2*(int)frange[1]))/log(2.0));
-    sampling_new=(double)pow(2,powerof2);
-    if(verbose>1) cout<<"           number of samples = "<<chanvect->nData<<endl;
-    if(verbose) cout<<"           sampling = "<<sampling<<"Hz --> "<<sampling_new<<"Hz"<<endl;
+    // segment structure
+    if(verbose) cout<<"         Create analysis window..."<<endl;
+    if(!segment->Reset()||!segment->AddSegment(start,stop)){
+      cerr<<"Omiscan WARNING: problem with generating segment window --> skip"<<endl;
+      FrVectFree(chanvect);
+      continue;
+    }
+
 
     // init and load data
     if(verbose) cout<<"         Create Odata object..."<<endl;
-    data = new Odata("ONLINE", channels[c], sampling, sampling_new, segment, timerange, timerange, timerange/2, frange[0]);
+    data = new Odata("ONLINE", channels[c], sampling, sampling_new, segment, timerange, timerange, 2*pad, fmin);
     if(!data->ReadVect(chanvect)){
       cout<<"Omiscan WARNING: Odata object is corrupted --> skip"<<endl;
       FrVectFree(chanvect);
@@ -288,7 +366,7 @@ int main (int argc, char* argv[]){
     
     // make tiling
     if(verbose) cout<<"         Make tiling..."<<endl;
-    tiles = new Otile(timerange, timerange/4, 3, 141, frange[0], frange[1], sampling_new, 0.2);
+    tiles = new Otile(timerange, pad, 3, 141, fmin, fmax, sampling_new, 0.2);
     if(!tiles->SetPowerSpectrum(psd,psdsize)){
       cout<<"Omiscan WARNING: cannot normalize tiling --> skip"<<endl;
       delete tiles;
@@ -318,6 +396,11 @@ int main (int argc, char* argv[]){
     // cosmetics
     graph->GetXaxis()->SetTimeOffset(-gps);
     graph->GetXaxis()->SetTitle("time [s]");
+    graph->GetXaxis()->SetTitleOffset(1.1);
+    graph->GetXaxis()->SetLabelSize(0.045);
+    graph->GetYaxis()->SetLabelSize(0.045);
+    graph->GetXaxis()->SetTitleSize(0.045);
+    graph->GetYaxis()->SetTitleSize(0.045);
     graph->GetYaxis()->SetTitle("Amplitude");
     graph->GetXaxis()->SetNoExponent();
     graph->SetLineWidth(1);
@@ -356,7 +439,7 @@ int main (int argc, char* argv[]){
 
     // cosmetics
     graph->GetXaxis()->SetTitle("Frequency [Hz]");
-    graph->GetXaxis()->SetLimits(frange[0],frange[1]);
+    graph->GetXaxis()->SetLimits(fmin,fmax);
     graph->SetLineWidth(2);
     graph->SetLineColor(7);
     graph->SetMarkerColor(7);
@@ -371,9 +454,10 @@ int main (int argc, char* argv[]){
     delete graph;
 
     // frequency binning
-    nfbins = sampling_new;
+    if(fmin>=1) nfbins = fmax-fmin;
+    else nfbins = 1000;
     f_bin = new double [nfbins+1];
-    for(int f=0; f<nfbins+1; f++) f_bin[f]=frange[0]*pow(10,f*log10(frange[1]/frange[0])/nfbins);
+    for(int f=0; f<nfbins+1; f++) f_bin[f]=fmin*pow(10,f*log10(fmax/fmin)/nfbins);
 
     // create overall map
     if(verbose) cout<<"         Create overall maps..."<<endl;

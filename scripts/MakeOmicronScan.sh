@@ -13,8 +13,7 @@ outdir=`pwd` # output directory
 channelfile="none"
 fflfile="none"
 gps="none"
-windows="1 8 64"
-frange="16 2048"
+windows="2 8 32"
 snrthr=5
 
 printhelp(){
@@ -40,9 +39,6 @@ printhelp(){
     echo "  -s  [SNR_THRESHOLD]   SNR threshold below which the channel is not plotted"
     echo "                        By default [SNR_THRESHOLD] = 5"
     echo ""
-    echo "  -F  [FREQUENCY_RANGE] search frequency range (2 frequencies exactly)"
-    echo "                        By default [FREQUENCY_RANGE] = \"16 2048\""
-    echo ""
     echo "*** OUTPUT"
     echo "  -d  [OUTDIR]          path to output directory"
     echo "                        Default = current directory"
@@ -59,7 +55,7 @@ if [[ -z "$OMICRONROOT" ]]; then
 fi
 
 ##### read options
-while getopts ":c:f:g:d:w:s:F:h" opt; do
+while getopts ":c:f:g:d:w:s:h" opt; do
     case $opt in
 	c)
 	    channelfile="$OPTARG"
@@ -75,9 +71,6 @@ while getopts ":c:f:g:d:w:s:F:h" opt; do
 	    ;;
 	s)
 	    snrthr="$OPTARG"
-	    ;;
-	F)
-	    frange="$OPTARG"
 	    ;;
 	d)
 	    outdir="$OPTARG"
@@ -155,15 +148,6 @@ if [ $nwin -eq 0 ]; then
     exit 1
 fi
 
-##### check frequency range
-nf=0
-for f in $frange; do let "nf+=1"; done
-if [ $nf -ne 2 ]; then
-    echo "ERROR: There must be exactly 2 frequencies to define the search range"
-    echo "type  'MakeOmicronScan -h'  for help"
-    exit 1
-fi
-
 currentdate=`date -u`
 
 ##### prepare outdir
@@ -179,7 +163,6 @@ echo "VERBOSITY   LEVEL       1"           >> ${outdir}/options.txt
 echo "DATA        FFL         ${fflfile}"  >> ${outdir}/options.txt
 echo "PARAMETER   WINDOW      ${windows}"  >> ${outdir}/options.txt
 echo "PARAMETER   SNR_THRESHOLD ${snrthr}" >> ${outdir}/options.txt
-echo "PARAMETER   FRANGE      ${frange}"   >> ${outdir}/options.txt
 echo "OUTPUT      DIRECTORY   ${outdir}"   >> ${outdir}/options.txt
 
 ##### run omiscan
@@ -195,12 +178,15 @@ if ! grep -qw "omiscan done" ${outdir}/summary.txt; then
 fi
 
 ##### make thunbnails
-echo "MakeOmicronScan: Make thunbnails..."
-for file in ${outdir}/plots/??:*.gif; do     
-    if [ -e $file ]; then 	
-	convert -density 100 -thumbnail 320  ${file} ${outdir}/plots/th_${file##*/}     
-    fi 
-done
+echo "MakeOmicronScan: Make thumbnails..."
+while read line; do
+    channel=`echo $line | awk '{print $1}'`
+    for file in ${outdir}/plots/${channel}*.gif; do     
+	if [ -e $file ]; then 	
+	    convert -density 100 -thumbnail 320  ${file} ${outdir}/plots/th_${file##*/}     
+	fi 
+    done
+done < ${outdir}/summary.txt
 
 
 ##### html template and web material
