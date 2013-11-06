@@ -194,6 +194,15 @@ if ! grep -qw "omiscan done" ${outdir}/summary.txt; then
     exit 2
 fi
 
+##### make thunbnails
+echo "MakeOmicronScan: Make thunbnails..."
+for file in ${outdir}/plots/??:*.gif; do     
+    if [ -e $file ]; then 	
+	convert -density 100 -thumbnail 320  ${file} ${outdir}/plots/th_${file##*/}     
+    fi 
+done
+
+
 ##### html template and web material
 echo "MakeOmicronScan: Make web report..."
 template=${outdir}/index.template
