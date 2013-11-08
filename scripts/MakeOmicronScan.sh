@@ -53,7 +53,7 @@ printhelp(){
     echo "                        By default [TIME_WINDOWS] = \"1 8 64\""
     echo ""
     echo "  -s  [SNR_THRESHOLD]   SNR threshold below which the channel is not plotted"
-    echo "                        By default [SNR_THRESHOLD] = 5"
+    echo "                        By default [SNR_THRESHOLD] = 8"
     echo ""
     echo "*** OUTPUT"
     echo "  -d  [OUTDIR]          path to output directory"
@@ -171,14 +171,14 @@ if [ "$channelfile" = "none" ]; then
 	echo "type  'MakeOmicronScan -h'  for help"
 	exit 1
     fi
-    grep "channelName" $omegafile | awk '{print $2}' | sed "s|'||g" | uniq -u > ${outdir}/channels.list
+    grep "channelName" $omegafile | awk '{print $2}' | sed "s|'||g" | awk '{ if (!h[$0]) { print $0; h[$0]=1 } }' > ${outdir}/channels.list
 else
     if [ ! -e $channelfile ]; then
 	echo "ERROR: The channel file $channelfile does not exist"
 	echo "type  'MakeOmicronScan -h'  for help"
 	exit 1
     else
-	uniq -u $channelfile > ${outdir}/channels.list
+	cat $channelfile | awk '{ if (!h[$0]) { print $0; h[$0]=1 } }' > ${outdir}/channels.list
     fi
 fi
 
