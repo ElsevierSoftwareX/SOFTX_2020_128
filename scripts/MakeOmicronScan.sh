@@ -224,7 +224,7 @@ while read channel; do
     
     # add q map links
     q=0;
-    for Qval in `grep -w "$channel" ${outdir}/summary.txt | awk '{for(i=1;i<8;i++) $i="";print}'`; do
+    for Qval in `grep -w "$channel" ${outdir}/summary.txt | awk '{for(i=1;i<9;i++) $i="";print}'`; do
 	maps="${maps} <a href=\"javascript:showImage('./plots', '$channel', 'map_Q${q}', ${winids});\">Q=${Qval}</a>"
 	let "q+=1"
     done
@@ -233,6 +233,7 @@ while read channel; do
     loudest_gps=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.3f",$4}'`
     loudest_freq=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$5}'`
     loudest_snr=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$6}'`
+    loudest_q=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$7}'`
 
     # get channel description
     if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
@@ -246,7 +247,7 @@ while read channel; do
 	description="No description for this channel"
     fi
 
-    sed -i "/<\!-- channels -->/i<tr><td colspan=\"${q}\"><h2>${channel}</h2><h3>${description}</h3>Loudest tile: GPS=${loudest_gps}, f=${loudest_freq}Hz, <b>SNR=${loudest_snr}</b></td></tr>" $template
+    sed -i "/<\!-- channels -->/i<tr><td colspan=\"${q}\"><h2>${channel}</h2><h3>${description}</h3>Loudest tile: GPS=${loudest_gps}, f=${loudest_freq}Hz, Q=${loudest_q}, <b>SNR=${loudest_snr}</b></td></tr>" $template
     sed -i "/<\!-- channels -->/i<tr><td colspan=\"${q}\">Maps: $maps \| Time series: $tseries \| Other: $other</td></tr>" $template
     sed -i "/<\!-- channels -->/i${default}" $template
 done < ${outdir}/channels.list

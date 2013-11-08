@@ -212,14 +212,14 @@ int main (int argc, char* argv[]){
   double *psd;               // psd vector - DO NOT DELETE!
   double *f_bin;             // frequency bins
   int nfbins;                // number of frequency bins
-  TH2D *qmap;                // Q map - DO NOT DELETE!
+  TH2D **qmap;               // Q maps - DO NOT DELETE!
   TGraph *graph;             // graph plots
   TH2D **map = new TH2D * [(int)windows.size()];// overall maps
   int bin_start, bin_stop, bin_start_t, bin_stop_t, bin_start_f, bin_stop_f, dummy;// bin indexes
   double content;            // tile content
   ostringstream tmpstream;   // stream
   int loudest_bin, loudest_bin_t, loudest_bin_f, loudest_bin_s;// loudest bin
-  double loudest_t, loudest_f, loudest_s;// loudest tile
+  double loudest_t, loudest_f, loudest_s, loudest_q;// loudest tile
   
   ofstream summary((outdir+"/summary.txt").c_str());// outfile stream
   summary<<"# channel name"<<endl;
@@ -240,7 +240,7 @@ int main (int argc, char* argv[]){
 
     cout<<"\nOmiscan: process channel "<<channels[c]<<"..."<<endl;
     
-    // get data
+    // get 1sec of data
     if(verbose) cout<<"         Optimizing parameters..."<<endl;
     chanvect = NULL;
     chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),(int)floor(gps),1);
@@ -291,7 +291,7 @@ int main (int argc, char* argv[]){
     }
 
     // optimized analysis time window
-    pad=TMath::Max((int)ceil(8.0/fmin),4);// padding
+    pad=TMath::Max((int)ceil(8.0/fmin),4);
     timerange=windows[(int)windows.size()-1]+2*pad;
     powerof2=(int)ceil(log(timerange)/log(2.0));
     timerange=(int)pow(2,powerof2);
@@ -376,7 +376,165 @@ int main (int argc, char* argv[]){
       continue;
     }
 
+    //*****  TIME-FREQUENCY plots  ***********************************************
 
+    // populate Q maps
+    if(verbose) cout<<"         Populate Q maps..."<<endl;
+    qmap = new TH2D * [tiles->GetNQPlanes()];
+    loudest_s=0;
+    for(int q=0; q<tiles->GetNQPlanes(); q++){
+      qmap[q]=tiles->GetMap(q,c_data[0],c_data[1]);
+      if(qmap[q]==NULL) continue;
+      qmap[q]->GetXaxis()->SetRangeUser(-(double)windows[0]/2.0,(double)windows[0]/2.0);
+      if(qmap[q]->GetMaximum()>loudest_s){
+	loudest_s=qmap[q]->GetMaximum();
+	loudest_q=tiles->GetQ(q);
+      }
+      qmap[q]->GetXaxis()->SetRange();
+    }
+    delete c_data[0]; 
+    delete c_data[1];
+        
+    // apply SNR threshold
+    if(loudest_s<=snrthr){
+      cout<<"Omiscan WARNING: below SNR threshold "<<loudest_s<<"<"<<snrthr<<" --> skip"<<endl;
+      delete tiles;
+      delete qmap;
+      delete data;
+      continue;
+    }
+
+    if(verbose) cout<<"         Create overall maps..."<<endl;
+    // frequency binning
+    if(fmin>=1) nfbins = fmax-fmin;
+    else nfbins = 1000;
+    f_bin = new double [nfbins+1];
+    for(int f=0; f<nfbins+1; f++) f_bin[f]=fmin*pow(10,f*log10(fmax/fmin)/nfbins);
+
+    // create full maps
+    for(int w=0; w<(int)windows.size(); w++){
+      tmpstream<<"map_"<<windows[w];
+      map[w] = new TH2D(tmpstream.str().c_str(),tmpstream.str().c_str(),1000,-(double)windows[w]/2.0,+(double)windows[w]/2.0,nfbins,f_bin);
+      tmpstream.str(""); tmpstream.clear();
+    }
+    delete f_bin;
+
+
+    // populate full maps
+    if(verbose) cout<<"         Populate full maps..."<<endl;
+    for(int q=0; q<tiles->GetNQPlanes(); q++){
+      if(qmap[q]==NULL) continue;
+
+      // fill overall maps
+      if(verbose>2) cout<<"           update full maps with map Q"<<q<<"..."<<endl;
+      for(int bt=1; bt<=qmap[q]->GetNbinsX(); bt++){
+	for(int bf=1; bf<=qmap[q]->GetNbinsY(); bf++){
+	  content=qmap[q]->GetBinContent(bt,bf);
+	  for(int w=0; w<(int)windows.size(); w++){
+	    if(qmap[q]->GetXaxis()->GetBinLowEdge(bt)<-(double)windows[w]/2.0) continue;
+	    if(qmap[q]->GetXaxis()->GetBinUpEdge(bt)>(double)windows[w]/2.0) continue;
+	    if(qmap[q]->GetYaxis()->GetBinLowEdge(bf)<map[w]->GetYaxis()->GetBinLowEdge(1)) continue;
+	    if(qmap[q]->GetYaxis()->GetBinUpEdge(bf)>map[w]->GetYaxis()->GetBinUpEdge(nfbins)) continue;
+	    bin_start = map[w]->FindBin(qmap[q]->GetXaxis()->GetBinLowEdge(bt),qmap[q]->GetYaxis()->GetBinLowEdge(bf));
+	    bin_stop = map[w]->FindBin(qmap[q]->GetXaxis()->GetBinUpEdge(bt),qmap[q]->GetYaxis()->GetBinUpEdge(bf));
+	    map[w]->GetBinXYZ(bin_start,bin_start_t,bin_start_f,dummy);
+	    map[w]->GetBinXYZ(bin_stop,bin_stop_t,bin_stop_f,dummy);
+	    for(int bbt=bin_start_t; bbt<=bin_stop_t; bbt++){// time-sweep the tile
+	      for(int bbf=bin_start_f; bbf<=bin_stop_f; bbf++){// freq-sweep the tile
+		if(content>map[w]->GetBinContent(bbt,bbf)) map[w]->SetBinContent(bbt,bbf,content);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    // Draw Q maps
+    if(verbose) cout<<"         Draw Q maps..."<<endl;
+    for(int q=0; q<tiles->GetNQPlanes(); q++){
+      if(verbose>2) cout<<"           draw map Q"<<q<<"..."<<endl;
+      GPlot->SetLogx(0);
+      GPlot->SetLogy(1);
+      GPlot->SetLogz(1);
+      GPlot->SetGridx(1);
+      GPlot->SetGridy(1);
+      GPlot->Draw(qmap[q],"COLZ");
+
+      // cosmetics
+      qmap[q]->GetXaxis()->SetTitle("Time [s]");
+      qmap[q]->GetYaxis()->SetTitle("Frequency [Hz]");
+      qmap[q]->GetZaxis()->SetTitle("SNR");
+      qmap[q]->GetZaxis()->SetRangeUser(1,50);
+      
+      // window resize for Qmap
+      for(int w=(int)windows.size()-1; w>=0; w--){
+	
+	// zoom
+	qmap[q]->GetXaxis()->SetRangeUser(-(double)windows[w]/2.0,(double)windows[w]/2.0);
+ 
+	// get loudest tile
+	loudest_bin=qmap[q]->GetMaximumBin();
+	qmap[q]->GetBinXYZ(loudest_bin,loudest_bin_t,loudest_bin_f,loudest_bin_s);
+	loudest_t=qmap[q]->GetXaxis()->GetBinCenter(loudest_bin_t);
+	loudest_f=qmap[q]->GetYaxis()->GetBinCenter(loudest_bin_f);
+	loudest_s=qmap[q]->GetBinContent(loudest_bin);
+	
+	// plot title
+	tmpstream<<"Q = "<<tiles->GetQ(q)<<" "<<channels[c]<<" loudest tile: GPS = "<<setprecision(12)<<loudest_t+gps<<" f = "<<setprecision(5)<<loudest_f<<"Hz SNR = "<<loudest_s;
+	qmap[q]->SetTitle(tmpstream.str().c_str());
+	tmpstream.str(""); tmpstream.clear();
+
+	// save qmap
+	tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_Q"<<q<<"_dt"<<windows[w]<<".gif";
+	GPlot->Print(tmpstream.str());
+	tmpstream.str(""); tmpstream.clear();
+      }
+    }
+
+    // draw overall map
+    if(verbose) cout<<"         Draw full maps..."<<endl;
+    for(int w=(int)windows.size()-1; w>=0; w--){
+      GPlot->SetLogx(0);
+      GPlot->SetLogy(1);
+      GPlot->SetLogz(1);
+      GPlot->SetGridx(1);
+      GPlot->SetGridy(1);
+      GPlot->Draw(map[w],"COLZ");
+      
+      // cosmetics
+      map[w]->GetXaxis()->SetTitle("Time [s]");
+      map[w]->GetYaxis()->SetTitle("Frequency [Hz]");
+      map[w]->GetZaxis()->SetTitle("SNR");
+      map[w]->GetZaxis()->SetRangeUser(1,50);
+      
+      // get loudest tile
+      loudest_bin=map[w]->GetMaximumBin();
+      map[w]->GetBinXYZ(loudest_bin,loudest_bin_t,loudest_bin_f,loudest_bin_s);
+      loudest_t=map[w]->GetXaxis()->GetBinCenter(loudest_bin_t);
+      loudest_f=map[w]->GetYaxis()->GetBinCenter(loudest_bin_f);
+      loudest_s=map[w]->GetBinContent(loudest_bin);
+
+      // plot title
+      tmpstream<<channels[c]<<" loudest tile: GPS = "<<setprecision(12)<<loudest_t+gps<<" f = "<<setprecision(5)<<loudest_f<<"Hz SNR = "<<loudest_s;
+      map[w]->SetTitle(tmpstream.str().c_str());
+      tmpstream.str(""); tmpstream.clear();
+
+      // print summary
+      if(!w){
+	summary<<channels[c]<<" "<<sampling<<" "<<sampling_new<<" "<<setprecision(12)<<loudest_t+gps<<" "<<setprecision(5)<<loudest_f<<" "<<loudest_s<<" "<<loudest_q<<" "<<tiles->GetNQPlanes()<<" ";
+	for(int q=0; q<tiles->GetNQPlanes(); q++) summary<<setprecision(5)<<tiles->GetQ(q)<<" ";
+	summary<<endl;
+      }
+      
+      // save map
+      tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
+      GPlot->Print(tmpstream.str());
+      tmpstream.str(""); tmpstream.clear();
+      delete map[w];
+    }
+    delete tiles;
+    delete qmap;
+        
     //*****  TIME SERIES plots  ***************************************
     if(verbose) cout<<"         Make time-series..."<<endl;
     graph = data->GetTimeSeries();
@@ -417,9 +575,6 @@ int main (int argc, char* argv[]){
       tmpstream<<outdir<<"/plots/"<<channels[c]<<"_raw_dt"<<windows[w]<<".gif";
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
-      //tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_raw_dt"<<windows[w]<<".gif";
-      //GPlot->Print(tmpstream.str(),0.5);
-      //tmpstream.str(""); tmpstream.clear();
     }
     delete graph;
 
@@ -431,6 +586,8 @@ int main (int argc, char* argv[]){
     tmpstream.str(""); tmpstream.clear();
     for(int i=0; i<psdsize; i++)
       graph->SetPoint(i,i*(double)sampling_new/2.0/(double)psdsize,sqrt(psd[i]/(double)sampling_new/(double)psdsize/2.0));
+    delete data;
+
     GPlot->SetLogy(1);
     GPlot->SetLogx(1);
     GPlot->SetGridx(1);
@@ -448,155 +605,7 @@ int main (int argc, char* argv[]){
     tmpstream<<outdir<<"/plots/"<<channels[c]<<"_psd.gif";
     GPlot->Print(tmpstream.str());
     tmpstream.str(""); tmpstream.clear();
-    //tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_psd.gif";
-    //GPlot->Print(tmpstream.str(),0.5);
-    //tmpstream.str(""); tmpstream.clear();
     delete graph;
-
-    // frequency binning
-    if(fmin>=1) nfbins = fmax-fmin;
-    else nfbins = 1000;
-    f_bin = new double [nfbins+1];
-    for(int f=0; f<nfbins+1; f++) f_bin[f]=fmin*pow(10,f*log10(fmax/fmin)/nfbins);
-
-    // create overall map
-    if(verbose) cout<<"         Create overall maps..."<<endl;
-    for(int w=0; w<(int)windows.size(); w++){
-      tmpstream<<"map_"<<windows[w];
-      map[w] = new TH2D(tmpstream.str().c_str(),tmpstream.str().c_str(),1000,-(double)windows[w]/2.0,+(double)windows[w]/2.0,nfbins,f_bin);
-      tmpstream.str(""); tmpstream.clear();
-    }
-    delete f_bin;
-
-    // get map for each plane
-    if(verbose) cout<<"         Populate Q maps..."<<endl;
-    for(int q=0; q<tiles->GetNQPlanes(); q++){
-      if(verbose>2) cout<<"           make map Q"<<q<<"..."<<endl;
-      qmap=tiles->GetMap(q,c_data[0],c_data[1]);
-      if(qmap==NULL){
-	cout<<"Omiscan WARNING: missing map --> skip"<<endl;
-	continue;
-      }
-
-      // fill overall maps
-      if(verbose>2) cout<<"           update overall maps with map Q"<<q<<"..."<<endl;
-      for(int bt=1; bt<=qmap->GetNbinsX(); bt++){
-	for(int bf=1; bf<=qmap->GetNbinsY(); bf++){
-	  content=qmap->GetBinContent(bt,bf);
-	  for(int w=0; w<(int)windows.size(); w++){
-	    if(qmap->GetXaxis()->GetBinLowEdge(bt)<-(double)windows[w]/2.0) continue;
-	    if(qmap->GetXaxis()->GetBinUpEdge(bt)>(double)windows[w]/2.0) continue;
-	    if(qmap->GetYaxis()->GetBinLowEdge(bf)<map[w]->GetYaxis()->GetBinLowEdge(1)) continue;
-	    if(qmap->GetYaxis()->GetBinUpEdge(bf)>map[w]->GetYaxis()->GetBinUpEdge(nfbins)) continue;
-	    bin_start = map[w]->FindBin(qmap->GetXaxis()->GetBinLowEdge(bt),qmap->GetYaxis()->GetBinLowEdge(bf));
-	    bin_stop = map[w]->FindBin(qmap->GetXaxis()->GetBinUpEdge(bt),qmap->GetYaxis()->GetBinUpEdge(bf));
-	    map[w]->GetBinXYZ(bin_start,bin_start_t,bin_start_f,dummy);
-	    map[w]->GetBinXYZ(bin_stop,bin_stop_t,bin_stop_f,dummy);
-	    for(int bbt=bin_start_t; bbt<=bin_stop_t; bbt++){// time-sweep the tile
-	      for(int bbf=bin_start_f; bbf<=bin_stop_f; bbf++){// freq-sweep the tile
-		if(content>map[w]->GetBinContent(bbt,bbf)) map[w]->SetBinContent(bbt,bbf,content);
-	      }
-	    }
-	  }
-	}
-      }
-      
-      // draw q map
-      if(verbose>2) cout<<"           draw map Q"<<q<<"..."<<endl;
-      GPlot->SetLogx(0);
-      GPlot->SetLogy(1);
-      GPlot->SetLogz(1);
-      GPlot->SetGridx(1);
-      GPlot->SetGridy(1);
-      GPlot->Draw(qmap,"COLZ");
-
-      // cosmetics
-      qmap->GetXaxis()->SetTitle("Time [s]");
-      qmap->GetYaxis()->SetTitle("Frequency [Hz]");
-      qmap->GetZaxis()->SetTitle("SNR");
-      qmap->GetZaxis()->SetRangeUser(1,50);
-
-      // window resize for Qmap
-      for(int w=(int)windows.size()-1; w>=0; w--){
-      
-	// zoom
-	qmap->GetXaxis()->SetRangeUser(-(double)windows[w]/2.0,(double)windows[w]/2.0);
- 
-	// get loudest tile
-	loudest_bin=qmap->GetMaximumBin();
-	qmap->GetBinXYZ(loudest_bin,loudest_bin_t,loudest_bin_f,loudest_bin_s);
-	loudest_t=qmap->GetXaxis()->GetBinCenter(loudest_bin_t);
-	loudest_f=qmap->GetYaxis()->GetBinCenter(loudest_bin_f);
-	loudest_s=qmap->GetBinContent(loudest_bin);
-
-	// plot title
-	tmpstream<<"Q = "<<tiles->GetQ(q)<<" "<<channels[c]<<" loudest tile: GPS = "<<setprecision(12)<<loudest_t+gps<<" f = "<<setprecision(5)<<loudest_f<<"Hz SNR = "<<loudest_s;
-	qmap->SetTitle(tmpstream.str().c_str());
-	tmpstream.str(""); tmpstream.clear();
-
-	// save qmap
-	tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_Q"<<q<<"_dt"<<windows[w]<<".gif";
-	GPlot->Print(tmpstream.str());
-	tmpstream.str(""); tmpstream.clear();
-	//tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_map_Q"<<q<<"_dt"<<windows[w]<<".gif";
-	//GPlot->Print(tmpstream.str(),0.5);
-	//tmpstream.str(""); tmpstream.clear();
-      }
-
-
-    }
-    
-    delete c_data[0];
-    delete c_data[1];
-    delete data;
-
-    // draw overall map
-    if(verbose) cout<<"         Draw overall maps..."<<endl;
-    for(int w=(int)windows.size()-1; w>=0; w--){
-      GPlot->SetLogx(0);
-      GPlot->SetLogy(1);
-      GPlot->SetLogz(1);
-      GPlot->SetGridx(1);
-      GPlot->SetGridy(1);
-      GPlot->Draw(map[w],"COLZ");
-       
-      // cosmetics
-      map[w]->GetXaxis()->SetTitle("Time [s]");
-      map[w]->GetYaxis()->SetTitle("Frequency [Hz]");
-      map[w]->GetZaxis()->SetTitle("SNR");
-      map[w]->GetZaxis()->SetRangeUser(1,50);
-      
-      // get loudest tile
-      loudest_bin=map[w]->GetMaximumBin();
-      map[w]->GetBinXYZ(loudest_bin,loudest_bin_t,loudest_bin_f,loudest_bin_s);
-      loudest_t=map[w]->GetXaxis()->GetBinCenter(loudest_bin_t);
-      loudest_f=map[w]->GetYaxis()->GetBinCenter(loudest_bin_f);
-      loudest_s=map[w]->GetBinContent(loudest_bin);
-      
-      // plot title
-      tmpstream<<channels[c]<<" loudest tile: GPS = "<<setprecision(12)<<loudest_t+gps<<" f = "<<setprecision(5)<<loudest_f<<"Hz SNR = "<<loudest_s;
-      map[w]->SetTitle(tmpstream.str().c_str());
-      tmpstream.str(""); tmpstream.clear();
-
-      // print summary
-      // FIXME: the snr threshold is only applied to the summary!
-      if(!w && loudest_s>snrthr){
-	summary<<channels[c]<<" "<<sampling<<" "<<sampling_new<<" "<<setprecision(12)<<loudest_t+gps<<" "<<setprecision(5)<<loudest_f<<" "<<loudest_s<<" "<<tiles->GetNQPlanes()<<" ";
-	for(int q=0; q<tiles->GetNQPlanes(); q++) summary<<setprecision(5)<<tiles->GetQ(q)<<" ";
-	summary<<endl;
-      }
-      
-      // save map
-      tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
-      GPlot->Print(tmpstream.str());
-      tmpstream.str(""); tmpstream.clear();
-      //tmpstream<<outdir<<"/plots/th_"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
-      //GPlot->Print(tmpstream.str(),0.5);
-      //tmpstream.str(""); tmpstream.clear();
-      delete map[w];
-    }
-        
-    delete tiles;
   }
 
   summary<<"*** omiscan done ***"<<endl;
