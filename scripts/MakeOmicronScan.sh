@@ -14,6 +14,7 @@ channelfile="none"
 omegafile="none"
 lalfile="none"
 fflfile="none"
+cachefile="none"
 gps=0
 windows="2 8 32"
 snrthr=8
@@ -34,6 +35,10 @@ printhelp(){
     echo "                        for the requested time stretch"
     echo ""
     echo "  -l  [LAL_CACHE_FILE]  path to a lal-cache file pointing to the data to be used."
+    echo "                        the user must make sure the data are available"
+    echo "                        for the requested time stretch"
+    echo ""
+    echo "  -W  [FRAMECACHE_FILE] path to a frame-cache file pointing to the data to be used."
     echo "                        the user must make sure the data are available"
     echo "                        for the requested time stretch"
     echo ""
@@ -77,7 +82,7 @@ if [[ -z "$OMICRONROOT" ]]; then
 fi
 
 ##### read options
-while getopts ":c:O:f:l:g:d:w:s:v:Sh" opt; do
+while getopts ":c:O:f:l:W:g:d:w:s:v:Sh" opt; do
     case $opt in
 	c)
 	    channelfile="$OPTARG"
@@ -90,6 +95,9 @@ while getopts ":c:O:f:l:g:d:w:s:v:Sh" opt; do
 	    ;;
 	l)
 	    lalfile="$OPTARG"
+	    ;;
+	W)
+	    cachefile="$OPTARG"
 	    ;;
 	g)
 	    gps="$OPTARG"
@@ -141,6 +149,7 @@ fi
 
 ##### prepare outdir
 echo "MakeOmicronScan: Output directory = ${outdir}/${gps}"
+echo "                 You can check the progress of your scan when loading this address in your web browser"
 outdir="${outdir}/${gps}"
 mkdir -p ${outdir}; #rm -fr ${outdir}/*
 template=${outdir}/index.template
@@ -173,12 +182,22 @@ else
     fi
 fi
 
-##### check FFL/LAL
+##### check FFL/LAL/CACHE
 if [ "$fflfile" = "none" ]; then
     if [ "$lalfile" = "none" ]; then
-	echo "ERROR: A FFL/lal-cache file must be provided with the '-f'/'-l' option"
-	echo "type  'MakeOmicronScan -h'  for help"
-	exit 1
+	if [ "$cachefile" = "none" ]; then
+	    echo "ERROR: A FFL/lal-cache/framecache file must be provided with the '-f'/'-l'/'-W' option"
+	    echo "type  'MakeOmicronScan -h'  for help"
+	    exit 1
+	else
+	    if [ ! -e $cachefile ]; then
+		echo "ERROR: The lal-cache file $cachefile does not exist"
+		echo "type  'MakeOmicronScan -h'  for help"
+		exit 1
+	    fi
+	    fflfile=$outdir/ffl_omiscan_${gps}.ffl
+	    $GWOLLUM_SCRIPTS/framecache2ffl.sh $cachefile > $fflfile
+	fi
     else
 	if [ ! -e $lalfile ]; then
 	    echo "ERROR: The lal-cache file $lalfile does not exist"
