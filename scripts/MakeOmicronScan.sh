@@ -11,10 +11,14 @@
 here=`pwd`
 outdir=`pwd` # output directory
 channelfile="none"
+omegafile="none"
+lalfile="none"
 fflfile="none"
-gps="none"
+gps=0
 windows="2 8 32"
-snrthr=5
+snrthr=8
+verbose=0
+style="GWOLLUM"
 
 printhelp(){
     echo ""
@@ -25,12 +29,19 @@ printhelp(){
     echo "  -c  [CHANNEL_LIST]    path to a text file listing the channels to be scanned"
     echo "                        listed in a single column."
     echo ""
-    echo "  -f  [FFL_FILE]        path to FFL file pointing to the data to be used."
-    echo "                        data must be available at least within a time window"
-    echo "                        twice as large as the largest requested time window"
-    echo "                        centered on [GPS_CENTER]"
+    echo "  -f  [FFL_FILE]        path to a FFL file pointing to the data to be used."
+    echo "                        the user must make sure the data are available"
+    echo "                        for the requested time stretch"
+    echo ""
+    echo "  -l  [LAL_CACHE_FILE]  path to a lal-cache file pointing to the data to be used."
+    echo "                        the user must make sure the data are available"
+    echo "                        for the requested time stretch"
     echo ""
     echo "  -g  [GPS_CENTER]      central GPS time of of the scan"
+    echo ""
+    echo "  -O  [OMEGA_CONFIG]    path to an omega-scan configuration file."
+    echo "                        this option can be given instead of a channel list file."
+    echo "                        the channel list will be extracted from the config file"
     echo ""
     echo "*** PARAMETERS"
     echo "  -w  [TIME_WINDOWS]    set of time windows"
@@ -42,6 +53,17 @@ printhelp(){
     echo "*** OUTPUT"
     echo "  -d  [OUTDIR]          path to output directory"
     echo "                        Default = current directory"
+    echo ""
+    echo "  -v  [VERBOSE_LEVEL]   verbosity level"
+    echo "                        0 --> minimum printing"
+    echo "                        1 --> progress printing"
+    echo "                        2 --> parameter printing"
+    echo "                        3 --> full printing"
+    echo "                        Default = 0"
+    echo ""
+    echo "  -S                    this flag commands the plotting style"
+    echo "                        the standard ROOT style will be used"
+    echo "                        instead of the GWOLLUM style"
     echo ""
     echo "  -h                    print this help"
     echo ""
@@ -55,13 +77,19 @@ if [[ -z "$OMICRONROOT" ]]; then
 fi
 
 ##### read options
-while getopts ":c:f:g:d:w:s:h" opt; do
+while getopts ":c:O:f:l:g:d:w:s:v:Sh" opt; do
     case $opt in
 	c)
 	    channelfile="$OPTARG"
 	    ;;
+	O)
+	    omegafile="$OPTARG"
+	    ;;
 	f)
 	    fflfile="$OPTARG"
+	    ;;
+	l)
+	    lalfile="$OPTARG"
 	    ;;
 	g)
 	    gps="$OPTARG"
@@ -74,6 +102,12 @@ while getopts ":c:f:g:d:w:s:h" opt; do
 	    ;;
 	d)
 	    outdir="$OPTARG"
+	    ;;
+	v)
+	    verbose="$OPTARG"
+	    ;;
+	S)
+	    style="STANDARD"
 	    ;;
 	h)
 	    printhelp
@@ -89,35 +123,74 @@ done
 
 ##### format gps
 gps=`echo $gps | awk '{printf "%.3f", $1}'`
-dateUTC=`tconvert $gps`
 
 ##### check gps
-if [ "$gps" = "none" ]; then
+if [ "$gps" = "0.000" ]; then
     echo "ERROR: A GPS time must be provided with the '-g' option"
     echo "type  'MakeOmicronScan -h'  for help"
     exit 1
 fi
+dateUTC=`tconvert $gps`
 
-##### check FFL
-if [ "$fflfile" = "none" ]; then
-    echo "ERROR: A FFL file must be provided with the '-f' option"
+##### check outdir
+if [ ! -d $outdir ]; then
+    echo "ERROR: The output directory $outdir does not exist"
     echo "type  'MakeOmicronScan -h'  for help"
     exit 1
 fi
-if [ ! -e $fflfile ]; then
-    echo "ERROR: The FFL file $fflfile does not exist"
-    echo "type  'MakeOmicronScan -h'  for help"
-    exit 1
-fi
+
+##### prepare outdir
+echo "MakeOmicronScan: Output directory = ${outdir}/${gps}"
+outdir="${outdir}/${gps}"
+mkdir -p ${outdir}; #rm -fr ${outdir}/*
+template=${outdir}/index.template
+cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
+cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
+cp -f ${GWOLLUM_DOC}/style.css ${outdir}/style.css
+cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
+cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 
 ##### check channel list
 if [ "$channelfile" = "none" ]; then
-    echo "ERROR: A channel file must be provided with the '-c' option"
-    echo "type  'MakeOmicronScan -h'  for help"
-    exit 1
+    if [ "$omegafile" = "none" ]; then
+	echo "ERROR: A channel file must be provided with the '-c' option"
+	echo "type  'MakeOmicronScan -h'  for help"
+	exit 1
+    fi
+    if [ ! -e $omegafile ]; then
+	echo "ERROR: The omega config file $omegafile does not exist"
+	echo "type  'MakeOmicronScan -h'  for help"
+	exit 1
+    fi
+    grep "channelName" $omegafile | awk '{print $2}' | sed "s|'||g" | uniq -u > ${outdir}/channels.list
+else
+    if [ ! -e $channelfile ]; then
+	echo "ERROR: The channel file $channelfile does not exist"
+	echo "type  'MakeOmicronScan -h'  for help"
+	exit 1
+    else
+	uniq -u $channelfile > ${outdir}/channels.list
+    fi
 fi
-if [ ! -e $channelfile ]; then
-    echo "ERROR: The channel file $channelfile does not exist"
+
+##### check FFL/LAL
+if [ "$fflfile" = "none" ]; then
+    if [ "$lalfile" = "none" ]; then
+	echo "ERROR: A FFL/lal-cache file must be provided with the '-f'/'-l' option"
+	echo "type  'MakeOmicronScan -h'  for help"
+	exit 1
+    else
+	if [ ! -e $lalfile ]; then
+	    echo "ERROR: The lal-cache file $lalfile does not exist"
+	    echo "type  'MakeOmicronScan -h'  for help"
+	    exit 1
+	fi
+	fflfile=$outdir/ffl_omiscan_${gps}.ffl
+	$GWOLLUM_SCRIPTS/lalcache2ffl.sh $lalfile > $fflfile
+    fi
+fi
+if [ ! -e $fflfile ]; then
+    echo "ERROR: The FFL file $fflfile does not exist"
     echo "type  'MakeOmicronScan -h'  for help"
     exit 1
 fi
@@ -150,20 +223,23 @@ fi
 
 currentdate=`date -u`
 
-##### prepare outdir
-echo "MakeOmicronScan: Output directory = ${outdir}/${gps}"
-outdir="${outdir}/${gps}"
-mkdir -p ${outdir}; #rm -fr ${outdir}/*
-uniq -u $channelfile > ${outdir}/channels.list
+##### waiting index
+title="Omiscan of $gps"
+message="Your Omiscan is currently running. The web report will appear here when it's done.<br>In the meantime you can check the <a href=\"./log.txt\">log file</a> to monitor the progress of the scan.<br>-- <i>$USER - $currentdate</i> --"
+sed -e "s|\[TITLE\]|${title}|g" \
+    -e "s|\[MESSAGE\]|${message}|g" \
+    $GWOLLUM_HTML/template/template.waiting.html > ${outdir}/index.html
+
 
 ##### prepare option file
 echo "MakeOmicronScan: Make option file..."
 echo "//***************** OmiScan option file *****************" > ${outdir}/options.txt
-echo "VERBOSITY   LEVEL       1"           >> ${outdir}/options.txt
+echo "VERBOSITY   LEVEL       ${verbose}"  >> ${outdir}/options.txt
 echo "DATA        FFL         ${fflfile}"  >> ${outdir}/options.txt
 echo "PARAMETER   WINDOW      ${windows}"  >> ${outdir}/options.txt
 echo "PARAMETER   SNR_THRESHOLD ${snrthr}" >> ${outdir}/options.txt
 echo "OUTPUT      DIRECTORY   ${outdir}"   >> ${outdir}/options.txt
+echo "OUTPUT      STYLE       ${style}"    >> ${outdir}/options.txt
 
 ##### run omiscan
 echo "MakeOmicronScan: Run OmiScan..."
@@ -188,17 +264,8 @@ while read line; do
     done
 done < ${outdir}/summary.txt
 
-
-##### html template and web material
-echo "MakeOmicronScan: Make web report..."
-template=${outdir}/index.template
-cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
-cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
-cp -f ${GWOLLUM_DOC}/style.css ${outdir}/style.css
-cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
-cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
-
 ##### fill html report
+echo "MakeOmicronScan: Make web report..."
 while read channel; do
 
     if ! grep -qw "$channel" ${outdir}/summary.txt; then
@@ -211,8 +278,8 @@ while read channel; do
 
     cd ${outdir}/plots
     for win in $windows; do
-	ln -sf ./th_${channel}_psd.gif ./th_${channel}_psd_dt${win}.gif
-        ln -sf ./${channel}_psd.gif ./${channel}_psd_dt${win}.gif
+	ln -sf ./th_${channel}_asd.gif ./th_${channel}_asd_dt${win}.gif
+        ln -sf ./${channel}_asd.gif ./${channel}_asd_dt${win}.gif
 	default="${default}<td><a id=\"a_${channel}_dt${win}\" href=\"./plots/${channel}_map_dt${win}.gif\"><img id=\"img_${channel}_dt${win}\" src=\"./plots/th_${channel}_map_dt${win}.gif\" alt=\"${channel}_map\" /></a></td>"
     done
     cd $here
@@ -220,7 +287,7 @@ while read channel; do
 
     maps="<a href=\"javascript:showImage('./plots', '$channel', 'map', ${winids});\">full</a>"
     tseries="<a href=\"javascript:showImage('./plots', '$channel', 'raw', ${winids});\">raw</a>"
-    other="<a href=\"javascript:showImage('./plots', '$channel', 'psd', ${winids});\">psd</a>"
+    other="<a href=\"javascript:showImage('./plots', '$channel', 'asd', ${winids});\">asd</a>"
     
     # add q map links
     q=0;

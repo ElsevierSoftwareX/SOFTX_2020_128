@@ -258,6 +258,7 @@ if [ "$triggers" = "" ]; then
     echo "triggers are not available for $main at $tcenter"
     exit 1
 fi
+echo $main > ${outdir}/channels.list
 eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
 
 # generic names for plots and thumbnails
@@ -316,6 +317,7 @@ for channel in $OMICRON_CHANNELS; do
     fi
 
     let "naux_with_triggers+=1"
+    echo $channel >> ${outdir}/channels.list
     eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
 
     if [ ! -e ${outdir}/map_${tcenter}_dt4.gif ]; then

@@ -139,6 +139,18 @@ int main (int argc, char* argv[]){
     snrthr=5;
   }
   
+  //**** plotting style
+  string pstyle;
+  if(io->GetOpt("OUTPUT","STYLE", pstyle)){
+    if(pstyle.compare("GWOLLUM")&&pstyle.compare("STANDARD")){
+      cerr<<"Omiscan ERROR: only GWOLLUM and STANDARD plotting styles are supported"<<endl;
+      return 3;
+    }
+  }
+  else{// default SNR threshold
+    pstyle="GWOLLUM";
+  }
+  
   //**** verbosity
   int verbose;
   if(io->GetOpt("VERBOSITY","LEVEL", verbose)){
@@ -196,20 +208,20 @@ int main (int argc, char* argv[]){
   FrVect *chanvect = NULL;
 
   // gwollum plots
-  GwollumPlot *GPlot = new GwollumPlot ("omiscan");
-  
+  GwollumPlot *GPlot = new GwollumPlot ("omiscan",pstyle);
+
   // declarations
   int timerange, pad;        // analysis time window and padding
   int start, stop;           // analysis starting/ending time
   Segments *segment = new Segments();// analysis segment
   int sampling, sampling_new;// sampling frequency before-after
-  int psdsize;               // psd size
+  int asdsize;               // asd size
   int powerof2;              // closest power of 2 below
   double fmin, fmax;         // search frequency range
   Odata *data;               // data structure
   Otile *tiles;              // tiling structure
   double *c_data[2];         // condition data
-  double *psd;               // psd vector - DO NOT DELETE!
+  double *asd;               // asd vector - DO NOT DELETE!
   double *f_bin;             // frequency bins
   int nfbins;                // number of frequency bins
   TH2D **qmap;               // Q maps - DO NOT DELETE!
@@ -338,7 +350,6 @@ int main (int argc, char* argv[]){
       continue;
     }
 
-
     // init and load data
     if(verbose) cout<<"         Create Odata object..."<<endl;
     data = new Odata("ONLINE", channels[c], sampling, sampling_new, segment, timerange, timerange, 2*pad, fmin);
@@ -356,7 +367,7 @@ int main (int argc, char* argv[]){
 
     // condition data
     if(verbose) cout<<"         Get conditionned data..."<<endl;
-    if(!data->GetConditionedData(0,c_data[0],c_data[1],&psd,psdsize)){
+    if(!data->GetConditionedData(0,c_data[0],c_data[1],&asd,asdsize)){
       cout<<"Omiscan WARNING: conditionned data are corrupted --> skip"<<endl;
       delete data;
       delete c_data[0];
@@ -367,7 +378,7 @@ int main (int argc, char* argv[]){
     // make tiling
     if(verbose) cout<<"         Make tiling..."<<endl;
     tiles = new Otile(timerange, pad, 3, 141, fmin, fmax, sampling_new, 0.2);
-    if(!tiles->SetPowerSpectrum(psd,psdsize)){
+    if(!tiles->SetPowerSpectrum(asd,asdsize)){
       cout<<"Omiscan WARNING: cannot normalize tiling --> skip"<<endl;
       delete tiles;
       delete data;
@@ -464,6 +475,11 @@ int main (int argc, char* argv[]){
       qmap[q]->GetXaxis()->SetTitle("Time [s]");
       qmap[q]->GetYaxis()->SetTitle("Frequency [Hz]");
       qmap[q]->GetZaxis()->SetTitle("SNR");
+      qmap[q]->GetXaxis()->SetTitleOffset(1.1);
+      qmap[q]->GetXaxis()->SetLabelSize(0.045);
+      qmap[q]->GetYaxis()->SetLabelSize(0.045);
+      qmap[q]->GetXaxis()->SetTitleSize(0.045);
+      qmap[q]->GetYaxis()->SetTitleSize(0.045);
       qmap[q]->GetZaxis()->SetRangeUser(1,50);
       
       // window resize for Qmap
@@ -506,7 +522,12 @@ int main (int argc, char* argv[]){
       map[w]->GetYaxis()->SetTitle("Frequency [Hz]");
       map[w]->GetZaxis()->SetTitle("SNR");
       map[w]->GetZaxis()->SetRangeUser(1,50);
-      
+      map[w]->GetXaxis()->SetTitleOffset(1.1);
+      map[w]->GetXaxis()->SetLabelSize(0.045);
+      map[w]->GetYaxis()->SetLabelSize(0.045);
+      map[w]->GetXaxis()->SetTitleSize(0.045);
+      map[w]->GetYaxis()->SetTitleSize(0.045);
+
       // get loudest tile
       loudest_bin=map[w]->GetMaximumBin();
       map[w]->GetBinXYZ(loudest_bin,loudest_bin_t,loudest_bin_f,loudest_bin_s);
@@ -578,14 +599,14 @@ int main (int argc, char* argv[]){
     }
     delete graph;
 
-    //*****  PSD plot  ***********************************************
-    if(verbose) cout<<"         Make PSD..."<<endl;
+    //*****  ASD plot  ***********************************************
+    if(verbose) cout<<"         Make ASD..."<<endl;
     graph = new TGraph();
     tmpstream<<channels[c]<<" amplitude spectral density";
     graph->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
-    for(int i=0; i<psdsize; i++)
-      graph->SetPoint(i,i*(double)sampling_new/2.0/(double)psdsize,sqrt(psd[i]/(double)sampling_new/(double)psdsize/2.0));
+    for(int i=0; i<asdsize; i++)
+      graph->SetPoint(i,i*(double)sampling_new/2.0/(double)asdsize,sqrt(asd[i]/(double)sampling_new/(double)asdsize/2.0));
     delete data;
 
     GPlot->SetLogy(1);
@@ -597,12 +618,17 @@ int main (int argc, char* argv[]){
     // cosmetics
     graph->GetXaxis()->SetTitle("Frequency [Hz]");
     graph->GetXaxis()->SetLimits(fmin,fmax);
+    graph->GetXaxis()->SetTitleOffset(1.1);
+    graph->GetXaxis()->SetLabelSize(0.045);
+    graph->GetYaxis()->SetLabelSize(0.045);
+    graph->GetXaxis()->SetTitleSize(0.045);
+    graph->GetYaxis()->SetTitleSize(0.045);
     graph->SetLineWidth(2);
     graph->SetLineColor(7);
     graph->SetMarkerColor(7);
 	
-    // save PSD plot
-    tmpstream<<outdir<<"/plots/"<<channels[c]<<"_psd.gif";
+    // save ASD plot
+    tmpstream<<outdir<<"/plots/"<<channels[c]<<"_asd.gif";
     GPlot->Print(tmpstream.str());
     tmpstream.str(""); tmpstream.clear();
     delete graph;
