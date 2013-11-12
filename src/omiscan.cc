@@ -250,7 +250,7 @@ int main (int argc, char* argv[]){
   // loop over channels
   for(int c=0; c<(int)channels.size(); c++){
 
-    cout<<"\nOmiscan: process channel "<<channels[c]<<"..."<<endl;
+    cout<<"\nOmiscan: process channel "<<c<<"/"<<channels.size()<<": "<<channels[c]<<"..."<<endl;
     
     // get 1sec of data
     if(verbose) cout<<"         Optimizing parameters..."<<endl;
