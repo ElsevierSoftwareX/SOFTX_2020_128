@@ -213,6 +213,7 @@ int main (int argc, char* argv[]){
   // declarations
   int timerange, pad;        // analysis time window and padding
   int start, stop;           // analysis starting/ending time
+  double toffset;            // time offset from working with int times
   Segments *segment = new Segments();// analysis segment
   int sampling, sampling_new;// sampling frequency before-after
   int asdsize;               // asd size
@@ -250,7 +251,7 @@ int main (int argc, char* argv[]){
   // loop over channels
   for(int c=0; c<(int)channels.size(); c++){
 
-    cout<<"\nOmiscan: process channel "<<c<<"/"<<channels.size()<<": "<<channels[c]<<"..."<<endl;
+    cout<<"\nOmiscan: process channel "<<c+1<<"/"<<channels.size()<<": "<<channels[c]<<"..."<<endl;
     
     // get 1sec of data
     if(verbose) cout<<"         Optimizing parameters..."<<endl;
@@ -307,13 +308,15 @@ int main (int argc, char* argv[]){
     timerange=windows[(int)windows.size()-1]+2*pad;
     powerof2=(int)ceil(log(timerange)/log(2.0));
     timerange=(int)pow(2,powerof2);
-    start=(int)floor(gps)-(double)timerange/2.0;
-    stop=(int)floor(gps)+(double)timerange/2.0;
+    start=(int)floor(gps)-timerange/2;
+    stop=(int)floor(gps)+timerange/2;
+    toffset=gps-start-timerange/2;
     if(verbose){
       cout<<"           analysis timerange = "<<timerange<<"s"<<endl;
       cout<<"           GPS start          = "<<start<<endl;
       cout<<"           GPS stop           = "<<stop<<endl;
       if(verbose>1) cout<<"           analysis pad       = "<<pad<<"s"<<endl;
+      if(verbose>1) cout<<"           time offset        = "<<toffset<<"s"<<endl;
     }
 
     // get data vector
@@ -388,13 +391,12 @@ int main (int argc, char* argv[]){
     }
 
     //*****  TIME-FREQUENCY plots  ***********************************************
-
     // populate Q maps
     if(verbose) cout<<"         Populate Q maps..."<<endl;
     qmap = new TH2D * [tiles->GetNQPlanes()];
     loudest_s=0;
     for(int q=0; q<tiles->GetNQPlanes(); q++){
-      qmap[q]=tiles->GetMap(q,c_data[0],c_data[1]);
+      qmap[q]=tiles->GetMap(q,c_data[0],c_data[1], -toffset);
       if(qmap[q]==NULL) continue;
       qmap[q]->GetXaxis()->SetRangeUser(-(double)windows[0]/2.0,(double)windows[0]/2.0);
       if(qmap[q]->GetMaximum()>loudest_s){
