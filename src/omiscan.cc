@@ -7,6 +7,7 @@
 #include "GwollumPlot.h"
 #include "Omicron.h"
 #include "IO.h"
+#include "TProfile.h"
 
 using namespace std;
 
@@ -233,6 +234,7 @@ int main (int argc, char* argv[]){
   TH2D **qmap;               // Q maps - DO NOT DELETE!
   TGraph *graph;             // graph plots
   TH2D **map = new TH2D * [(int)windows.size()];// overall maps
+  TH1D *projt, *projf;       // Projections
   int bin_start, bin_stop, bin_start_t, bin_stop_t, bin_start_f, bin_stop_f, dummy;// bin indexes
   double content;            // tile content
   ostringstream tmpstream;   // stream
@@ -575,6 +577,45 @@ int main (int argc, char* argv[]){
       tmpstream<<outdir<<"/plots/"<<channels[c]<<"_map_dt"<<windows[w]<<".gif";
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
+
+      // Make projections
+      GPlot->SetLogx(0);
+      GPlot->SetLogy(1);
+      GPlot->SetGridx(1);
+      GPlot->SetGridy(1);
+      projt=map[w]->ProjectionX("_pfx",loudest_bin_f,loudest_bin_f);
+      tmpstream<<"SNR vs time at f = "<<setprecision(5)<<loudest_f<<"Hz";
+      projt->SetTitle(tmpstream.str().c_str());
+      tmpstream.str(""); tmpstream.clear();
+      projt->GetXaxis()->SetTitle("Time [s]");
+      projt->GetYaxis()->SetTitle("SNR");
+      projt->GetXaxis()->SetTitleOffset(1.1);
+      projt->GetXaxis()->SetLabelSize(0.045);
+      projt->GetYaxis()->SetLabelSize(0.045);
+      projt->GetXaxis()->SetTitleSize(0.045);
+      projt->GetYaxis()->SetTitleSize(0.045);
+      GPlot->Draw(projt);
+      tmpstream<<outdir<<"/plots/"<<channels[c]<<"_projt_dt"<<windows[w]<<".gif";
+      GPlot->Print(tmpstream.str());
+      tmpstream.str(""); tmpstream.clear();
+      delete projt;
+      GPlot->SetLogx(1);
+      projf=map[w]->ProjectionY("_pfy",loudest_bin_t,loudest_bin_t);
+      tmpstream<<"SNR vs frequency at GPS = "<<setprecision(12)<<loudest_t+gps;
+      projf->SetTitle(tmpstream.str().c_str());
+      tmpstream.str(""); tmpstream.clear();
+      projf->GetXaxis()->SetTitle("Frequency [Hz]");
+      projf->GetYaxis()->SetTitle("SNR");
+      projf->GetXaxis()->SetTitleOffset(1.1);
+      projf->GetXaxis()->SetLabelSize(0.045);
+      projf->GetYaxis()->SetLabelSize(0.045);
+      projf->GetXaxis()->SetTitleSize(0.045);
+      projf->GetYaxis()->SetTitleSize(0.045);
+      GPlot->Draw(projf);
+      tmpstream<<outdir<<"/plots/"<<channels[c]<<"_projf_dt"<<windows[w]<<".gif";
+      GPlot->Print(tmpstream.str());
+      tmpstream.str(""); tmpstream.clear();
+      delete projf;
       delete map[w];
     }
     delete tiles;

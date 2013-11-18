@@ -313,7 +313,7 @@ while read channel; do
 
     maps="<a href=\"javascript:showImage('./plots', '$channel', 'map', ${winids});\">full</a>"
     tseries="<a href=\"javascript:showImage('./plots', '$channel', 'raw', ${winids});\">raw</a>"
-    other="<a href=\"javascript:showImage('./plots', '$channel', 'asd', ${winids});\">asd</a>"
+    other="<a href=\"javascript:showImage('./plots', '$channel', 'asd', ${winids});\">asd</a> <a href=\"javascript:showImage('./plots', '$channel', 'projt', ${winids});\">SNR vs time</a> <a href=\"javascript:showImage('./plots', '$channel', 'projf', ${winids});\">SNR vs frequency</a>"
 
     if [ $writeroot -eq 1 ]; then
 	other="${other} <a href=\"./plots/${channel}.root\">Get ROOT file</a>"
