@@ -151,6 +151,10 @@ int main (int argc, char* argv[]){
     pstyle="GWOLLUM";
   }
   
+  //**** write root files
+  int writeroot;
+  if(!io->GetOpt("OUTPUT","WRITEROOT", writeroot)) writeroot=0;
+  
   //**** verbosity
   int verbose;
   if(io->GetOpt("VERBOSITY","LEVEL", verbose)){
@@ -172,6 +176,7 @@ int main (int argc, char* argv[]){
     for(int w=0; w<(int)windows.size(); w++) cout<<windows[w]<<"s ";
     cout<<endl;
     cout<<"         SNR threshold    = "<<snrthr<<endl;
+    cout<<"         Write root file  = "<<writeroot<<endl;
   }
   
   ///////////////////////////////////////////////////////////////////////////////
@@ -233,6 +238,7 @@ int main (int argc, char* argv[]){
   ostringstream tmpstream;   // stream
   int loudest_bin, loudest_bin_t, loudest_bin_f, loudest_bin_s;// loudest bin
   double loudest_t, loudest_f, loudest_s, loudest_q;// loudest tile
+  TFile *rootfile;           // output rootfile
   
   ofstream summary((outdir+"/summary.txt").c_str());// outfile stream
   summary<<"# channel name"<<endl;
@@ -390,6 +396,14 @@ int main (int argc, char* argv[]){
       continue;
     }
 
+    // root file
+    if(writeroot){
+      tmpstream<<outdir<<"/plots/"<<channels[c]<<".root";
+      rootfile = new TFile(tmpstream.str().c_str(),"RECREATE");
+      tmpstream.str(""); tmpstream.clear();
+    }
+
+
     //*****  TIME-FREQUENCY plots  ***********************************************
     // populate Q maps
     if(verbose) cout<<"         Populate Q maps..."<<endl;
@@ -472,6 +486,10 @@ int main (int argc, char* argv[]){
       GPlot->SetGridx(1);
       GPlot->SetGridy(1);
       GPlot->Draw(qmap[q],"COLZ");
+      if(writeroot){
+	rootfile->cd();
+	qmap[q]->Write();
+      }
 
       // cosmetics
       qmap[q]->GetXaxis()->SetTitle("Time [s]");
@@ -518,7 +536,11 @@ int main (int argc, char* argv[]){
       GPlot->SetGridx(1);
       GPlot->SetGridy(1);
       GPlot->Draw(map[w],"COLZ");
-      
+      if(writeroot){
+	rootfile->cd();
+	map[w]->Write();
+      }
+
       // cosmetics
       map[w]->GetXaxis()->SetTitle("Time [s]");
       map[w]->GetYaxis()->SetTitle("Frequency [Hz]");
@@ -573,7 +595,11 @@ int main (int argc, char* argv[]){
     GPlot->SetGridx(1);
     GPlot->SetGridy(1);
     GPlot->Draw(graph,"APL");
-    
+    if(writeroot){
+      rootfile->cd();
+      graph->Write();
+    }
+
     // cosmetics
     graph->GetXaxis()->SetTimeOffset(-gps);
     graph->GetXaxis()->SetTitle("time [s]");
@@ -604,6 +630,7 @@ int main (int argc, char* argv[]){
     //*****  ASD plot  ***********************************************
     if(verbose) cout<<"         Make ASD..."<<endl;
     graph = new TGraph();
+    graph->SetName("ASD");
     tmpstream<<channels[c]<<" amplitude spectral density";
     graph->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
@@ -616,6 +643,10 @@ int main (int argc, char* argv[]){
     GPlot->SetGridx(1);
     GPlot->SetGridy(1);
     GPlot->Draw(graph,"APL");
+    if(writeroot){
+      rootfile->cd();
+      graph->Write();
+    }
 
     // cosmetics
     graph->GetXaxis()->SetTitle("Frequency [Hz]");
@@ -634,6 +665,8 @@ int main (int argc, char* argv[]){
     GPlot->Print(tmpstream.str());
     tmpstream.str(""); tmpstream.clear();
     delete graph;
+
+    if(writeroot) rootfile->Close();
   }
 
   summary<<"*** omiscan done ***"<<endl;

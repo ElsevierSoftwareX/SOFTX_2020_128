@@ -18,6 +18,7 @@ cachefile="none"
 gps=0
 windows="2 8 32"
 snrthr=8
+writeroot=0
 verbose=0
 style="GWOLLUM"
 
@@ -66,6 +67,8 @@ printhelp(){
     echo "                        3 --> full printing"
     echo "                        Default = 0"
     echo ""
+    echo "  -R                    with this flag, all the plots are saved in a ROOT file"
+    echo ""
     echo "  -S                    this flag commands the plotting style"
     echo "                        the standard ROOT style will be used"
     echo "                        instead of the GWOLLUM style"
@@ -82,7 +85,7 @@ if [[ -z "$OMICRONROOT" ]]; then
 fi
 
 ##### read options
-while getopts ":c:O:f:l:W:g:d:w:s:v:Sh" opt; do
+while getopts ":c:O:f:l:W:g:d:w:s:v:SRh" opt; do
     case $opt in
 	c)
 	    channelfile="$OPTARG"
@@ -116,6 +119,9 @@ while getopts ":c:O:f:l:W:g:d:w:s:v:Sh" opt; do
 	    ;;
 	S)
 	    style="STANDARD"
+	    ;;
+	R)
+	    writeroot=1
 	    ;;
 	h)
 	    printhelp
@@ -253,12 +259,13 @@ sed -e "s|\[TITLE\]|${title}|g" \
 ##### prepare option file
 echo "MakeOmicronScan: Make option file..."
 echo "//***************** OmiScan option file *****************" > ${outdir}/options.txt
-echo "VERBOSITY   LEVEL       ${verbose}"  >> ${outdir}/options.txt
-echo "DATA        FFL         ${fflfile}"  >> ${outdir}/options.txt
-echo "PARAMETER   WINDOW      ${windows}"  >> ${outdir}/options.txt
-echo "PARAMETER   SNR_THRESHOLD ${snrthr}" >> ${outdir}/options.txt
-echo "OUTPUT      DIRECTORY   ${outdir}"   >> ${outdir}/options.txt
-echo "OUTPUT      STYLE       ${style}"    >> ${outdir}/options.txt
+echo "VERBOSITY   LEVEL       ${verbose}"   >> ${outdir}/options.txt
+echo "DATA        FFL         ${fflfile}"   >> ${outdir}/options.txt
+echo "PARAMETER   WINDOW      ${windows}"   >> ${outdir}/options.txt
+echo "PARAMETER   SNR_THRESHOLD ${snrthr}"  >> ${outdir}/options.txt
+echo "OUTPUT      DIRECTORY   ${outdir}"    >> ${outdir}/options.txt
+echo "OUTPUT      STYLE       ${style}"     >> ${outdir}/options.txt
+echo "OUTPUT      WRITEROOT   ${writeroot}" >> ${outdir}/options.txt
 
 ##### run omiscan
 echo "MakeOmicronScan: Run OmiScan..."
@@ -307,7 +314,11 @@ while read channel; do
     maps="<a href=\"javascript:showImage('./plots', '$channel', 'map', ${winids});\">full</a>"
     tseries="<a href=\"javascript:showImage('./plots', '$channel', 'raw', ${winids});\">raw</a>"
     other="<a href=\"javascript:showImage('./plots', '$channel', 'asd', ${winids});\">asd</a>"
-    
+
+    if [ $writeroot -eq 1 ]; then
+	other="${other} <a href=\"./plots/${channel}.root\">Get ROOT file</a>"
+    fi
+
     # add q map links
     q=0;
     for Qval in `grep -w "$channel" ${outdir}/summary.txt | awk '{for(i=1;i<9;i++) $i="";print}'`; do
