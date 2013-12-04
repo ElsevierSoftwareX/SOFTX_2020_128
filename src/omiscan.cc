@@ -298,7 +298,7 @@ int main (int argc, char* argv[]){
     
     // optimize sampling for this range
     powerof2=(int)floor(log(TMath::Min(sampling,2*(int)fmax))/log(2.0));
-    sampling_new=(double)pow(2,powerof2);// optimized sampling for this range
+    sampling_new=(double)pow(2.0,(double)powerof2);// optimized sampling for this range
     fmax=TMath::Min(fmax,(double)sampling_new/2.0);
 
     // print sampling info
@@ -315,7 +315,7 @@ int main (int argc, char* argv[]){
     pad=TMath::Max((int)ceil(8.0/fmin),4);
     timerange=windows[(int)windows.size()-1]+2*pad;
     powerof2=(int)ceil(log(timerange)/log(2.0));
-    timerange=(int)pow(2,powerof2);
+    timerange=(int)pow(2.0,(double)powerof2);
     start=(int)floor(gps)-timerange/2;
     stop=(int)floor(gps)+timerange/2;
     toffset=gps-start-timerange/2;
