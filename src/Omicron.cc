@@ -348,7 +348,7 @@ bool Omicron::WriteOnline(const int aChNumber){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding){
+Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding, const double aInfValue){
 ////////////////////////////////////////////////////////////////////////////////////
   Segments* empty = new Segments();
   if(!status_OK){
@@ -361,7 +361,7 @@ Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const doub
   }
   delete empty;
 
-  return triggers[aChNumber]->GetTriggerSegments(aThr,aPadding);
+  return triggers[aChNumber]->GetTriggerSegments(aThr,aPadding,aInfValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
