@@ -579,7 +579,7 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
-  if(fChunkDuration<4||fChunkDuration>100000||fChunkDuration%2){
+  if(fChunkDuration<4||fChunkDuration>131072||fChunkDuration%2){
     cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
     return false;
   }
