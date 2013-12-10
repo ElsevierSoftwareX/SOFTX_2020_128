@@ -220,13 +220,6 @@ if [ ! -e $fflfile ]; then
     exit 1
 fi
 
-##### check outdir
-if [ ! -d $outdir ]; then
-    echo "ERROR: The output directory $outdir does not exist"
-    echo "type  'MakeOmicronScan -h'  for help"
-    exit 1
-fi
-
 ##### check windows
 winids="["
 nwin=0

@@ -15,13 +15,15 @@ snrmin=8
 parameterfile=""
 tagname="NONE"
 chandir="NONE"
+tcenter=0
 
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronScan -m [MAIN_CHANNEL] [GPS_CENTER]"
+    echo "GetOmicronScan -m [MAIN_CHANNEL] -g [GPS_CENTER]"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
+    echo "  -g [GPS_CENTER]      GPS to scan"
     echo "  -s  [SNRMIN]         print aux. scan only if SNR > [SNRMIN]"
     echo "                       Default = 8"
     echo "  -t  [TAGNAME]        Predefined channel selection (Virgo only):"
@@ -59,15 +61,12 @@ if [[ -z "$OMICRONROOT" ]]; then
     exit 1
 fi
 
-##### needs argument
-if [ $# -lt 1 ]; then
-    printhelp
-    exit 1
-fi
-
 ##### read options
-while getopts ":m:s:p:d:t:r:h" opt; do
+while getopts ":g:m:s:p:d:t:r:h" opt; do
     case $opt in
+	g)
+	    tcenter="$OPTARG"
+	    ;;
 	m)
 	    main="$OPTARG"
 	    ;;
@@ -98,11 +97,9 @@ while getopts ":m:s:p:d:t:r:h" opt; do
     esac
 done
 
-##### gps interval
-shift $(($OPTIND - 1))
-tcenter=`echo $1 | awk '{printf "%.3f", $1}'`
+##### format gps
+tcenter=`echo $tcenter | awk '{printf "%.3f", $1}'`
 tcenter_=`echo $tcenter | awk '{print int($1)}'`
-OPTIND=0
 
 ##### check timing
 if [ $tcenter_ -lt 700000000 ]; then
@@ -235,6 +232,13 @@ cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
 cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
 if [ ! $parameterfile = "" ] ; then cp -f $parameterfile ${outdir}/parameters.txt; fi
 currentdate=`date -u`
+
+##### waiting index
+title="Omiscan of $gps"
+message="Your Omiscan is currently running. The web report will appear here when it's done.<br>In the meantime you can check the <a href=\"./log.txt\">log file</a> to monitor the progress of the scan.<br>If you're in a hurry, you can check <a href=\"./index.template\">your page</a> being built<br>-- <i>$USER - $currentdate</i> --"
+sed -e "s|\[TITLE\]|${title}|g" \
+    -e "s|\[MESSAGE\]|${message}|g" \
+    $GWOLLUM_HTML/template/template.waiting.html > ${outdir}/index.html
 
 ##### start log
 echo "**********************************" > ${outdir}/log.txt
