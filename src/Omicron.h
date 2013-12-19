@@ -61,7 +61,8 @@ class Omicron {
   // MONITORING
   Segments **outSegments;       // segments currently processed
   int *chunk_ctr;               // number of chunks
-  int *lost_chunk_ctr;          // number of lost chunks
+  int *cor_chunk_ctr;           // number of corrupted chunks
+  int *max_chunk_ctr;           // number of maxed-out chunks
 
   // OUTPUT FLAGS
   bool writepsd;                // writing PSD flag

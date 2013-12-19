@@ -33,11 +33,13 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   // init monitoring
   outSegments    = new Segments* [(int)fChannels.size()];
   chunk_ctr      = new int       [(int)fChannels.size()];
-  lost_chunk_ctr = new int       [(int)fChannels.size()];
+  cor_chunk_ctr  = new int       [(int)fChannels.size()];
+  max_chunk_ctr  = new int       [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     outSegments[c]    = new Segments();
     chunk_ctr[c]      = 0;
-    lost_chunk_ctr[c] = 0;
+    cor_chunk_ctr[c]  = 0;
+    max_chunk_ctr[c]  = 0;
   }
 
   // conditioned data vector
@@ -148,7 +150,8 @@ Omicron::~Omicron(void){
   }
   delete outSegments;
   delete chunk_ctr;
-  delete lost_chunk_ctr;
+  delete cor_chunk_ctr;
+  delete max_chunk_ctr;
   if(Net!=NULL) delete Net;
   if(Inj!=NULL) delete Inj;
 
@@ -193,7 +196,11 @@ bool Omicron::Process(){
       // get new data chunk
       keep_looping=odata[c]->NewChunk();// get fresh data
       if(keep_looping==1) break;        // end of data to process
-      if(keep_looping>1) continue;      // the data chunk is corrupted -> skip
+      chunk_ctr[c]++;                   // one more chunk of data
+      if(keep_looping>1){               // the data chunk is corrupted -> skip
+	cor_chunk_ctr[c]++;
+	continue;
+      }
   
       // write chunk info if requested
       if(writetimeseries) status_OK*=odata[c]->WriteTimeSeries(fOutdir[c]);
@@ -227,7 +234,7 @@ bool Omicron::Process(){
 	//get triggers
 	cout<<" "<<fChannels[c]<<" Extracting triggers in "<<odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2<<"-"<<odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2<<endl;
 	if(!tile->GetTriggers(triggers[c],c_data[0],c_data[1],odata[c]->GetSegmentTimeStart(s))){
-	  cerr<<"Omicron::Process: could not get trigger for channel "<<fChannels[c]
+	  cerr<<"Omicron::Process: could not get triggers for channel "<<fChannels[c]
 	      <<" in segment starting at "<<odata[c]->GetSegmentTimeStart(s)<<endl;
 	  continue;
 	}
@@ -242,8 +249,7 @@ bool Omicron::Process(){
       if(triggers[c]->GetMaxFlag()){
 	cerr<<"Omicron::Process: channel "<<fChannels[c]<<" is maxed-out. This chunk is not saved"<<endl;
 	triggers[c]->Reset();
-	lost_chunk_ctr[c]++;
-	chunk_ctr[c]++;
+	max_chunk_ctr[c]++;
 	continue;
       }
       
@@ -252,11 +258,9 @@ bool Omicron::Process(){
 	cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[c]<<endl;
 	return false;
       }
-      else{
+      else
 	outSegments[c]->AddSegment(odata[c]->GetChunkTimeStart()+fOverlapDuration/2,odata[c]->GetChunkTimeEnd()-fOverlapDuration/2);
-	chunk_ctr[c]++;
-      }
-
+	
     }
   }
 
@@ -762,17 +766,18 @@ bool Omicron::PrintStatusInfo(void){
   for(int c=0; c<(int)fChannels.size(); c++){
     cout<<"\n*** "<<fChannels[c]<<endl;
     if(outSegments[c]->GetNsegments()){
-      cout<<"start_out             = "<<outSegments[c]->GetStart(0)<<endl;
-      cout<<"end_out               = "<<outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
-      cout<<"processed livetime    = "<<outSegments[c]->GetLiveTime()<<" ("<<outSegments[c]->GetLiveTime()/fSegments->GetLiveTime()*100<<"%)"<<endl;
+      cout<<"start_out                  = "<<outSegments[c]->GetStart(0)<<endl;
+      cout<<"end_out                    = "<<outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
+      cout<<"processed livetime         = "<<outSegments[c]->GetLiveTime()<<" ("<<outSegments[c]->GetLiveTime()/fSegments->GetLiveTime()*100<<"%)"<<endl;
     }
     else{
-      cout<<"start_out             = -1"<<endl;
-      cout<<"end_out               = -1"<<endl;
-      cout<<"processed livetime    = "<<"0 (0%)"<<endl;
+      cout<<"start_out                  = -1"<<endl;
+      cout<<"end_out                    = -1"<<endl;
+      cout<<"processed livetime         = "<<"0 (0%)"<<endl;
     }
-    cout<<"number of chunks      = "<<chunk_ctr[c]<<endl;
-    cout<<"number of lost chunks = "<<lost_chunk_ctr[c]<<endl;
+    cout<<"number of chunks           = "<<chunk_ctr[c]<<endl;
+    cout<<"number of corrupted chunks = "<<cor_chunk_ctr[c]<<endl;
+    cout<<"number of maxed-out chunks = "<<cor_chunk_ctr[c]<<endl;
   }
   cout<<"***********************************************\n"<<endl;
 
