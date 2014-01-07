@@ -187,7 +187,7 @@ for file in ./channel.*Hz; do
     if [ $freq -le 1024 ]; then # LOW FREQUENCY REGIME
 	freqsample=128
 	freqmin=0.1; 
-	overlap=320;
+	overlap=1280;
 	chunk=8192;
 	block=8192;
 	trigmax=500000;
