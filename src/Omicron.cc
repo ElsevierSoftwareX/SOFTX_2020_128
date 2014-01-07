@@ -777,7 +777,7 @@ bool Omicron::PrintStatusInfo(void){
     }
     cout<<"number of chunks           = "<<chunk_ctr[c]<<endl;
     cout<<"number of corrupted chunks = "<<cor_chunk_ctr[c]<<endl;
-    cout<<"number of maxed-out chunks = "<<cor_chunk_ctr[c]<<endl;
+    cout<<"number of maxed-out chunks = "<<max_chunk_ctr[c]<<endl;
   }
   cout<<"***********************************************\n"<<endl;
 
