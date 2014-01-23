@@ -103,8 +103,8 @@ fi
 
 ##### user channel list
 if [ -e $chanfile ]; then
-    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.list
-    mv ${TMP}/channel.list ./channel.list
+    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.getomicronoptions
+    mv ${TMP}/channel.getomicronoptions ./channel.getomicronoptions
 else
 ##### get reference frame file
     fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
@@ -134,10 +134,10 @@ else
 
 ##### get channel list
 ##### FIXME: this is very dirty!!
-    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.004{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.list
-    if [ ! -s ./channel.list ]; then
-	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.004{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.list
-	if [ ! -s ./channel.list ]; then
+    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.004{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.getomicronoptions
+    if [ ! -s ./channel.getomicronoptions ]; then
+	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.004{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.getomicronoptions
+	if [ ! -s ./channel.getomicronoptions ]; then
 	    echo "No channel"
 	    exit 2
 	fi
@@ -152,7 +152,7 @@ rm -f ./parameters_*Hz_*.txt
 while read line; do
     freq=`echo $line | awk '{print $1}'`
     echo $line >> ./channel.${freq}Hz
-done < ./channel.list
+done < ./channel.getomicronoptions
 
 # customized parameters
 # freq       = native sampling frequency
