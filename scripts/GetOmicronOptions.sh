@@ -101,10 +101,12 @@ if [ ! -e $optfile ]; then
     optfile="./parameters.template"
 fi
 
+randnum=$RANDOM
+
 ##### user channel list
 if [ -e $chanfile ]; then
-    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.getomicronoptions
-    mv ${TMP}/channel.getomicronoptions ./channel.getomicronoptions
+    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.getomicronoptions.$randnum
+    mv ${TMP}/channel.getomicronoptions.$randnum ./channel.getomicronoptions
 else
 ##### get reference frame file
     fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
