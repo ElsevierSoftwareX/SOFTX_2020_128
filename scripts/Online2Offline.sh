@@ -22,6 +22,8 @@ printhelp(){
     echo "                      Default = '100000'"
     echo ""
     echo "OUTPUT CONTROL"
+    echo "  -a                  only perform archiving"
+    echo ""
     echo "  -h                  print this help"
     echo ""
 } 
@@ -35,15 +37,19 @@ fi
 ##### default options
 channel="unknown" # channel name
 delay=100000
+only_archive=0
 
 ##### read options
-while getopts ":c:d:h" opt; do
+while getopts ":c:d:ah" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
 	    ;;
 	d)
 	    delay=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
+	a)
+	    only_archive=1
 	    ;;
 	h)
 	    printhelp
@@ -105,36 +111,38 @@ if [ "$first_file=" = "" ]; then
 fi
 first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 
-# starting base
-b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
-echo "Starting base = ${b}"
-b1000=$(( $first_start / 1000 ))
-echo "Starting base1000 = ${b1000}"
 
-# tmp place holder
-mkdir -p ${TMP}/${channel}-${now}
+if [ $only_archive -eq 0 ]; then
+    # starting base
+    b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
+    echo "Starting base = ${b}"
+    b1000=$(( $first_start / 1000 ))
+    echo "Starting base1000 = ${b1000}"
+    
+    # tmp place holder
+    mkdir -p ${TMP}/${channel}-${now}
 
-# merge online files
-while [ $b1000 -lt $now_base1000 ]; do
-    echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-    nfiles=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root 2>&1 | wc -l`
-    if [ $nfiles -lt 2 ]; then
-	echo "nothing to merge"
-	let "b1000+=1"
-	continue;
-    fi
-    if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" 2>&1 | grep -q "no livetime"; then
-	echo "no files -> skip"
-    else
-	if [ "$(ls -A ${TMP}/${channel}-${now})" ]; then
-	    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
-	    mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+    # merge online files
+    while [ $b1000 -lt $now_base1000 ]; do
+	echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
+	nfiles=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root 2>&1 | wc -l`
+	if [ $nfiles -lt 2 ]; then
+	    echo "nothing to merge"
+	    let "b1000+=1"
+	    continue;
 	fi
-    fi
-    let "b1000+=1"
-done
-rm -fr ${TMP}/${channel}-${now}/
-
+	if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" 2>&1 | grep -q "no livetime"; then
+	    echo "no files -> skip"
+	else
+	    if [ "$(ls -A ${TMP}/${channel}-${now})" ]; then
+		rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
+		mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+	    fi
+	fi
+	let "b1000+=1"
+    done
+    rm -fr ${TMP}/${channel}-${now}/
+fi
 
 # merge and archive files
 while [ $b -lt $oldtime_base ]; do
