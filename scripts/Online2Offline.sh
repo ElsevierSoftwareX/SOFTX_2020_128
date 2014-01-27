@@ -111,11 +111,11 @@ if [ "$first_file=" = "" ]; then
 fi
 first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 
+# starting base
+b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
+echo "Starting base = ${b}"
 
 if [ $only_archive -eq 0 ]; then
-    # starting base
-    b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
-    echo "Starting base = ${b}"
     b1000=$(( $first_start / 1000 ))
     echo "Starting base1000 = ${b1000}"
     
