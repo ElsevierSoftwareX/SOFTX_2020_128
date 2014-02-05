@@ -276,8 +276,8 @@ int main (int argc, char* argv[]){
       FrVectFree(chanvect);
       continue;
     }
-    if(chanvect->dataD[0]==0.0&&chanvect->dataD[chanvect->nData-1]==0.0){
-      cout<<"Omiscan WARNING: zero data --> skip"<<endl;
+    if(chanvect->dataD[0]==chanvect->dataD[chanvect->nData-1]){
+      cerr<<"Omiscan WARNING: flat data --> skip"<<endl;
       FrVectFree(chanvect);
       continue;
     }
@@ -347,8 +347,8 @@ int main (int argc, char* argv[]){
       FrVectFree(chanvect);
       continue;
     }
-    if(chanvect->dataD[0]==0.0&&chanvect->dataD[chanvect->nData-1]==0.0){
-      cout<<"Omiscan WARNING: zero data --> skip"<<endl;
+    if(chanvect->dataD[0]==chanvect->dataD[chanvect->nData-1]){
+      cerr<<"Omiscan WARNING: flat data --> skip"<<endl;
       FrVectFree(chanvect);
       continue;
     }

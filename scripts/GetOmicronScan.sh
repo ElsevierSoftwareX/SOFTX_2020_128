@@ -23,7 +23,7 @@ printhelp(){
     echo "GetOmicronScan -m [MAIN_CHANNEL] -g [GPS_CENTER]"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
-    echo "  -g [GPS_CENTER]      GPS to scan"
+    echo "  -g  [GPS_CENTER]     GPS to scan"
     echo "  -s  [SNRMIN]         print aux. scan only if SNR > [SNRMIN]"
     echo "                       Default = 8"
     echo "  -t  [TAGNAME]        Predefined channel selection (Virgo only):"
@@ -234,7 +234,7 @@ if [ ! $parameterfile = "" ] ; then cp -f $parameterfile ${outdir}/parameters.tx
 currentdate=`date -u`
 
 ##### waiting index
-title="Omiscan of $gps"
+title="Omiscan of $tcenter"
 message="Your Omiscan is currently running. The web report will appear here when it's done.<br>In the meantime you can check the <a href=\"./log.txt\">log file</a> to monitor the progress of the scan.<br>If you're in a hurry, you can check <a href=\"./index.template\">your page</a> being built<br>-- <i>$USER - $currentdate</i> --"
 sed -e "s|\[TITLE\]|${title}|g" \
     -e "s|\[MESSAGE\]|${message}|g" \
