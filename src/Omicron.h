@@ -67,7 +67,6 @@ class Omicron {
   // OUTPUT FLAGS
   bool writepsd;                // writing PSD flag
   bool writetimeseries;         // writing time series flag
-  bool writewhiteneddata;       // writing whiten data flag
 
   // OPTIONS
   int fVerbosity;
@@ -109,7 +108,6 @@ class Omicron {
   // DATA
   Segments *fSegments;          // segments to process - DO NOT DELETE
   Odata *odata[NDATASTREAMS];   // data structures
-  double *c_data[2];            // conditioned data complex vector
   double *psd;                  // psd vector - DO NOT DELETE
 
   // OUTPUT

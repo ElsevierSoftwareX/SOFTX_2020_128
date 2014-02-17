@@ -373,16 +373,14 @@ int main (int argc, char* argv[]){
     FrVectFree(chanvect);
 
     // init conditioned data containers
-    c_data[0] = new double [timerange*sampling_new/2]; // real part
-    c_data[1] = new double [timerange*sampling_new/2]; // imaginary part
+    //c_data[0] = new double [timerange*sampling_new/2]; // real part
+    //c_data[1] = new double [timerange*sampling_new/2]; // imaginary part
 
     // condition data
     if(verbose) cout<<"         Get conditionned data..."<<endl;
-    if(!data->GetConditionedData(0,c_data[0],c_data[1],&asd,asdsize)){
+    if(!data->GetConditionedData(0,&c_data[0],&c_data[1],&asd,asdsize)){
       cout<<"Omiscan WARNING: conditionned data are corrupted --> skip"<<endl;
       delete data;
-      delete c_data[0];
-      delete c_data[1];
       continue;
     }
     
@@ -393,8 +391,6 @@ int main (int argc, char* argv[]){
       cout<<"Omiscan WARNING: cannot normalize tiling --> skip"<<endl;
       delete tiles;
       delete data;
-      delete c_data[0];
-      delete c_data[1];
       continue;
     }
 

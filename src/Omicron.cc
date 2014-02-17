@@ -24,7 +24,6 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   Net=NULL;
   Inj=NULL;
   tile=NULL;
-  c_data[0] = NULL; c_data[1] = NULL;
   for(int c=0; c<(int)fChannels.size(); c++){
     odata[c]=NULL;
     triggers[c]=NULL;
@@ -40,12 +39,6 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
     chunk_ctr[c]      = 0;
     cor_chunk_ctr[c]  = 0;
     max_chunk_ctr[c]  = 0;
-  }
-
-  // conditioned data vector
-  if(status_OK){
-    c_data[0] = new double [fSegmentDuration*fSampleFrequency/2]; // real part
-    c_data[1] = new double [fSegmentDuration*fSampleFrequency/2]; // imaginary part
   }
 
   // init network mode
@@ -111,7 +104,6 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
       status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutFormat);
       status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writepsd);
       status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],(int)writetimeseries);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],(int)writewhiteneddata);
       triggers[c]->SetMprocessname("Omicron");
       triggers[c]->SetMstreamname(fChannels[c]);
       triggers[c]->SetMdetindex(GetDetIndex(fChannels[c].substr(0,2)));
@@ -139,8 +131,6 @@ Omicron::~Omicron(void){
   if(fVerbosity) cout<<" -> delete tiling"<<endl;
   if(tile!=NULL) delete tile;
   if(fVerbosity>0) cout<<" -> delete data containers"<<endl;    
-  if(c_data[0]!=NULL) delete c_data[0];
-  if(c_data[1]!=NULL) delete c_data[1];
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
     if(fVerbosity>0) cout<<" -> delete data for "<<fChannels[c]<<endl;
@@ -169,26 +159,19 @@ bool Omicron::Process(){
     return false;
   }
 
-  // if requested, write whitened data
-  TFile  *FWhite[NDATASTREAMS];
-  TGraph *GWhite;
-  if(writewhiteneddata){
-    for(int c=0; c<(int)fChannels.size(); c++){
-      FWhite[c] = new TFile((fOutdir[c]+"/white_"+fChannels[c]+".root").c_str(), "RECREATE");
-    }
-  }
-
+  // locals
   int psdsize;
+  double *c_data[2];
   
   // looping status
   int keep_looping=0; 
-  // 0 means keep calling new chunks of data
-  // 1 means stop calling new chunks: end of data to process
-  // 2 means the data chunk is corrupted -> move to the next one
+  // 0 means: keep calling new chunks of data
+  // 1 means: stop calling new chunks: end of data to process
+  // 2 means: the data chunk is corrupted -> move to the next one
 
   // loop over chunks
   while(keep_looping!=1){
-
+    
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
       if(fVerbosity) cout<<"processing channel "<<fChannels[c]<<"..."<<endl;
@@ -196,50 +179,46 @@ bool Omicron::Process(){
       // get new data chunk
       keep_looping=odata[c]->NewChunk();// get fresh data
       if(keep_looping==1) break;        // end of data to process
-      chunk_ctr[c]++;                   // one more chunk of data
-      if(keep_looping>1){               // the data chunk is corrupted -> skip
+
+      // increment counters
+      chunk_ctr[c]++;         // one more chunk of data
+      if(keep_looping>1){     // the data chunk is corrupted -> skip
 	cor_chunk_ctr[c]++;
 	continue;
       }
   
       // write chunk info if requested
-      if(writetimeseries) status_OK*=odata[c]->WriteTimeSeries(fOutdir[c]);
-      if(writepsd)        status_OK*=odata[c]->WritePSD(fOutdir[c]);
+      if(writetimeseries) odata[c]->WriteTimeSeries(fOutdir[c]);
+      if(writepsd)        odata[c]->WritePSD(fOutdir[c]);
 
       //loop over segments
       for(int s=0; s<odata[c]->GetNSegments(); s++){
 
 	// get conditioned data
-	if(!odata[c]->GetConditionedData(s,c_data[0],c_data[1],&psd,psdsize)){
+	if(!odata[c]->GetConditionedData(s,&(c_data[0]),&(c_data[1]),&psd,psdsize)){
 	  cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
 	  return false;
 	}
 
+	//cout<<scientific<<c_data[0][0]<<" "<<c_data[0][1000]<<" "<<c_data[0][10000]<<endl;
+
 	// set new power for this chunk
 	if(!s) tile->SetPowerSpectrum(psd,psdsize);
 
-	// save it if requested
-	if(writewhiteneddata){
-	  FWhite[c]->cd();
-	  GWhite = new TGraph(fSegmentDuration*fSampleFrequency);
-	  ostringstream graph_name;
-	  graph_name<<"Whiten_"<<odata[c]->GetSegmentTimeStart(s);
-	  GWhite->SetName(graph_name.str().c_str());
-	  for(int i=0; i<fSegmentDuration*fSampleFrequency/2; i++) 
-	    GWhite->SetPoint(i,(double)i/(double)fSegmentDuration,c_data[0][i]);
-	  GWhite->Write();
-	  delete GWhite;
-	}
-
 	//get triggers
-	cout<<" "<<fChannels[c]<<" Extracting triggers in "<<odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2<<"-"<<odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2<<endl;
+	cout<<" "<<fChannels[c]<<": Extracting triggers in "<<odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2<<"-"<<odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2<<endl;
 	if(!tile->GetTriggers(triggers[c],c_data[0],c_data[1],odata[c]->GetSegmentTimeStart(s))){
 	  cerr<<"Omicron::Process: could not get triggers for channel "<<fChannels[c]
 	      <<" in segment starting at "<<odata[c]->GetSegmentTimeStart(s)<<endl;
+	  delete c_data[0];
+	  delete c_data[1];
 	  continue;
 	}
 	else
 	  triggers[c]->AddSegment(odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2,odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2);
+
+	delete c_data[0];
+	delete c_data[1];
 
 	//stop getting triggers if max flag
 	if(triggers[c]->GetMaxFlag()) break;
@@ -263,10 +242,6 @@ bool Omicron::Process(){
 	
     }
   }
-
-  // write whiten data
-  if(writewhiteneddata)
-    for(int c=0; c<(int)fChannels.size(); c++) FWhite[c]->Close();
   
   return true;
 }
@@ -301,7 +276,8 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
 
   // get conditioned data
   int psdsize;
-  if(!odata[aChNumber]->GetConditionedData(0,c_data[0],c_data[1],&psd,psdsize)){
+  double *c_data[2];
+  if(!odata[aChNumber]->GetConditionedData(0,&(c_data[0]),&(c_data[1]),&psd,psdsize)){
     cerr<<"Omicron::ProcessOnline: conditionned data are corrupted!"<<endl;
     return 2;
   }
@@ -318,7 +294,10 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
   }
   else
     triggers[aChNumber]->AddSegment(odata[aChNumber]->GetSegmentTimeStart(0)+fOverlapDuration/2,odata[aChNumber]->GetSegmentTimeStart(0)+fSegmentDuration-fOverlapDuration/2);
-    	
+    
+  delete c_data[0];
+  delete c_data[1];
+
   // don't save if max flag
   if(triggers[aChNumber]->GetMaxFlag()){
     cerr<<"Omicron::ProcessOnline: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk is not saved"<<endl;
@@ -326,12 +305,6 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
     return 4;
   }
 
-  // save triggers
-  //if(!triggers[aChNumber]->Write("PROC","default")){
-  //  cerr<<"Omicron::ProcessOnline: writing events failed for channel "<<fChannels[aChNumber]<<endl;
-  //  return 5;
-  //}
-      
   return 0;
 }
 
@@ -583,6 +556,7 @@ bool Omicron::ReadOptions(void){
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
+  /*
   if(fChunkDuration<4||fChunkDuration>131072||fChunkDuration%2){
     cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
     return false;
@@ -618,6 +592,7 @@ bool Omicron::ReadOptions(void){
     cerr<<"PARAMETER/OVERLAPDURATION: "<<fOverlapDuration<<endl;
     return false;
   }
+  */
   fOptionName.push_back("omicron_PARAMETER_CHUNKDURATION");
   fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_BLOCKDURATION");
@@ -680,15 +655,12 @@ bool Omicron::ReadOptions(void){
   //*****************************
 
   //***** set writing flags *****
-  writepsd=0, writetimeseries=0, writewhiteneddata=0;
+  writepsd=0, writetimeseries=0;
   io.GetOpt("OUTPUT","WRITEPSD", writepsd);
   io.GetOpt("OUTPUT","WRITETIMESERIES", writetimeseries);
-  io.GetOpt("OUTPUT","WRITEWHITENEDDATA", writewhiteneddata);
   fOptionName.push_back("omicron_OUTPUT_WRITEPSD");
   fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_WRITETIMESERIES");
-  fOptionType.push_back("i");
-  fOptionName.push_back("omicron_OUTPUT_WRITEWHITENEDDATA");
   fOptionType.push_back("i");
   //*****************************
 
