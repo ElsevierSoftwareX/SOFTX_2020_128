@@ -165,12 +165,9 @@ bool Omicron::Process(){
   
   // looping status
   int keep_looping=0; 
-  // 0 means: keep calling new chunks of data
-  // 1 means: stop calling new chunks: end of data to process
-  // 2 means: the data chunk is corrupted -> move to the next one
 
   // loop over chunks
-  while(1){
+  while(keep_looping>=0){
     
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
@@ -178,13 +175,18 @@ bool Omicron::Process(){
       
       // get new data chunk
       keep_looping=odata[c]->NewChunk();// get fresh data
-      if(keep_looping==1) return false; // critical error
-      if(keep_looping==2) break;        // end of segments
-      if(keep_looping==3) break;        // end of FFL file
-
+     
+      // check loop status
+      if(keep_looping==1) return false; // critical error  --> STOP Omicron
+      if(keep_looping==2){              // end of segments --> STOP loop
+	keep_looping=-1; break;
+      }
+      if(keep_looping==3){              // end of FFL file --> STOP loop
+	keep_looping=-1; break;
+      }
       // increment counters
       chunk_ctr[c]++;         // one more chunk of data
-      if(keep_looping==4){    // the data chunk is corrupted -> skip
+      if(keep_looping==4){    // the data chunk is corrupted -> skip channel
 	cor_chunk_ctr[c]++;
 	continue;
       }
