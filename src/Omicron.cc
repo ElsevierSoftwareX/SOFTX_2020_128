@@ -170,7 +170,7 @@ bool Omicron::Process(){
   // 2 means: the data chunk is corrupted -> move to the next one
 
   // loop over chunks
-  while(keep_looping!=1){
+  while(1){
     
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
@@ -178,11 +178,13 @@ bool Omicron::Process(){
       
       // get new data chunk
       keep_looping=odata[c]->NewChunk();// get fresh data
-      if(keep_looping==1) break;        // end of data to process
+      if(keep_looping==1) return false; // critical error
+      if(keep_looping==2) break;        // end of segments
+      if(keep_looping==3) break;        // end of FFL file
 
       // increment counters
       chunk_ctr[c]++;         // one more chunk of data
-      if(keep_looping>1){     // the data chunk is corrupted -> skip
+      if(keep_looping==4){    // the data chunk is corrupted -> skip
 	cor_chunk_ctr[c]++;
 	continue;
       }
@@ -199,8 +201,6 @@ bool Omicron::Process(){
 	  cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
 	  return false;
 	}
-
-	//cout<<scientific<<c_data[0][0]<<" "<<c_data[0][1000]<<" "<<c_data[0][10000]<<endl;
 
 	// set new power for this chunk
 	if(!s) tile->SetPowerSpectrum(psd,psdsize);
