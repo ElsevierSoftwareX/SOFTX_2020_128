@@ -205,7 +205,10 @@ bool Omicron::Process(){
 	}
 
 	// set new power for this chunk
-	if(!s) tile->SetPowerSpectrum(psd,psdsize);
+	if(!s){
+	  if(fVerbosity) cout<<"set power to the tiles for this chunk..."<<endl;
+	  tile->SetPowerSpectrum(psd,psdsize);
+	}
 
 	//get triggers
 	cout<<" "<<fChannels[c]<<": Extracting triggers in "<<odata[c]->GetSegmentTimeStart(s)+fOverlapDuration/2<<"-"<<odata[c]->GetSegmentTimeStart(s)+fSegmentDuration-fOverlapDuration/2<<endl;
