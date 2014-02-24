@@ -243,9 +243,9 @@ int main (int argc, char* argv[]){
   TFile *rootfile;           // output rootfile
   
   ofstream summary((outdir+"/summary.txt").c_str());// outfile stream
-  summary<<"# channel name"<<endl;
-  summary<<"# native sampling [Hz]"<<endl;
-  summary<<"# effective sampling [Hz]"<<endl;
+  summary<<"# Channel name"<<endl;
+  summary<<"# Native sampling [Hz]"<<endl;
+  summary<<"# Effective sampling [Hz]"<<endl;
   summary<<"# Loudest event GPS [s]"<<endl;
   summary<<"# Loudest event frequency [Hz]"<<endl;
   summary<<"# Loudest event SNR"<<endl;
@@ -348,7 +348,7 @@ int main (int argc, char* argv[]){
       continue;
     }
     if(chanvect->dataD[0]==chanvect->dataD[chanvect->nData-1]){
-      cerr<<"Omiscan WARNING: flat data --> skip"<<endl;
+      cout<<"Omiscan WARNING: flat data --> skip"<<endl;
       FrVectFree(chanvect);
       continue;
     }
@@ -371,10 +371,6 @@ int main (int argc, char* argv[]){
       continue;
     }
     FrVectFree(chanvect);
-
-    // init conditioned data containers
-    //c_data[0] = new double [timerange*sampling_new/2]; // real part
-    //c_data[1] = new double [timerange*sampling_new/2]; // imaginary part
 
     // condition data
     if(verbose) cout<<"         Get conditionned data..."<<endl;
@@ -490,14 +486,12 @@ int main (int argc, char* argv[]){
       }
 
       // cosmetics
-      qmap[q]->GetXaxis()->SetTitle("Time [s]");
-      qmap[q]->GetYaxis()->SetTitle("Frequency [Hz]");
-      qmap[q]->GetZaxis()->SetTitle("SNR");
       qmap[q]->GetXaxis()->SetTitleOffset(1.1);
       qmap[q]->GetXaxis()->SetLabelSize(0.045);
       qmap[q]->GetYaxis()->SetLabelSize(0.045);
       qmap[q]->GetXaxis()->SetTitleSize(0.045);
       qmap[q]->GetYaxis()->SetTitleSize(0.045);
+      qmap[q]->GetZaxis()->SetTitleSize(0.045);
       qmap[q]->GetZaxis()->SetRangeUser(1,50);
       
       // window resize for Qmap
@@ -540,15 +534,16 @@ int main (int argc, char* argv[]){
       }
 
       // cosmetics
+      map[w]->GetZaxis()->SetRangeUser(1,50);
       map[w]->GetXaxis()->SetTitle("Time [s]");
       map[w]->GetYaxis()->SetTitle("Frequency [Hz]");
       map[w]->GetZaxis()->SetTitle("SNR");
-      map[w]->GetZaxis()->SetRangeUser(1,50);
       map[w]->GetXaxis()->SetTitleOffset(1.1);
       map[w]->GetXaxis()->SetLabelSize(0.045);
       map[w]->GetYaxis()->SetLabelSize(0.045);
       map[w]->GetXaxis()->SetTitleSize(0.045);
       map[w]->GetYaxis()->SetTitleSize(0.045);
+      map[w]->GetZaxis()->SetTitleSize(0.045);
 
       // get loudest tile
       loudest_bin=map[w]->GetMaximumBin();
@@ -672,7 +667,7 @@ int main (int argc, char* argv[]){
     graph->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     for(int i=0; i<asdsize; i++)
-      graph->SetPoint(i,i*(double)sampling_new/2.0/(double)asdsize,sqrt(asd[i]/(double)sampling_new/(double)asdsize/2.0));
+      graph->SetPoint(i,i*(double)sampling_new/2.0/(double)asdsize,sqrt(asd[i]));
     delete data;
 
     GPlot->SetLogy(1);
@@ -687,6 +682,7 @@ int main (int argc, char* argv[]){
 
     // cosmetics
     graph->GetXaxis()->SetTitle("Frequency [Hz]");
+    graph->GetYaxis()->SetTitle("Amp / #sqrt{Hz}");
     graph->GetXaxis()->SetLimits(fmin,fmax);
     graph->GetXaxis()->SetTitleOffset(1.1);
     graph->GetXaxis()->SetLabelSize(0.045);

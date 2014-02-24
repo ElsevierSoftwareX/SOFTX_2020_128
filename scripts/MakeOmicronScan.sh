@@ -187,6 +187,11 @@ else
 	cat $channelfile | awk '{ if (!h[$0]) { print $0; h[$0]=1 } }' > ${outdir}/channels.list
     fi
 fi
+if [ ! -s ${outdir}/channels.list ]; then
+    echo "ERROR: The channel file $channelfile is empty"
+    echo "type  'MakeOmicronScan -h'  for help"
+    exit 1
+fi
 
 ##### check FFL/LAL/CACHE
 if [ "$fflfile" = "none" ]; then
@@ -322,6 +327,7 @@ while read channel; do
     # loudest event
     loudest_gps=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.3f",$4}'`
     loudest_freq=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$5}'`
+    loudest_snr=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$6}'`
     loudest_snr=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$6}'`
     loudest_q=`grep -w "$channel" ${outdir}/summary.txt | awk '{printf "%.2f",$7}'`
 
