@@ -4,11 +4,6 @@
 #ifndef __Omicron__
 #define __Omicron__
 
-#include <iostream>
-#include <iomanip>
-#include <string.h>
-#include <vector>
-#include <stdio.h>
 #include "CUtils.h"
 #include "IO.h"
 #include "Segments.h"
@@ -23,26 +18,46 @@
 
 using namespace std;
 
-//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Process data with the Omicron algorithm.
+ * This class was designed...
+ * \author    Florent Robinet
+ */
 class Omicron {
 
  public:
+  
+  /**
+   * @name Constructors and destructors
+   @{
+  */
+  /**
+   * Constructor of the Omicron class.
+   * This constructors defines all the components to run Omicron: data structure, tiling etc.
+   *
+   * @param aSegments Segments to process
+   * @param aOptionFile option file
+   */
+  Omicron(Segments *aSegments, const string aOptionFile);
 
-  Omicron(Segments *aSegments, const string aOptionFile);// constructor
-  virtual ~Omicron(void);// destructor
+  /**
+   * Destructor of the Omicron class.
+   */
+  virtual ~Omicron(void);
+  /**
+     @}
+  */
 
   bool LCF2FFL(const string lcf_file, const string ffl_file);
 
-  // PROCESSES
   bool MakeTiling(void);
-  bool Process();
+  bool Process(void);
 
-  // ONLINE
   int ProcessOnline(const int aChNumber, FrVect *aVect);
   bool WriteOnline(const int aChNumber);
   Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
-  //INFO
   inline int GetChunkDuration(void){return fChunkDuration;};
   inline int GetSegmentDuration(void){return fSegmentDuration;};
   inline int GetOverlapDuration(void){return fOverlapDuration;};
@@ -51,70 +66,66 @@ class Omicron {
   inline vector <string> GetChannelList(void){return fChannels;};
   bool PrintStatusInfo(void);
 
- protected:
+ private:
 
   // STATUS
-  bool status_OK;               // general status
-  bool tiling_OK;               // tiling status
-  bool online;                  // online running
+  bool status_OK;               ///< general status
+  bool tiling_OK;               ///< tiling status
+  bool online;                  ///< online running if true
+
+  // INPUT OPTIONS
+  bool ReadOptions(void);       ///< to parse option card
+  string fOptionFile;           ///< option file name
+  IO *fOptions;                 ///< option parser
+  vector <string> fOptionName;  ///< option name (metadata)
+  vector <string> fOptionType;  ///< option type (metadata)
+  vector <string> fChannels;    ///< list of channel names
+  vector <string> fInjChan;     ///< injection channel names
+  vector <double> fInjFact;     ///< injection factors
+  vector <string> fDetectors;   ///< detectors
+  string fFflFile;              ///< path to FFL file (Virgo)
+  string fLcfFile;              ///< path to LCF file (LIGO)
+  vector <int> fNativeFrequency;///< native sampling frequency
+  int fSampleFrequency;         ///< sampling frequency of input data
+  vector <double> fFreqRange;   ///< frequency range
+  vector <double> fQRange;      ///< Q range
+  int fChunkDuration;           ///< segment duration
+  int fSegmentDuration;         ///< segment duration
+  int fOverlapDuration;         ///< overlap duration
+  double fMismatchMax;          ///< maximum mismatch
+  double fSNRThreshold;         ///< SNR Threshold
+  int fNtriggerMax;             ///< trigger limit
+  string fClusterAlgo;          ///< clustering mode
+  double fcldt;                 ///< clustering dt
+  int fVerbosity;               ///< verbosity level
+  string fOutdir[NDATASTREAMS]; ///< output directories per channel
+  string fOutFormat;            ///< output format
+  bool writepsd;                ///< writing PSD flag
+  bool writetimeseries;         ///< writing time series flag
 
   // MONITORING
-  Segments **outSegments;       // segments currently processed
-  int *chunk_ctr;               // number of chunks
-  int *cor_chunk_ctr;           // number of corrupted chunks
-  int *max_chunk_ctr;           // number of maxed-out chunks
-
-  // OUTPUT FLAGS
-  bool writepsd;                // writing PSD flag
-  bool writetimeseries;         // writing time series flag
-
-  // OPTIONS
-  int fVerbosity;
-  string fOptionFile;
-  IO *fOptions;
-  vector <string> fOptionName;  // option name
-  vector <string> fOptionType;  // option type
-  string fFflFile;              // path to FFL file (Virgo)
-  string fLcfFile;              // path to LCF file (LIGO)
-  vector <string> fChannels;    // list of channels
-  vector <string> fInjChan;     // injection channels
-  vector <double> fInjFact;     // injection factors
-  vector <double> fFreqRange;   // Frequency range
-  vector <double> fQRange;      // Q range
-  vector <int> fNativeFrequency;// native sampling frequency
-  int fSampleFrequency;         // sample frequency of input data
-  int fChunkDuration;           // segment duration
-  int fSegmentDuration;         // segment duration
-  int fOverlapDuration;         // overlap duration
-  double fMismatchMax;          // maximum mismatch
-  string fClusterAlgo;          // clustering mode
-  string fOutdir[NDATASTREAMS]; // output directories
-  string fOutFormat;            // output format
-
-  // TRIGGER
-  double fSNRThreshold;         // SNR Threshold
-  int fNtriggerMax;             // trigger limit
-  double fcldt;                 // clustering dt
+  Segments **outSegments;       ///< segments currently processed
+  int *chunk_ctr;               ///< number of chunks
+  int *cor_chunk_ctr;           ///< number of corrupted chunks
+  int *max_chunk_ctr;           ///< number of maxed-out chunks
 
   // NETWORK
-  vector <string> fDetectors;   // detectors
-  string fInjFile;              // injection file
-  Network *Net;                 // network
-  Inject *Inj;                  // software injections
+  string fInjFile;              ///< injection file
+  Network *Net;                 ///< network
+  Inject *Inj;                  ///< software injections
 
   // TILING
-  Otile *tile;                  // tiling structure
+  Otile *tile;                  ///< tiling structure
 
   // DATA
-  Segments *fSegments;          // segments to process - DO NOT DELETE
-  Odata *odata[NDATASTREAMS];   // data structures
-  double *psd;                  // psd vector - DO NOT DELETE
+  Segments *fSegments;          ///< segments to process - DO NOT DELETE
+  Odata *odata[NDATASTREAMS];   ///< data structures
+  double *psd;                  ///< psd vector - DO NOT DELETE
 
   // OUTPUT
-  Triggers *triggers[NDATASTREAMS];// output triggers
+  Triggers *triggers[NDATASTREAMS];///< output triggers
    
   // INPUT
-  bool ReadOptions(void);       // to parse option card
   
 
   ClassDef(Omicron,0)  

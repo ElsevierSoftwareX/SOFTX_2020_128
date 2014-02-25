@@ -9,16 +9,13 @@ ClassImp(Omicron)
 Omicron::Omicron(Segments *aSegments, const string aOptionFile){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
-  // init
-  status_OK=true;
-  tiling_OK=false;
-
-  // segments
+  // inputs
   fSegments = aSegments;
+  fOptionFile=aOptionFile;
 
   // read option file
-  fOptionFile=aOptionFile;
-  status_OK*=ReadOptions();
+  status_OK=ReadOptions();
+  tiling_OK=false;
 
   // nulling structures
   Net=NULL;
@@ -29,7 +26,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
     triggers[c]=NULL;
   }
 
-  // init monitoring
+  // init process monitoring
   outSegments    = new Segments* [(int)fChannels.size()];
   chunk_ctr      = new int       [(int)fChannels.size()];
   cor_chunk_ctr  = new int       [(int)fChannels.size()];
@@ -51,7 +48,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
     }
   }
 
-  // init inject object at the working sampling
+  // init inject object at the working sampling frequency
   if(status_OK){
     if(fDetectors.size()&&fInjFile.compare("none")){
       Inj = new Inject(Net,fSampleFrequency,fVerbosity);
@@ -60,16 +57,15 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   }
 
   // init trigger objects
-  if(status_OK){
-    for(int c=0; c<(int)fChannels.size(); c++){
-      triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);// construct
-      triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
-      if(!fClusterAlgo.empty()){
-	status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
-	status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
-      }
+  for(int c=0; c<(int)fChannels.size(); c++){
+    triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
+    triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
+    if(!fClusterAlgo.empty()){
+      status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
+      status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
     }
   }
+
 
   // save meta-data
   if(status_OK){
@@ -84,26 +80,26 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
       if(fDetectors.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fDetectors[c]);
       else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],"none");
       status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fLcfFile);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFflFile);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fNativeFrequency[c]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fSampleFrequency);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fFreqRange[0]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fFreqRange[1]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fQRange[0]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fQRange[1]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fChunkDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fSegmentDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fOverlapDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fMismatchMax);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fSNRThreshold);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fNtriggerMax);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fClusterAlgo);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fcldt);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fVerbosity);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutFormat);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writepsd);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],(int)writetimeseries);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFflFile);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fNativeFrequency[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fSampleFrequency);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fFreqRange[0]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fFreqRange[1]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fQRange[0]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fQRange[1]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fChunkDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSegmentDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fOverlapDuration);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fMismatchMax);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fSNRThreshold);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fNtriggerMax);
+      if(fClusterAlgo.empty()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],"none");
+      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fClusterAlgo);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fcldt);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fVerbosity);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],(int)writepsd);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writetimeseries);
       triggers[c]->SetMprocessname("Omicron");
       triggers[c]->SetMstreamname(fChannels[c]);
       triggers[c]->SetMdetindex(GetDetIndex(fChannels[c].substr(0,2)));
@@ -128,14 +124,10 @@ Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
   cout<<"delete Omicron"<<endl;
 
-  if(fVerbosity) cout<<" -> delete tiling"<<endl;
   if(tile!=NULL) delete tile;
-  if(fVerbosity>0) cout<<" -> delete data containers"<<endl;    
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
-    if(fVerbosity>0) cout<<" -> delete data for "<<fChannels[c]<<endl;
     if(odata[c]!=NULL) delete odata[c];
-    if(fVerbosity>0) cout<<" -> delete triggers for "<<fChannels[c]<<endl;    
     if(triggers[c]!=NULL) delete triggers[c];
   }
   delete outSegments;
@@ -382,8 +374,11 @@ bool Omicron::ReadOptions(void){
     return false;
   }
 
+  // create parser
   fOptions = new IO(fOptionFile.c_str());
   IO& io = *fOptions;
+
+  // output meta-data
   fOptionName.clear();
   fOptionType.clear();
 
@@ -405,7 +400,7 @@ bool Omicron::ReadOptions(void){
   //***** List of channels *****
   fChannels.clear();
   io.GetOpt("DATA","CHANNELS", fChannels);
-  if(fChannels.size()<=0){
+  if(!fChannels.size()){
     cerr<<"Omicron::ReadOptions: you must provide a list of channels: DATA/CHANNELS"<<endl;
     return false;
   }
@@ -470,6 +465,8 @@ bool Omicron::ReadOptions(void){
   }
   else{// OK
     lcfset=true;
+
+    // convert to FFL
     srand (time(NULL));
     int randint = rand();
     ostringstream tmpstream;
@@ -477,8 +474,6 @@ bool Omicron::ReadOptions(void){
     LCF2FFL(fLcfFile,tmpstream.str());
     fFflFile=tmpstream.str();
   }
-  fOptionName.push_back("omicron_DATA_LCF");
-  fOptionType.push_back("s");
   //*****************************
 
   //***** ffl file *****
@@ -516,7 +511,7 @@ bool Omicron::ReadOptions(void){
   //***** Sampling frequency *****
   fSampleFrequency=-1;
   io.GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency);
-  if(fSampleFrequency<=0||fSampleFrequency>40000){
+  if(fSampleFrequency<16||fSampleFrequency>40000){
     cerr<<"Omicron::ReadOptions: Sampling frequency "<<fSampleFrequency<<" (PARAMETER/SAMPLEFREQUENCY) is not reasonable"<<endl;
     return false;
   }
@@ -534,6 +529,10 @@ bool Omicron::ReadOptions(void){
   if(fFreqRange[1]>fSampleFrequency/2){
     cout<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) goes beyond Nyquist frequency: "<<fFreqRange[1]<<">"<<fSampleFrequency/2<<" --> Nyquist frequency will be used"<<endl;
     fFreqRange.pop_back(); fFreqRange.push_back((double)fSampleFrequency/2.0);
+  }
+  if(fFreqRange[0]>=fFreqRange[1]){
+    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct"<<endl;
+    return false;
   }
   fOptionName.push_back("omicron_PARAMETER_FMIN");
   fOptionType.push_back("d");
@@ -555,49 +554,28 @@ bool Omicron::ReadOptions(void){
   //*****************************
 
   //***** timing *****
-  fChunkDuration=288;
+  fChunkDuration=484;
   fSegmentDuration=64;
   fOverlapDuration=8;
   io.GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration);
   io.GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration);
   io.GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration);
-  /*
-  if(fChunkDuration<4||fChunkDuration>131072||fChunkDuration%2){
-    cerr<<"Omicron::ReadOptions: Chunk duration (PARAMETER/CHUNKDURATION) is not reasonable"<<endl;
-    return false;
-  }
-  if(fSegmentDuration<4||fSegmentDuration%2||fSegmentDuration>fChunkDuration){
-    cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/BLOCKDURATION) is not reasonable"<<endl;
-    return false;
-  }
-  if (!(fSegmentDuration > 0 && !(fSegmentDuration & (fSegmentDuration - 1) ))){
+  if(!IsPowerOfTwo(fSegmentDuration)){
     cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/BLOCKDURATION) should be a power of 2"<<endl;
     return false;
   }
-  if(fFreqRange[0]<1.0/(double)fSegmentDuration){
-    cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/CHUNKDURATION) is not reasonable given your frequency range"<<endl;
-    return false;
-  }
-  if(fOverlapDuration<0||fOverlapDuration>fSegmentDuration/2||fOverlapDuration%2){
-    cerr<<"Omicron::ReadOptions: Overlap duration (PARAMETER/OVERLAPDURATION) is not reasonable"<<endl;
-    return false;
-  }
-  if(fSegmentDuration<2*fOverlapDuration){
-    cerr<<"Omicron::ReadOptions: Block duration (PARAMETER/BLOCKDURATION) must be at least twice longer than Overlap duration"<<endl;
-    return false;
-  }
-  if(fOverlapDuration < (int)ceil(16.0/fFreqRange[0])){
-    cerr<<"Omicron::ReadOptions: Overlap duration must be larger than "<<(int)ceil(16.0/fFreqRange[0])<<"s to remove high-pass transients"<<endl;
+  if(fOverlapDuration%2){
+    cerr<<"Omicron::ReadOptions: Overlap duration (PARAMETER/OVERLAPDURATION) should be an even integer value"<<endl;
     return false;
   }
   if((fChunkDuration-fOverlapDuration)%(fSegmentDuration-fOverlapDuration)){
-    cerr<<"Omicron::ReadOptions: inconsistency in the segments structure, you should use:"<<endl;
+    cerr<<"Omicron::ReadOptions: inconsistency in the segments structure"<<endl;
+    cerr<<"For example, you could use:"<<endl;
     cerr<<"PARAMETER/CHUNKDURATION:   "<<(fChunkDuration-fOverlapDuration)/(fSegmentDuration-fOverlapDuration)*(fSegmentDuration-fOverlapDuration)+fOverlapDuration<<endl;
     cerr<<"PARAMETER/BLOCKDURATION:   "<<fSegmentDuration<<endl;
     cerr<<"PARAMETER/OVERLAPDURATION: "<<fOverlapDuration<<endl;
     return false;
   }
-  */
   fOptionName.push_back("omicron_PARAMETER_CHUNKDURATION");
   fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_BLOCKDURATION");
@@ -626,7 +604,10 @@ bool Omicron::ReadOptions(void){
 
   //***** set trigger limit *****
   fNtriggerMax=1000000;
-  io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
+  double ratemax;
+  if(io.GetOpt("TRIGGER","RATEMAX", ratemax)) fNtriggerMax=(int)ceil(ratemax*fChunkDuration);
+  else io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
+    cout<<fNtriggerMax<<endl;
   fOptionName.push_back("omicron_TRIGGER_NMAX");
   fOptionType.push_back("i");
   //*****************************
@@ -675,7 +656,8 @@ bool Omicron::ReadOptions(void){
     system(("mkdir -p "+fOutdir[c]).c_str());
   }
 
-  io.Dump(cout);
+  // dump options
+  if(fVerbosity>1) io.Dump(cout);
 
   return true;
 }
