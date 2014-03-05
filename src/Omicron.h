@@ -4,10 +4,7 @@
 #ifndef __Omicron__
 #define __Omicron__
 
-#include "CUtils.h"
 #include "IO.h"
-#include "Segments.h"
-#include "Network.h"
 #include "Inject.h"
 #include "Triggers.h"
 #include "TMath.h"
@@ -34,8 +31,11 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructors defines all the components to run Omicron: data structure, tiling etc.
+   * This constructors initializes all the components to run Omicron: data structures, tiling, triggers, injections and network of detectors.
    *
+   * A Segments object is required to define the data segments to process. An option file is also required to defined all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
+   *
+   * Omicron can be used as a low-latency search and data are provided sequentially when they are available. The FFL (or LCF) option must be set to "ONLINE". For this online mode, no Segments input is necessary: a pointer to NULL should used.
    * @param aSegments Segments to process
    * @param aOptionFile option file
    */
@@ -49,13 +49,14 @@ class Omicron {
      @}
   */
 
-  bool LCF2FFL(const string lcf_file, const string ffl_file);
-
-  bool MakeTiling(void);
+  /**
+   * Runs the analysis of data segments.
+   */
   bool Process(void);
 
   int ProcessOnline(const int aChNumber, FrVect *aVect);
   bool WriteOnline(const int aChNumber);
+  
   Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
   inline int GetChunkDuration(void){return fChunkDuration;};
@@ -70,13 +71,11 @@ class Omicron {
 
   // STATUS
   bool status_OK;               ///< general status
-  bool tiling_OK;               ///< tiling status
   bool online;                  ///< online running if true
 
   // INPUT OPTIONS
   bool ReadOptions(void);       ///< to parse option card
   string fOptionFile;           ///< option file name
-  IO *fOptions;                 ///< option parser
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
   vector <string> fChannels;    ///< list of channel names
@@ -109,7 +108,7 @@ class Omicron {
   int *cor_chunk_ctr;           ///< number of corrupted chunks
   int *max_chunk_ctr;           ///< number of maxed-out chunks
 
-  // NETWORK
+  // NETWORK (optional)
   string fInjFile;              ///< injection file
   Network *Net;                 ///< network
   Inject *Inj;                  ///< software injections
@@ -118,16 +117,14 @@ class Omicron {
   Otile *tile;                  ///< tiling structure
 
   // DATA
+  bool LCF2FFL(const string lcf_file, const string ffl_file);
   Segments *fSegments;          ///< segments to process - DO NOT DELETE
   Odata *odata[NDATASTREAMS];   ///< data structures
   double *psd;                  ///< psd vector - DO NOT DELETE
 
   // OUTPUT
   Triggers *triggers[NDATASTREAMS];///< output triggers
-   
-  // INPUT
   
-
   ClassDef(Omicron,0)  
 };
 

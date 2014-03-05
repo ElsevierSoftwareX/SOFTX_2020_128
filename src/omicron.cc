@@ -65,15 +65,6 @@ int main (int argc, char* argv[]){
   cout<<"\nCreate Omicron object..."<<endl;
   Omicron *O = new Omicron(segments,optionfile);
 
-  // tiling
-  cout<<"\nMake Q-F-T tiling..."<<endl;
-  if(!O->MakeTiling()){
-    cerr<<" failed"<<endl;
-    delete O;
-    delete segments;
-    return 1;
-  }
-  
   // processing
   cout<<"\nStart Processing..."<<endl;
   if(!O->Process()){

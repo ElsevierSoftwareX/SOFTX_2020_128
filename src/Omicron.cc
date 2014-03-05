@@ -15,17 +15,7 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
 
   // read option file
   status_OK=ReadOptions();
-  tiling_OK=false;
-
-  // nulling structures
-  Net=NULL;
-  Inj=NULL;
-  tile=NULL;
-  for(int c=0; c<(int)fChannels.size(); c++){
-    odata[c]=NULL;
-    triggers[c]=NULL;
-  }
-
+ 
   // init process monitoring
   outSegments    = new Segments* [(int)fChannels.size()];
   chunk_ctr      = new int       [(int)fChannels.size()];
@@ -39,83 +29,87 @@ Omicron::Omicron(Segments *aSegments, const string aOptionFile){
   }
 
   // init network mode
-  if(status_OK){
-    string NetName="";
-    for(int d=0; d<(int)fDetectors.size(); d++) NetName+=fDetectors[d];
-    if(fDetectors.size()){
-      Net = new Network(NetName, fVerbosity);
-      status_OK*=Net->GetNdetectors();
-    }
+  Net=NULL;
+  string NetName="";
+  for(int d=0; d<(int)fDetectors.size(); d++) NetName+=fDetectors[d];
+  if(fDetectors.size()){
+    if(fVerbosity) cout<<"Omicron::Omicron: define network..."<<endl;
+    Net = new Network(NetName, fVerbosity);
+    status_OK*=Net->GetNdetectors();
   }
-
+  
   // init inject object at the working sampling frequency
-  if(status_OK){
-    if(fDetectors.size()&&fInjFile.compare("none")){
-      Inj = new Inject(Net,fSampleFrequency,fVerbosity);
-      status_OK*=Inj->SetInjectionSet(fInjFile);
-    }
+  Inj=NULL;
+  if(fDetectors.size()&&fInjFile.compare("none")){
+    if(fVerbosity) cout<<"Omicron::Omicron: define injection engine..."<<endl;
+    Inj = new Inject(Net,fSampleFrequency,fVerbosity);
+    status_OK*=Inj->SetInjectionSet(fInjFile);
   }
-
+  
   // init trigger objects
   for(int c=0; c<(int)fChannels.size(); c++){
+    if(fVerbosity) cout<<"Omicron::Omicron: define trigger structures for "<<fChannels[c]<<"..."<<endl;
     triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
     triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
-    if(!fClusterAlgo.empty()){
+    if(!fClusterAlgo.empty()){// clustering is requested
       status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
       status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
     }
   }
 
-
-  // save meta-data
-  if(status_OK){
-    for(int c=0; c<(int)fChannels.size(); c++){
-      status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fOutdir[c]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
-      if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
-      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],"none");
-      if(fInjFact.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
-      else  status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],0.0);
-      if(fDetectors.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fDetectors[c]);
-      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],"none");
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFflFile);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fNativeFrequency[c]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fSampleFrequency);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fFreqRange[0]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fFreqRange[1]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fQRange[0]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fQRange[1]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fChunkDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSegmentDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fOverlapDuration);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fMismatchMax);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fSNRThreshold);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fNtriggerMax);
-      if(fClusterAlgo.empty()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],"none");
-      else status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fClusterAlgo);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fcldt);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fVerbosity);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],(int)writepsd);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writetimeseries);
-      triggers[c]->SetMprocessname("Omicron");
-      triggers[c]->SetMstreamname(fChannels[c]);
-      triggers[c]->SetMdetindex(GetDetIndex(fChannels[c].substr(0,2)));
-    }
+  // save Omicron meta-data
+  for(int c=0; c<(int)fChannels.size(); c++){
+    status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fOutdir[c]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
+    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],"none");
+    if(fInjFact.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
+    else  status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],0.0);
+    if(fDetectors.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fDetectors[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],"none");
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFflFile);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fNativeFrequency[c]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fSampleFrequency);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fFreqRange[0]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fFreqRange[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fQRange[0]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fQRange[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fChunkDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSegmentDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fOverlapDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fMismatchMax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fSNRThreshold);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fNtriggerMax);
+    if(fClusterAlgo.empty()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],"none");
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fcldt);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],(int)writepsd);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],(int)writetimeseries);
+    triggers[c]->SetMprocessname("Omicron");
+    triggers[c]->SetMstreamname(fChannels[c]);
+    triggers[c]->SetMdetindex(GetDetIndex(fChannels[c].substr(0,2)));
   }
 
   // init data objects
-  if(status_OK){
-    for(int c=0; c<(int)fChannels.size(); c++){
-      odata[c] = new Odata(fFflFile,fChannels[c],fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
-      if(fInjChan.size()) status_OK*=odata[c]->SetInjectionChannel(fInjChan[c],fInjFact[c]);// add injection channel
-      if(Inj!=NULL) status_OK*=odata[c]->SetInject(Inj,Net->GetDetIndex(fDetectors[c]));// add inject object
-      status_OK*=odata[c]->GetStatus();// update status
-    }
+  for(int c=0; c<(int)fChannels.size(); c++){
+    if(fVerbosity) cout<<"Omicron::Omicron: define data structures for "<<fChannels[c]<<"..."<<endl;
+    odata[c] = new Odata(fFflFile,fChannels[c],fNativeFrequency[c],fSampleFrequency,fSegments,fChunkDuration,fSegmentDuration,fOverlapDuration,fFreqRange[0],fVerbosity);
+    if(fInjChan.size()) 
+      status_OK*=odata[c]->SetInjectionChannel(fInjChan[c],fInjFact[c]);// add injection channel
+    if(Inj!=NULL) 
+      status_OK*=odata[c]->SetInject(Inj,Net->GetDetIndex(fDetectors[c]));// add inject object
+    status_OK*=odata[c]->GetStatus();// update status
   }
 
+  // make tiling
+  if(fVerbosity) cout<<"Omicron::Omicron: make tiling..."<<endl;
+  tile = new Otile(fSegmentDuration,fOverlapDuration/2,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fSNRThreshold,fVerbosity);
+  status_OK=tile->GetStatus();
+  
   if(!status_OK) cerr<<"Omicron::Omicron: Initialization failed"<<endl;
 }
 
@@ -124,11 +118,11 @@ Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
   cout<<"delete Omicron"<<endl;
 
-  if(tile!=NULL) delete tile;
+  delete tile;
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
-    if(odata[c]!=NULL) delete odata[c];
-    if(triggers[c]!=NULL) delete triggers[c];
+    delete odata[c];
+    delete triggers[c];
   }
   delete outSegments;
   delete chunk_ctr;
@@ -136,18 +130,22 @@ Omicron::~Omicron(void){
   delete max_chunk_ctr;
   if(Net!=NULL) delete Net;
   if(Inj!=NULL) delete Inj;
-
+  fOptionName.clear();
+  fOptionType.clear();
+  fChannels.clear();
+  fInjChan.clear();
+  fInjFact.clear();
+  fDetectors.clear();
+  fNativeFrequency.clear();
+  fFreqRange.clear();
+  fQRange.clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Process(){
+bool Omicron::Process(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::Process: the Omicron object is corrupted"<<endl;
-    return false;
-  }
-  if(!tiling_OK){
-    cerr<<"Omicron::Process: the Otile object was not created or is corrupted"<<endl;
     return false;
   }
 
@@ -250,10 +248,6 @@ int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
     cerr<<"Omicron::ProcessOnline: the Omicron object is corrupted"<<endl;
     return -1;
   }
-  if(!tiling_OK){
-    cerr<<"Omicron::ProcessOnline: the Otile object was not created or is corrupted"<<endl;
-    return -2;
-  }
   if(aChNumber<0||aChNumber>=(int)fChannels.size()){
     cerr<<"Omicron::ProcessOnline: channel number "<<aChNumber<<" does not exist"<<endl;
     return -3;
@@ -339,18 +333,6 @@ Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const doub
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::MakeTiling(void){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::MakeTiling: the Omicron object is corrupted"<<endl;
-    return false;
-  }
-  tile = new Otile(fSegmentDuration,fOverlapDuration/2,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fSNRThreshold,fVerbosity);
-  tiling_OK=tile->GetStatus();
-  return tiling_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
 int Omicron::GetNativeSampleFrequency(const int aChNumber){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
@@ -375,7 +357,7 @@ bool Omicron::ReadOptions(void){
   }
 
   // create parser
-  fOptions = new IO(fOptionFile.c_str());
+  IO *fOptions = new IO(fOptionFile.c_str());
   IO& io = *fOptions;
 
   // output meta-data
@@ -658,6 +640,7 @@ bool Omicron::ReadOptions(void){
 
   // dump options
   if(fVerbosity>1) io.Dump(cout);
+  delete fOptions;
 
   return true;
 }
