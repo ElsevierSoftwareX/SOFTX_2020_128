@@ -194,7 +194,7 @@ for file in ./channel.*Hz; do
 	block=8192;
 	trigmax=500000;
     else
-	freqmin=32; 
+	freqmin=8; 
 	overlap=4;
 	chunk=484;
 	block=64;

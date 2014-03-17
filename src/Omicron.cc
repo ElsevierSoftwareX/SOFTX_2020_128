@@ -589,7 +589,6 @@ bool Omicron::ReadOptions(void){
   double ratemax;
   if(io.GetOpt("TRIGGER","RATEMAX", ratemax)) fNtriggerMax=(int)ceil(ratemax*fChunkDuration);
   else io.GetOpt("TRIGGER","NMAX", fNtriggerMax);
-    cout<<fNtriggerMax<<endl;
   fOptionName.push_back("omicron_TRIGGER_NMAX");
   fOptionType.push_back("i");
   //*****************************
