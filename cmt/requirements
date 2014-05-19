@@ -45,11 +45,11 @@ alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
-document rootcint OmicronDict Omicron.h LinkDef.h
+document rootcint OmicronDict Omicron.h Odata.h Oqplane.h Otile.h LinkDef.h
 
 #### libraries generation
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lNetwork -lSegments -lInject -lOmicronToolBox" 
-library Omicron -no_prototypes -no_static Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lSegments -lStreams" 
+library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"

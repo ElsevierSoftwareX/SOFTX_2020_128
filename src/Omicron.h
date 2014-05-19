@@ -5,13 +5,14 @@
 #define __Omicron__
 
 #include "IO.h"
-#include "Inject.h"
+#include "ffl.h"
+#include "Streams.h"
+#include "Spectrum.h"
+#include "Sample.h"
 #include "Triggers.h"
 #include "TMath.h"
 #include "Otile.h"
 #include "Odata.h"
-
-#define NDATASTREAMS 50
 
 using namespace std;
 
@@ -36,10 +37,9 @@ class Omicron {
    * A Segments object is required to define the data segments to process. An option file is also required to defined all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
    * Omicron can be used as a low-latency search and data are provided sequentially when they are available. The FFL (or LCF) option must be set to "ONLINE". For this online mode, no Segments input is necessary: a pointer to NULL should used.
-   * @param aSegments Segments to process
    * @param aOptionFile option file
    */
-  Omicron(Segments *aSegments, const string aOptionFile);
+  Omicron(const string aOptionFile);
 
   /**
    * Destructor of the Omicron class.
@@ -50,22 +50,53 @@ class Omicron {
   */
 
   /**
+   * Sets Segments to process.
+   * @param aSeg Segments to process
+   * @param aChNumber channel number to process
+   */
+  bool SetSegments(Segments *aSeg, const int aChNumber);
+
+  /**
    * Runs the analysis of data segments.
    */
-  bool Process(void);
+  bool Process(Segments *aSeg);
 
-  int ProcessOnline(const int aChNumber, FrVect *aVect);
-  bool WriteOnline(const int aChNumber);
+  //int ProcessOnline(const int aChNumber, FrVect *aVect);
+  //bool WriteOnline(const int aChNumber);
   
-  Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
+  //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
-  inline int GetChunkDuration(void){return fChunkDuration;};
-  inline int GetSegmentDuration(void){return fSegmentDuration;};
-  inline int GetOverlapDuration(void){return fOverlapDuration;};
-  int GetNativeSampleFrequency(const int aChNumber);
-  inline int GetSampleFrequency(void){return fSampleFrequency;};
+  /**
+   * Returns list of channels to process.
+   */
   inline vector <string> GetChannelList(void){return fChannels;};
-  bool PrintStatusInfo(void);
+
+  /**
+   * Returns chunk duration [s].
+   */
+  inline int GetChunkDuration(void){return fChunkDuration;};
+
+  /**
+   * Returns segment/block duration [s].
+   */
+  inline int GetSegmentDuration(void){return fSegmentDuration;};
+
+  /**
+   * Returns overlap duration [s].
+   */
+  inline int GetOverlapDuration(void){return fOverlapDuration;};
+
+  /**
+   * Returns working sampling frequency
+   */
+  inline int GetSampleFrequency(void){return fSampleFrequency;};
+ 
+  //int GetNativeSampleFrequency(const int aChNumber);
+
+  /**
+   * Prints a progress report of the processing.
+   */
+  void PrintStatusInfo(void);
 
  private:
 
@@ -81,10 +112,9 @@ class Omicron {
   vector <string> fChannels;    ///< list of channel names
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
-  vector <string> fDetectors;   ///< detectors
-  string fFflFile;              ///< path to FFL file (Virgo)
-  string fLcfFile;              ///< path to LCF file (LIGO)
-  vector <int> fNativeFrequency;///< native sampling frequency
+  string fFflFile;              ///< path to FFL file
+  string fFflFormat;            ///< FFL format
+  //vector <int> fNativeFrequency;///< native sampling frequency
   int fSampleFrequency;         ///< sampling frequency of input data
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range
@@ -97,34 +127,29 @@ class Omicron {
   string fClusterAlgo;          ///< clustering mode
   double fcldt;                 ///< clustering dt
   int fVerbosity;               ///< verbosity level
-  string fOutdir[NDATASTREAMS]; ///< output directories per channel
+  string fMaindir;              ///< main output directory
+  vector <string> fOutdir;      ///< output directories per channel
   string fOutFormat;            ///< output format
   bool writepsd;                ///< writing PSD flag
   bool writetimeseries;         ///< writing time series flag
 
   // MONITORING
+  Segments *inSegments;         ///< requested segments
   Segments **outSegments;       ///< segments currently processed
   int *chunk_ctr;               ///< number of chunks
   int *cor_chunk_ctr;           ///< number of corrupted chunks
+  int *cor_data_ctr;            ///< number of corrupted data chunks
   int *max_chunk_ctr;           ///< number of maxed-out chunks
 
-  // NETWORK (optional)
-  string fInjFile;              ///< injection file
-  Network *Net;                 ///< network
-  Inject *Inj;                  ///< software injections
-
-  // TILING
+  // COMPONENTS
+  Streams **streams;            ///< streams
+  Spectrum *spectrum;           ///< spectrum structure
+  ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure
+  Triggers **triggers;          ///< output triggers
 
   // DATA
-  bool LCF2FFL(const string lcf_file, const string ffl_file);
-  Segments *fSegments;          ///< segments to process - DO NOT DELETE
-  Odata *odata[NDATASTREAMS];   ///< data structures
-  double *psd;                  ///< psd vector - DO NOT DELETE
-
-  // OUTPUT
-  Triggers *triggers[NDATASTREAMS];///< output triggers
-  
+   
   ClassDef(Omicron,0)  
 };
 
