@@ -109,6 +109,8 @@ class Omicron {
   string fOptionFile;           ///< option file name
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
+  string fMaindir;              ///< main output directory
+  vector <string> fOutdir;      ///< output directories per channel
   vector <string> fChannels;    ///< list of channel names
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
@@ -127,8 +129,6 @@ class Omicron {
   string fClusterAlgo;          ///< clustering mode
   double fcldt;                 ///< clustering dt
   int fVerbosity;               ///< verbosity level
-  string fMaindir;              ///< main output directory
-  vector <string> fOutdir;      ///< output directories per channel
   string fOutFormat;            ///< output format
   bool writepsd;                ///< writing PSD flag
   bool writetimeseries;         ///< writing time series flag
