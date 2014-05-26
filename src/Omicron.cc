@@ -147,9 +147,9 @@ bool Omicron::Process(Segments *aSeg){
     cerr<<"Omicron::Process: the input Segments is corrupted"<<endl;
     return false;
   }
-  if(!aSeg->GetLivetime()){
-    cerr<<"Omicron::Process: the input Segments have a null live time"<<endl;
-    return true;
+  if(!aSeg->GetLiveTime()){
+    cerr<<"Omicron::Process: the input Segments has a null live time"<<endl;
+    return false;
   }
 
   // add requested segments (try to optimize the update of inSegments)
@@ -170,7 +170,7 @@ bool Omicron::Process(Segments *aSeg){
   int newsize;      // vector size after conditioning
 
   // data structure
-  Odata *data = new Odata(aSeg, fChunkDuration, fSegmentDuration, fOverlapDuration);
+  Odata *data = new Odata(aSeg, fChunkDuration, fSegmentDuration, fOverlapDuration, fSampleFrequency, fVerbosity);
 
   // sample structure
   int nativesampling=4096; // just a guess (this is bad if fFreqRange[0]>4096)
@@ -178,9 +178,10 @@ bool Omicron::Process(Segments *aSeg){
   sample->SetWorkingFrequency(fSampleFrequency);
   sample->SetHighPassFrequency(fFreqRange[0]);
 
-  if(!odata[c]->GetStatus()){
+  if(!data->GetStatus()){
     cerr<<"Omicron::Process: cannot initiate the data."<<endl;
     delete data;
+    delete sample;
     return false;
   }
 
@@ -213,7 +214,6 @@ bool Omicron::Process(Segments *aSeg){
 	delete dvector;
 	continue;
       }
-
 
       // Test native sampling frequency
       if(sampling!=nativesampling){
@@ -302,7 +302,7 @@ bool Omicron::Process(Segments *aSeg){
   
   return true;
 }
-
+/*
 ////////////////////////////////////////////////////////////////////////////////////
 int Omicron::ProcessOnline(const int aChNumber, FrVect *aVect){
 ////////////////////////////////////////////////////////////////////////////////////
@@ -393,7 +393,7 @@ Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const doub
 
   return triggers[aChNumber]->GetTriggerSegments(aThr,aPadding,aInfValue);
 }
-
+*/
 ////////////////////////////////////////////////////////////////////////////////////
 int Omicron::GetNativeSampleFrequency(const int aChNumber){
 ////////////////////////////////////////////////////////////////////////////////////
