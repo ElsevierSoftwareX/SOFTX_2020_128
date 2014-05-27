@@ -6,12 +6,12 @@
 
 #include "CUtils.h"
 #include "Triggers.h"
+#include "Spectrum.h"
 #include "FFT.h"
 #include "TFile.h"
 #include "TGraph.h"
 #include "TH2.h"
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
+
 
 #define NFROWMAX 1000
 
@@ -96,7 +96,7 @@ class Oqplane {
   virtual ~Oqplane(void);
     
   bool GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
-  bool SetPowerSpectrum(double *aPSD, const int aPSDsize);
+  bool SetPowerSpectrum(Spectrum *aSpec);
   TH2D* GetMap(double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
   
   // STATUS

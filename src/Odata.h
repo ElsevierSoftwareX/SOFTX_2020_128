@@ -53,14 +53,12 @@ class Odata{
    * @param aChunkDuration chunk duration [s]
    * @param aSegmentDuration subsegment duration [s]
    * @param aOverlapDuration overlap duration [s]
-   * @param aSamplingFrequency data sampling frequency [Hz]
    * @param averbose verbosity level
    */
   Odata(Segments *aSegments, 
 	const int aChunkDuration, 
 	const int aSegmentDuration,
 	const int aOverlapDuration,
-	const int aSamplingFrequency,
 	const int aVerbosity=0);
 
   /**
@@ -135,23 +133,14 @@ class Odata{
   int fVerbosity;              ///< verbosity level
 
   Segments *fSegments;         ///< input segments - DO NOT DELETE
-  int SamplingFrequency;       ///< data sampling frequency
   int ChunkDuration;           ///< chunk duration
-  int ChunkSize;               ///< chunk vector size
   int SegmentDuration;         ///< segment duration
-  int SegmentSize;             ///< segment vector size
   int OverlapDuration;         ///< overlap duration
-  int OverlapSize;             ///< overlap vector size
   int ChunkStart;              ///< current chunk start
   int ChunkStop;               ///< current chunk end
   int NSegments;               ///< number of 50% overlapping segments in one chunk
   int seg;                     ///< current segment index
   bool TestChunk(void);        ///< test chunk against segments
-
-  fft *fftengine;              ///< fft engine
-  
-  double *TukeyWindow;         ///< tukey window for data conditioning
-  double* GetTukeyWindow(const int aSize, const int aFractionSize=0);
 
   ClassDef(Odata,0)  
 };

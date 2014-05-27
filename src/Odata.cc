@@ -8,7 +8,7 @@ ClassImp(Odata)
 ////////////////////////////////////////////////////////////////////////////////////
 Odata::Odata(Segments *aSegments, const int aChunkDuration, 
 	     const int aSegmentDuration, const int aOverlapDuration,
-	     const int aSamplingFrequency, const int aVerbosity){ 
+	     const int aVerbosity){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
   // save parameters
@@ -16,7 +16,6 @@ Odata::Odata(Segments *aSegments, const int aChunkDuration,
   ChunkDuration      = fabs(aChunkDuration);
   SegmentDuration    = fabs(aSegmentDuration);
   OverlapDuration    = fabs(aOverlapDuration);
-  SamplingFrequency  = fabs(aSamplingFrequency);
   fVerbosity         = aVerbosity;
   status_OK=true;
 
@@ -25,43 +24,51 @@ Odata::Odata(Segments *aSegments, const int aChunkDuration,
     cerr<<"Odata::Odata: no live time in input segments"<<endl;
     status_OK*=false;
   }
-  //******************************************
+  if(OverlapDuration%2){
+    cerr<<"Odata::Odata: the overlap duration is not even"<<endl;
+    status_OK*=false;
+  }
+  if(SegmentDuration>ChunkDuration){
+    cerr<<"Odata::Odata: the segment duration cannot be larger than the chunk duration"<<endl;
+    status_OK*=false;
+  }
+  if(OverlapDuration>=SegmentDuration){
+    cerr<<"Odata::Odata: the overlap duration cannot be larger than the segment duration"<<endl;
+    status_OK*=false;
+  }
+  if((ChunkDuration-OverlapDuration)%(SegmentDuration-OverlapDuration)){
+    cerr<<"Odata::Odata: the overlap/segment/chunk durations do not macth. You could use:"<<endl;
+    cerr<<"              chunk duration   = "<<((ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration)+1)*(SegmentDuration-OverlapDuration)+OverlapDuration<<" s"<<endl;
+    cerr<<"              segment duration = "<<SegmentDuration<<" s"<<endl;
+    cerr<<"              overlap duration = "<<OverlapDuration<<" s"<<endl;
+    status_OK*=false;
+  }
 
-  // size
-  ChunkSize=ChunkDuration*SamplingFrequency;
-  SegmentSize=SegmentDuration*SamplingFrequency;
-  OverlapSize=OverlapDuration*SamplingFrequency;
+  //******************************************
 
   // init timing
   seg=0; // sets on first segment
   ChunkStart = (int)(fSegments->GetStart(seg));
   ChunkStop  = -1;// flag for the first chunk
   NSegments  = (ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration);
-
-  fftengine = new fft(SegmentSize,"FFTW_ESTIMATE");
-  TukeyWindow = GetTukeyWindow(SegmentSize,OverlapSize);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 Odata::~Odata(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>2) cout<<"Odata::~Odata"<<endl;
-  delete fftengine;
-  delete TukeyWindow;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Odata::NewChunk(void){
-  ////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Odata::NewChunk: the Odata object is corrupted"<<endl;
     return false;
   }
   
   // First chunk
-  if(ChunkStop<0)
-    ChunkStop=ChunkStart+ChunkDuration;
+  if(ChunkStop<0) ChunkStop=ChunkStart+ChunkDuration;
   
   // New chunk
   else{
@@ -78,8 +85,6 @@ bool Odata::NewChunk(void){
     return false;
   }
   
-  ChunkSize=(ChunkStop-ChunkStart)*SamplingFrequency;
-
   // new values
   NSegments=(ChunkStop-ChunkStart-OverlapDuration)/(SegmentDuration-OverlapDuration);
 
@@ -87,7 +92,7 @@ bool Odata::NewChunk(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Odata::TestChunk(){
+bool Odata::TestChunk(void){
  
   // too short chunk -> move to next segment
   if(ChunkStop-ChunkStart<SegmentDuration){
@@ -214,7 +219,7 @@ bool Odata::GetConditionedData(const int aNseg, double **aDataRe, double **aData
 
   return true;
 }
-*/
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 double* Odata::GetTukeyWindow(const int aSize, const int aFractionSize){
@@ -234,5 +239,5 @@ double* Odata::GetTukeyWindow(const int aSize, const int aFractionSize){
  
   return Window;
 }
-
+*/
 

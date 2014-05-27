@@ -32,12 +32,12 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructors initializes all the components to run Omicron: data structures, tiling, triggers, injections and network of detectors.
+   * This constructors initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, etc.
    *
-   * A Segments object is required to define the data segments to process. An option file is also required to defined all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
+   * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
-   * Omicron can be used as a low-latency search and data are provided sequentially when they are available. The FFL (or LCF) option must be set to "ONLINE". For this online mode, no Segments input is necessary: a pointer to NULL should used.
-   * @param aOptionFile option file
+   * Omicron can be used as a low-latency search and data are provided sequentially when they are available. To activate this mode, the user should remove the DATA FFL/LCF parameters from the option file.
+   * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
 
@@ -49,20 +49,36 @@ class Omicron {
      @}
   */
 
-  /**
-   * Sets Segments to process.
-   * @param aSeg Segments to process
-   * @param aChNumber channel number to process
-   */
-  bool SetSegments(Segments *aSeg, const int aChNumber);
 
   /**
    * Runs the analysis of data segments.
+   * This function runs the Omicron algorithm over the data defined by the input segments.
+   * @param aSeg Segments to process.
    */
   bool Process(Segments *aSeg);
 
-  //int ProcessOnline(const int aChNumber, FrVect *aVect);
-  //bool WriteOnline(const int aChNumber);
+  /**
+   * Runs the analysis of a data vector.
+   * This function is typically used for an online analysis. An online process provides a data vector to be processed by Omicron:
+   * @param aInVect input data vector (time domain)
+   *
+   * This vector MUST have the duration of a chunk as declared in the option file. NO check will be performed against that!
+   *
+   * This function can only be used if the chunks and segments have the same size. The user must provide information about the data vector passed in arguments:
+   * @param aChNumber channel number as declared in the option file (indexing starts at 0)
+   * @param aInVectSize number of samples in the input vector
+   * @param aTimeStart GPS time of the first sample of the input data vector
+   *
+   * If the returned integer value is negative, it means that this function was incorrectly used. If it positive, it means that the processing ran into some errors. If it is 0, the processing ended correctly and the Triggers structure have been filled, but not save on disk! See WriteTriggers() function.
+   */
+  int ProcessVector(const int aChNumber, const int aInVectSize, double *aInVect, const int aTimeStart);
+  
+  /**
+   * Writes triggers on disk.
+   * When called, this function writes the triggers in the current Triggers structure on disk. Typically, this function should be called when processing data with ProcessVector().
+   * @param aChNumber channel number as declared in the option file (indexing starts at 0)
+   */
+  bool WriteTriggers(const int aChNumber);
   
   //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
@@ -91,18 +107,21 @@ class Omicron {
    */
   inline int GetSampleFrequency(void){return fSampleFrequency;};
  
-  //int GetNativeSampleFrequency(const int aChNumber);
-
   /**
    * Prints a progress report of the processing.
    */
   void PrintStatusInfo(void);
+  
+  /**
+   * Returns class status.
+   */
+  inline bool GetStatus(void){ return status_OK; };
 
  private:
 
   // STATUS
   bool status_OK;               ///< general status
-  bool online;                  ///< online running if true
+  //bool online;                  ///< online running if true
 
   // INPUT OPTIONS
   bool ReadOptions(void);       ///< to parse option card
@@ -116,7 +135,6 @@ class Omicron {
   vector <double> fInjFact;     ///< injection factors
   string fFflFile;              ///< path to FFL file
   string fFflFormat;            ///< FFL format
-  //vector <int> fNativeFrequency;///< native sampling frequency
   int fSampleFrequency;         ///< sampling frequency of input data
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range
@@ -149,7 +167,28 @@ class Omicron {
   Triggers **triggers;          ///< output triggers
 
   // DATA
-   
+  int ChunkSize;                ///< chunk sample size (not fixed)
+  int OverlapSize;              ///< overlap sample size
+  int SegmentSize;              ///< segment sample size
+  double *ChunkVect;            ///< chunk data container (time domain)
+  double *SegVect;              ///< segment data container (time domain)
+
+  // CONDITIONING
+  bool Condition(double **aDataRe, double **aDataIm); ///< condition data vector
+  double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
+  double *TukeyWindow;          ///< tukey window
+  fft *offt;                    ///< FFT plan to FFT the input data
+
+  // ONLINE
+  Sample** sample_online;       ///< sampling structure for online analysis
+  int* nativesampling_online;   ///< native sampling frequencies for online analysis
+
+  // MISC
+  void SavePSD(const int c, const int s, const int e);///< Save PSD in a ROOT file
+  bool first_PSD;               ///< flags the PSD to write
+  void SaveData(const int c, double *aData, const int s, const int e);///< Save time series in a ROOT file
+  bool first_Data;              ///< flags the Data to write
+
   ClassDef(Omicron,0)  
 };
 

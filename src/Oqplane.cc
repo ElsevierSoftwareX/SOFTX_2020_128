@@ -103,7 +103,7 @@ bool Oqplane::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SetPowerSpectrum(double *aPSD, const int aPSDsize){
+bool Oqplane::SetPowerSpectrum(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Oqplane::SetPowerSpectrum: the Oqplane object is corrupted"<<endl;
@@ -111,16 +111,7 @@ bool Oqplane::SetPowerSpectrum(double *aPSD, const int aPSDsize){
   }
 
   double sumofweight;
-  double power;
-
-  // PSD frequencies   
-  double *f_PSD = new double [aPSDsize];
-  for(int i=0; i<aPSDsize; i++) f_PSD[i]=(double)fSampleFrequency/2.0/(double)aPSDsize*(double)i;
-
-  //interpolate PSD vector
-  gsl_interp_accel *acc = gsl_interp_accel_alloc();
-  gsl_spline *interp_psd = gsl_spline_alloc(gsl_interp_linear, aPSDsize);
-  gsl_spline_init(interp_psd, f_PSD, aPSD, aPSDsize);
+  double power, psdval;
 
   // set power for each f-row
   for(int f=0; f<fNumberOfRows; f++){
@@ -129,15 +120,16 @@ bool Oqplane::SetPowerSpectrum(double *aPSD, const int aPSDsize){
 
     // weighted average over the window
     for(int i=0; i<(int)((freqrow[f]->fWindow).size()); i++){
+      psdval=aSpec->GetPower(freqrow[f]->fWindowFrequency[i]);
+      if(psdval<0){
+	cerr<<"Oqplane::SetPowerSpectrum: the power cannot be computed for f="<<freqrow[f]->fWindowFrequency[i]<<endl;
+	return false;
+      }
       sumofweight+=(freqrow[f]->fWindow[i]*freqrow[f]->fWindow[i]);
-      power+=gsl_spline_eval(interp_psd, freqrow[f]->fWindowFrequency[i], acc)*(freqrow[f]->fWindow[i]*freqrow[f]->fWindow[i]);
+      power+=psdval*(freqrow[f]->fWindow[i]*freqrow[f]->fWindow[i]);
     }
     freqrow[f]->SetPower(power/sumofweight);
   }
-
-  gsl_spline_free(interp_psd);
-  gsl_interp_accel_free(acc);
-  delete f_PSD;
 
   return true;
 }

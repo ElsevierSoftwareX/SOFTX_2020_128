@@ -65,14 +65,13 @@ class Otile {
   
   /**
    * Sets the data power spectrum.
-   * This function must be called before the GetTriggers() function. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over tile (weighted by the tile Gaussian window).
+   * This function must be called before the GetTriggers() function. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over the tile (weighted by the tile Gaussian window).
    * If this function is not called, power is set to 1 and the amplitude is just the SNR.
    *
-   * The PSD must be given as an array of double and the size of this array should be given. It will be assumed that the PSD values goes up to the Nyquist frequency.
-   * @param aPSD PSD array
-   * @param aPSDsize array size
+   * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.
+   * @param aSpec Spectrum structure where the PSD has been computed
    */
-  bool SetPowerSpectrum(double *aPSD, const int aPSDsize);
+  bool SetPowerSpectrum(Spectrum *aSpec);
 
   /**
    * Saves triggers above SNR threshold.

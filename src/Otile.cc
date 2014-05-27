@@ -106,16 +106,20 @@ TH2D* Otile::GetMap(const int qindex, double *aDataRe, double *aDataIm, const do
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SetPowerSpectrum(double *aPSD, const int aPSDsize){
+bool Otile::SetPowerSpectrum(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Otile::SetPowerSpectrum: the Otile object is corrupted"<<endl;
     return false;
   }
+  if(!aSpec->GetStatus()){
+    cerr<<"Otile::SetPowerSpectrum: the Spectrum object is corrupted"<<endl;
+    return false;
+  }
 
   // set power for each Q plane
   for(int p=0; p<fNumberOfPlanes; p++){
-    if(!qplanes[p]->SetPowerSpectrum(aPSD,aPSDsize)){
+    if(!qplanes[p]->SetPowerSpectrum(aSpec)){
       cerr<<"Otile::SetPowerSpectrum: the q-plane "<<p<<" has failed"<<endl;
       return false;
     }

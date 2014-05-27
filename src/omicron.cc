@@ -17,58 +17,70 @@ int main (int argc, char* argv[]){
     cerr<<argv[0]<<" [start time] [stop time] [option file]"<<endl; 
     cerr<<"OR:"<<endl; 
     cerr<<argv[0]<<" [segment file] [option file]"<<endl; 
-    return 1;
+    cerr<<endl;
+    cerr<<"This command runs the omicron algorithm over a stretch of data."<<endl;
+    cerr<<"The user must define the data to process with either a starting and stoping time"<<endl;
+    cerr<<"or a segment file."<<endl;
+    cerr<<"The user must provide an option file listing the Omicron parameters."<<endl;
+   return 1;
   }
 
-  cout<<"\nRead parameters..."<<endl;
   int start;
   int stop;
-  vector<double> segment_starts; vector<double> segment_ends;
   Segments *segments;
   string optionfile;
   string segmentfile;
 
-  if(argc==4){// start and stop time
-    start=atoi(argv[1]); segment_starts.push_back(start);
-    stop=atoi(argv[2]);  segment_ends.push_back(stop);
+  //****** start and stop time ******
+  if(argc==4){
+    start=atoi(argv[1]);
+    stop=atoi(argv[2]);
     optionfile=(string)argv[3];
  
-    // check the time is reasonable
-    if(start<700000000||stop<=start){
-      cerr<<"argv[0]: the start time is not reasonable!"<<endl; 
-      return 1;
-    }
-    if(stop<4){
-      cerr<<"argv[0]: the stop time is not reasonable!"<<endl; 
-      return 1;
-    }
-    
     // segment object
-    segments = new Segments(segment_starts,segment_ends);
-
+    segments = new Segments(start,stop);
+    if(!segments->GetStatus()){
+      cerr<<argv[0]<<": The input segment to process does not make sense."<<endl;
+      delete segments;
+      return 2;
+    }
   }
-  else{// segment file
+
+
+  //****** segment file ******
+  else{
     segmentfile=(string)argv[1];
     optionfile=(string)argv[2];
 
-    // check that the option file exists
-    if(!IsTextFile(segmentfile)) return 1;
-
     // load segment file
     segments = new Segments(segmentfile);
+    if(!segments->GetStatus()){
+      cerr<<argv[0]<<": The input segments are corrupted."<<endl;
+      delete segments;
+      return 2;
+    }
   }
 
   // check that the option file exists
-  if(!IsTextFile(optionfile)) return 1;
+  if(!IsTextFile(optionfile)){
+    cerr<<argv[0]<<": The option file "<<optionfile<<" cannot be found."<<endl;
+    delete segments;
+    return 3;
+  }
 
   // let's go!
-  cout<<"\nCreate Omicron object..."<<endl;
-  Omicron *O = new Omicron(segments,optionfile);
+  Omicron *O = new Omicron(optionfile);
+  if(!O->GetStatus()){
+    cerr<<argv[0]<<": The Omicron object is corrupted."<<endl;
+    delete segments;
+    delete O;
+    return 2;
+  }
 
   // processing
-  cout<<"\nStart Processing..."<<endl;
-  if(!O->Process()){
-    cerr<<" failed"<<endl;
+  if(!O->Process(segments)){
+    cerr<<argv[0]<<": The Omicron processing failed."<<endl;
+    O->PrintStatusInfo();
     delete O;
     delete segments;
     return 1;
