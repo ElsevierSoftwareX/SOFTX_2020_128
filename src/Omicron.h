@@ -58,20 +58,21 @@ class Omicron {
   bool Process(Segments *aSeg);
 
   /**
-   * Runs the analysis of a data vector.
+   * Conditions a data vector.
    * This function is typically used for an online analysis. An online process provides a data vector to be processed by Omicron:
    * @param aInVect input data vector (time domain)
    *
+   * Before projecting the data onto the tiles, the data are conditioned with this funtion.
+   *
    * This vector MUST have the duration of a chunk as declared in the option file. NO check will be performed against that!
    *
-   * This function can only be used if the chunks and segments have the same size. The user must provide information about the data vector passed in arguments:
+   * The user must provide information about the data vector passed in arguments:
    * @param aChNumber channel number as declared in the option file (indexing starts at 0)
    * @param aInVectSize number of samples in the input vector
-   * @param aTimeStart GPS time of the first sample of the input data vector
    *
-   * If the returned integer value is negative, it means that this function was incorrectly used. If it positive, it means that the processing ran into some errors. If it is 0, the processing ended correctly and the Triggers structure have been filled, but not save on disk! See WriteTriggers() function.
+   * If the returned integer value is negative, it means that a fatal error occured and the Omicron object is corrupted. If it is positive, it means that the processing ran into some errors but the Omicron object is still valid. If it is 0, the processing ended correctly.
    */
-  int ProcessVector(const int aChNumber, const int aInVectSize, double *aInVect, const int aTimeStart);
+  int ConditionVector(const int aChNumber, const int aInVectSize, double *aInVect);
   
   /**
    * Writes triggers on disk.
@@ -160,6 +161,8 @@ class Omicron {
   int *max_chunk_ctr;           ///< number of maxed-out chunks
 
   // COMPONENTS
+  Odata *dataseq;               ///< data sequence
+  Sample **sample;              ///< sampling structures
   Streams **streams;            ///< streams
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
@@ -172,16 +175,14 @@ class Omicron {
   int SegmentSize;              ///< segment sample size
   double *ChunkVect;            ///< chunk data container (time domain)
   double *SegVect;              ///< segment data container (time domain)
-
+  
   // CONDITIONING
   bool Condition(double **aDataRe, double **aDataIm); ///< condition data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
-
-  // ONLINE
-  Sample** sample_online;       ///< sampling structure for online analysis
-  int* nativesampling_online;   ///< native sampling frequencies for online analysis
+  double **dataRe;              ///< conditioned data (Re)
+  double **dataIm;              ///< conditioned data (Im)
 
   // MISC
   void SavePSD(const int c, const int s, const int e);///< Save PSD in a ROOT file

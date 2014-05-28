@@ -198,21 +198,31 @@ int main (int argc, char* argv[]){
   }
   delete C;
   if(verbose>1) cout<<"Omiscan: number of channels to process = "<<channels.size()<<endl;
-  if(verbose>2){
-    for(int c=0; c<(int)channels.size(); c++) cout<<channels[c]<<endl;
-  }
-  
+  if(verbose>2) for(int c=0; c<(int)channels.size(); c++) cout<<channels[c]<<endl;
+    
   ///////////////////////////////////////////////////////////////////////////////
   /////////                       INITIALIZATION                        /////////
   ///////////////////////////////////////////////////////////////////////////////
   
   // FFL file  
   if(verbose) cout<<"Omiscan: load FFL file "<<fflfile<<"..."<<endl;
-  FrFile *frfile = FrFileINew((char*)fflfile.c_str());
+  ffl *FFL = new ffl(fflfile, "ffl", verbose);
+  if(!FFL->DefineTmpDir(outdir)){
+    cerr<<"Omiscan ERROR: cannot use tmpdir"<<endl;
+    delete FFL;
+    return 3;
+  }
+  if(!FFL->LoadFrameFile()){
+    cerr<<"Omiscan ERROR: cannot load frame files"<<endl;
+    delete FFL;
+    return 3;
+  }
+  if(!FFL->ExtractChannels(gps)){
+    cerr<<"Omiscan ERROR: cannot extract channels @"<<gps<<endl;
+    delete FFL;
+    return 3;
+  }
   
-  // data vector
-  FrVect *chanvect = NULL;
-
   // gwollum plots
   GwollumPlot *GPlot = new GwollumPlot ("omiscan",pstyle);
 
@@ -221,11 +231,13 @@ int main (int argc, char* argv[]){
   int start, stop;           // analysis starting/ending time
   double toffset;            // time offset from working with int times
   Segments *segment = new Segments();// analysis segment
+  Sample *sample = new Sample(4096,0);
   int sampling, sampling_new;// sampling frequency before-after
   int asdsize;               // asd size
   int powerof2;              // closest power of 2 below
   double fmin, fmax;         // search frequency range
-  Odata *data;               // data structure
+  double *chanvect;          // data vector
+  double *TukeyWindow;       // tukey window
   Otile *tiles;              // tiling structure
   double *c_data[2];         // condition data
   double *asd;               // asd vector - DO NOT DELETE!
@@ -258,32 +270,17 @@ int main (int argc, char* argv[]){
 
   // loop over channels
   for(int c=0; c<(int)channels.size(); c++){
-
     cout<<"\nOmiscan: process channel "<<c+1<<"/"<<channels.size()<<": "<<channels[c]<<"..."<<endl;
     
-    // get 1sec of data
-    if(verbose) cout<<"         Optimizing parameters..."<<endl;
-    chanvect = NULL;
-    chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),(int)floor(gps),1);
- 
-    // check data vector
-    if(chanvect==NULL){
+    sampling=FFL->GetChannelSampling(channels[c]);
+    if(!sampling){
       cout<<"Omiscan WARNING: missing channel --> skip"<<endl;
       continue;
     }
-    if(!chanvect->nData){
-      cout<<"Omiscan WARNING: no data --> skip"<<endl;
-      FrVectFree(chanvect);
+    if(!sampling){
+      cout<<"Omiscan WARNING: corrupted data --> skip"<<endl;
       continue;
     }
-    if(chanvect->dataD[0]==chanvect->dataD[chanvect->nData-1]){
-      cerr<<"Omiscan WARNING: flat data --> skip"<<endl;
-      FrVectFree(chanvect);
-      continue;
-    }
-
-    // native sampling
-    sampling=chanvect->nData;
 
     // get frequency range for this category
     fmin=frange[2*fsample_cat.size()];
@@ -307,7 +304,6 @@ int main (int argc, char* argv[]){
     if(verbose) cout<<"           frequency range    = "<<setprecision(2)<<fmin<<"Hz --> "<<fmax<<"Hz"<<endl;
     if(fmax<=fmin){
       cout<<"Omiscan WARNING: frequency range is not adapted --> skip"<<endl;
-      FrVectFree(chanvect);
       continue;
     }
 
@@ -326,30 +322,17 @@ int main (int argc, char* argv[]){
       if(verbose>1) cout<<"           analysis pad       = "<<pad<<"s"<<endl;
       if(verbose>1) cout<<"           time offset        = "<<toffset<<"s"<<endl;
     }
-
+    
     // get data vector
     if(verbose) cout<<"         Loading data vector..."<<endl;
-    FrVectFree(chanvect); chanvect = NULL;
-    chanvect = FrFileIGetVectDN(frfile,(char*)(channels[c].c_str()),start,timerange);
- 
-    // check data vector
-    if(chanvect==NULL){
-      cout<<"Omiscan WARNING: missing channel --> skip"<<endl;
+    chanvect = FFL->GetData(vectsize,channels[c],start,start+timerange);
+    if(vectsize<=0)
+      cout<<"Omiscan ERROR: data could not be retrieved --> skip"<<endl;
       continue;
     }
-    if(!chanvect->nData){
-      cout<<"Omiscan WARNING: no data --> skip"<<endl;
-      FrVectFree(chanvect);
-      continue;
-    }
-    if((int)(chanvect->nData)%(int)(timerange)){
-      cout<<"Omiscan WARNING: weird sampling --> skip"<<endl;
-      FrVectFree(chanvect);
-      continue;
-    }
-    if(chanvect->dataD[0]==chanvect->dataD[chanvect->nData-1]){
+    if(chanvect[0]==chanvect[vectsize-1]){
       cout<<"Omiscan WARNING: flat data --> skip"<<endl;
-      FrVectFree(chanvect);
+      delete chanvect;
       continue;
     }
 
@@ -357,20 +340,54 @@ int main (int argc, char* argv[]){
     if(verbose) cout<<"         Create analysis window..."<<endl;
     if(!segment->Reset()||!segment->AddSegment(start,stop)){
       cerr<<"Omiscan WARNING: problem with generating segment window --> skip"<<endl;
-      FrVectFree(chanvect);
+      delete chanvect;
+      continue;
+    }
+      
+    // Create/adjust Sample methods
+    if(sampling!=sample->GetNativeFrequency()){ 
+      delete sample; sample = new Sample(sampling_test,0);
+    }
+    if(sampling_new!=sample->GetWorkingFrequency()) sample->SetWorkingFrequency(sampling_new);
+    if(fmin!=sample->GetHighPassFrequency()) sample->SetHighPassFrequency(fmin);
+
+    // transform data vector
+    worksize=timerange*sampling_new;
+    if(!sample->Transform(vectsize, chanvect, worksize, workvect)){
+      cerr<<"Omiscan ERROR: cannot transform data --> skip"<<endl;
+      delete chanvect;
+      continue;
+    }
+    delete chanvect;// not needed anymore
+      
+    // Make spectrum
+    if(!spectrum->LoadData(worksize, workvect)){
+      cerr<<"Omiscan ERROR: cannot measure spectrum --> skip"<<endl;
+      delete worksize;
+      continue;
+    }
+    
+    // Apply tukey window
+    if(TukeyWindow!=NULL) TukeyWindow=Omicron::GetTukeyWindow(timerange,2*pad);
+    for(int i=0; i<worksize; i++) workvect[i] *= TukeyWindow[i];
+    	
+    // get conditioned data
+    if(!Condition(&(c_data[0]), &(c_data[1]))){
+      cerr<<"Omiscan ERROR: cannot condition --> skip"<<endl;
+      delete worksize;
       continue;
     }
 
     // init and load data
-    if(verbose) cout<<"         Create Odata object..."<<endl;
-    data = new Odata("ONLINE", channels[c], sampling, sampling_new, segment, timerange, timerange, 2*pad, fmin);
-    if(!data->ReadVect(chanvect)){
-      cout<<"Omiscan WARNING: Odata object is corrupted --> skip"<<endl;
-      FrVectFree(chanvect);
-      delete data;
-      continue;
-    }
-    FrVectFree(chanvect);
+    //if(verbose) cout<<"         Create Odata object..."<<endl;
+    //data = new Odata("ONLINE", channels[c], sampling, sampling_new, segment, timerange, timerange, 2*pad, fmin);
+    //if(!data->ReadVect(chanvect)){
+    //cout<<"Omiscan WARNING: Odata object is corrupted --> skip"<<endl;
+    // FrVectFree(chanvect);
+    // delete data;
+    // continue;
+    //}
+    //FrVectFree(chanvect);
 
     // condition data
     if(verbose) cout<<"         Get conditionned data..."<<endl;

@@ -6,13 +6,11 @@
 ClassImp(Odata)
 
 ////////////////////////////////////////////////////////////////////////////////////
-Odata::Odata(Segments *aSegments, const int aChunkDuration, 
-	     const int aSegmentDuration, const int aOverlapDuration,
-	     const int aVerbosity){ 
+Odata::Odata(const int aChunkDuration, const int aSegmentDuration,
+	     const int aOverlapDuration, const int aVerbosity){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
   // save parameters
-  fSegments          = aSegments;
   ChunkDuration      = fabs(aChunkDuration);
   SegmentDuration    = fabs(aSegmentDuration);
   OverlapDuration    = fabs(aOverlapDuration);
@@ -20,10 +18,6 @@ Odata::Odata(Segments *aSegments, const int aChunkDuration,
   status_OK=true;
 
   //***************** CHECKS *****************
-  if(!aSegments->GetLiveTime()){
-    cerr<<"Odata::Odata: no live time in input segments"<<endl;
-    status_OK*=false;
-  }
   if(OverlapDuration%2){
     cerr<<"Odata::Odata: the overlap duration is not even"<<endl;
     status_OK*=false;
@@ -46,10 +40,11 @@ Odata::Odata(Segments *aSegments, const int aChunkDuration,
 
   //******************************************
 
-  // init timing
-  seg=0; // sets on first segment
-  ChunkStart = (int)(fSegments->GetStart(seg));
-  ChunkStop  = -1;// flag for the first chunk
+  // no timing yet
+  fSegments  = NULL;
+  seg        = -1;
+  ChunkStart = -1;
+  ChunkStop  = -1;
   NSegments  = (ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration);
 }
 
@@ -60,10 +55,35 @@ Odata::~Odata(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+bool Odata::SetSegments(Segments *aSegments){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Odata::SetSegments: the Odata object is corrupted"<<endl;
+    return false;
+  }
+  if(!aSegments->GetLiveTime()){
+    cerr<<"Odata::SetSegments: no live time in input segments"<<endl;
+    return false;
+  }
+
+  fSegments = aSegments;
+
+  // init timing
+  seg        = 0; // sets on first segment
+  ChunkStart = (int)(fSegments->GetStart(seg));
+  ChunkStop  = -1;// flag for the first chunk
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 bool Odata::NewChunk(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Odata::NewChunk: the Odata object is corrupted"<<endl;
+    return false;
+  }
+  if(ChunkStart<0){
+    cerr<<"Odata::NewChunk: no segment to read"<<endl;
     return false;
   }
   
@@ -82,6 +102,7 @@ bool Odata::NewChunk(void){
   // end of data segments --> stop
   if(seg>=fSegments->GetNsegments()){
     cout<<"Odata::NewChunk: end of data segments"<<endl;
+    ChunkStart=-1;
     return false;
   }
   
@@ -155,89 +176,4 @@ int Odata::GetSegmentTimeEnd(const int aNseg){
   return ChunkStart+aNseg*(SegmentDuration-OverlapDuration)+SegmentDuration;
 }
 
-/*
-////////////////////////////////////////////////////////////////////////////////////
-bool Odata::GetConditionedData(const int aNseg, double **aDataRe, double **aDataIm, double **aPSD, int &aPSDsize){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Odata::GetConditionedData: ("<<fChannelName<<") the Odata object is corrupted"<<endl;
-    return false;
-  }
-  if(aNseg<0||aNseg>=NSegments){
-    cerr<<"Odata::GetConditionedData: ("<<fChannelName<<") segment "<<aNseg<<" cannot be found in the data chunk"<<endl;
-    return false;
-  }
-
-  // fill data vector (time-domain) and apply tukey window
-  double *datain_tmp = new double [SegmentSize];
-  for(int i=0; i<SegmentSize; i++)
-    datain_tmp[i] = chunkvect[aNseg*(SegmentSize-OverlapSize)+i] * TukeyWindow[i];
-
-  // fft-forward
-  if(!offt->Forward(datain_tmp)){
-    cerr<<"Odata::GetConditionedData: ("<<fChannelName<<") FFT-forward failed"<<endl;
-    delete datain_tmp;
-    return false;
-  }
-    
-  // get ffted data
-  *aDataRe=offt->GetRe();
-  *aDataIm=offt->GetIm();
-  delete datain_tmp;// no longer needed
-  if(*aDataRe==NULL||*aDataIm==NULL){
-    cerr<<"Odata::GetConditionedData: ("<<fChannelName<<") cannot retrieve FFT data"<<endl;
-    return false;
-  }
-
-  // zero-out below high-frequency cutoff
-  int icutoff = (int)floor(fHighPassFrequency/(double)fSamplingFrequency*(double)SegmentSize);
-  for(int i=0; i<icutoff; i++){
-    (*aDataRe)[i]=0.0;
-    (*aDataIm)[i]=0.0;
-  }
-
-  //interpolate PSD vector
-  gsl_interp_accel_reset(acc);
-  gsl_spline_init(interp_psd, f_PSD, PSD, fPsdSize);
-
-  // normalize data by the PSD
-  double new_psd;
-  for(int i=icutoff; i<SegmentSize/2; i++){
-    if(f_data[i]<=f_PSD[fPsdSize-1]) // interpolate
-      new_psd=gsl_spline_eval(interp_psd, f_data[i], acc);
-    else // extrapolate
-      new_psd=PSD[fPsdSize-1]+(PSD[fPsdSize-1]-PSD[fPsdSize-2])/(f_PSD[fPsdSize-1]-f_PSD[fPsdSize-2])*(f_data[i]-f_PSD[fPsdSize-1]);
-        
-    (*aDataRe)[i] /= sqrt(new_psd);
-    (*aDataIm)[i] /= sqrt(new_psd);
-    // NOTE: no FFT normalization here because we do a FFTback in Oqplane later with no normalization either.
-  }
-
-  // point to current PSD
-  *aPSD=PSD;
-  aPSDsize=fPsdSize;
-
-  return true;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////
-double* Odata::GetTukeyWindow(const int aSize, const int aFractionSize){
-////////////////////////////////////////////////////////////////////////////////////
-
-  int FracSize_2=aFractionSize/2;
-  double *Window = new double [aSize];
-  
-  double factor = TMath::Pi()/(double)FracSize_2;
-
-  for (int i=0; i<FracSize_2; i++)
-    Window[i] = 0.5*(1+TMath::Cos(factor*(double)(i-FracSize_2)));
-  for (int i=FracSize_2; i<aSize-FracSize_2; i++)
-    Window[i] = 1.0;
-  for (int i=aSize-FracSize_2; i<aSize; i++)
-    Window[i] = 0.5*(1+TMath::Cos(factor*(double)(i-aSize+FracSize_2)));
- 
-  return Window;
-}
-*/
 

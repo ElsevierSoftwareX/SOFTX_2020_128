@@ -77,7 +77,7 @@ Omicron::Omicron(const string aOptionFile){
     cor_data_ctr[c]   = 0;
     max_chunk_ctr[c]  = 0;
   }
-
+  
   // DATA
   if(fVerbosity) cout<<"Omicron::Omicron: Allocate memory for data container and procedure..."<<endl;
   ChunkSize   = fSampleFrequency * fChunkDuration;
@@ -87,7 +87,11 @@ Omicron::Omicron(const string aOptionFile){
   SegVect     = new double [SegmentSize];
   TukeyWindow = GetTukeyWindow(SegmentSize,OverlapSize);
   offt = new fft(SegmentSize,"FFTW_MEASURE");
-  
+  dataseq = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
+  status_OK*=dataseq->GetStatus();
+  dataRe = new double* [dataseq->GetNSegments()];
+  dataIm = new double* [dataseq->GetNSegments()];
+
   // init FFL
   FFL=NULL;
   if(fFflFile.compare("none")){
@@ -105,7 +109,11 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=streams[c]->GetStatus();
   }
   first_Data=true;
-
+  
+  // init Sample
+  sample = new Sample* [(int)fChannels.size()];
+  for(int c=0; c<(int)fChannels.size(); c++) sample[c] = new Sample(0);
+  
   // init Spectrum
   if(fVerbosity) cout<<"Omicron::Omicron: Define Spectrum object..."<<endl;
   double psdsize;
@@ -124,20 +132,20 @@ Omicron::Omicron(const string aOptionFile){
   if(fVerbosity) cout<<"Omicron::Omicron: Define Triggers object..."<<endl;
   triggers    = new Triggers* [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
-
+    
     // create trigger directory
     system(("mkdir -p "+fOutdir[c]).c_str());
-
+    
     // init triggers object
     triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
     triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
-
+    
     // set clustering if any
     if(fClusterAlgo.compare("none")){// clustering is requested
       status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
       status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
     }
-
+    
     // set metadata
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fOutdir[c]);
@@ -167,19 +175,11 @@ Omicron::Omicron(const string aOptionFile){
     triggers[c]->SetMstreamname(streams[c]->GetName());
     triggers[c]->SetMdetindex(streams[c]->GetDetIndex());
   }
-
+  
   // init tiles
   if(fVerbosity) cout<<"Omicron::Omicron: Define Tile object..."<<endl;
   tile = new Otile(fSegmentDuration,fOverlapDuration/2,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fSNRThreshold,fVerbosity);
   status_OK*=tile->GetStatus();
-
-  // online specific
-  sample_online = new Sample* [(int)fChannels.size()];
-  nativesampling_online = new int [(int)fChannels.size()];
-  for(int c=0; c<(int)fChannels.size(); c++){
-    sample_online[c]=NULL;
-    nativesampling_online[c]=0;
-  }
 
   if(!status_OK) cerr<<"Omicron::Omicron: Initialization failed"<<endl;
   cout<<endl;
@@ -189,21 +189,25 @@ Omicron::Omicron(const string aOptionFile){
 Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>1) cout<<"delete Omicron"<<endl;
-  for(int c=0; c<(int)fChannels.size(); c++){
-    delete outSegments[c];
-    delete streams[c];
-    if(sample_online[c]!=NULL) delete sample_online[c];
-  }
-  delete sample_online;
-  delete nativesampling_online;
-  delete outSegments;
   delete inSegments;
-  delete streams;
   delete chunk_ctr;
   delete cor_chunk_ctr;
   delete cor_data_ctr;
   delete max_chunk_ctr;
+  for(int c=0; c<(int)fChannels.size(); c++){
+    delete outSegments[c];
+    delete sample[c];
+    delete streams[c];
+    delete triggers[c];
+  }
+  delete outSegments;
+  delete dataRe;
+  delete dataIm;
+  delete sample;
+  delete streams;
+  delete triggers;
   if(FFL!=NULL) delete FFL;
+  delete dataseq;
   delete tile;
   delete ChunkVect;
   delete SegVect;
@@ -245,32 +249,19 @@ bool Omicron::Process(Segments *aSeg){
 
   // data structure
   if(fVerbosity) cout<<"Omicron::Process: initiate data segments..."<<endl;
-  Odata *data = new Odata(aSeg, fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
-  if(!data->GetStatus()){
-    cerr<<"Omicron::Process: cannot initiate data."<<endl;
-    delete data;
+  if(!dataseq->SetSegments(aSeg)){
+    cerr<<"Omicron::Process: cannot initiate data segments."<<endl;
     return false;
   }
 
   // locals
-  int dsize;         // data size
+  int dsize;         // native data size
   double *dvector;   // data vector before resampling
-  double *c_data[2]; // conditionned data vector (Re & Im)
-  int sampling_test; // test sampling frequency
-  
-  // sample structure
-  int nativesampling=32768; // just a guess (this is bad if fFreqRange[0]>32768)
-  Sample *sample = new Sample(nativesampling,0);
-  if(!sample->GetStatus()||!sample->SetWorkingFrequency(fSampleFrequency)||!sample->SetHighPassFrequency(fFreqRange[0])){
-    cerr<<"Omicron::Process: cannot initiate sampling."<<endl;
-    delete data;
-    delete sample;
-    return false;
-  }
+  int s, res;
   
   // loop over chunks
-  while(data->NewChunk()){
-    if(fVerbosity) cout<<"Omicron::Process: chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<endl;
+  while(dataseq->NewChunk()){
+    if(fVerbosity) cout<<"Omicron::Process: chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<endl;
     
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
@@ -280,104 +271,45 @@ bool Omicron::Process(Segments *aSeg){
       chunk_ctr[c]++;
 
       // get data vector
-      dvector=FFL->GetData(dsize, fChannels[c], data->GetChunkTimeStart(), data->GetChunkTimeEnd());
-      sampling_test=dsize/(data->GetChunkTimeEnd()-data->GetChunkTimeStart());
+      dvector=FFL->GetData(dsize, fChannels[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
 
-      // the data chunk was not filled -> skip channel
-      if(dsize<=0){
-	cerr<<"Omicron::Process: chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<" for channel "<<fChannels[c]<<" is corrupted --> skip"<<endl;
-	cor_chunk_ctr[c]++;
+      // process data vector
+      res=ConditionVector(c, dsize, dvector);
+      if(res<0){
+	cerr<<"Omicron::Process: conditioning failed."<<endl;
+	delete dvector;// not needed anymore
+	return false;
+      }
+      if(res>0){
+	cerr<<"Omicron::Process: conditioning failed."<<endl;
+	delete dvector;// not needed anymore
 	continue;
       }
 
-      // flat data?  -> skip channel
-      if(dvector[0]==dvector[dsize-1]){
-	cerr<<"Omicron::Process: chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<" for channel "<<fChannels[c]<<" has flat data"<<endl;
-	cor_data_ctr[c]++;
-	delete dvector;
-	continue;
-      }
-
-      // Test native sampling frequency
-      if(sampling_test!=nativesampling){
-	delete sample; sample = new Sample(sampling_test,0);
-	nativesampling=sampling_test;// for next round
-	if(!sample->GetStatus()||!sample->SetWorkingFrequency(fSampleFrequency)||!sample->SetHighPassFrequency(fFreqRange[0])){
-	  cerr<<"Omicron::Process: the Sample structure could not be re-defined"<<endl;
-	  delete data;
-	  delete sample;
-	  delete dvector;
-	  return false;
-	}
-      }
-
-      // transform data vector
-      ChunkSize=(data->GetChunkTimeEnd()-data->GetChunkTimeStart())*fSampleFrequency;
-      if(!sample->Transform(dsize, dvector, ChunkSize, ChunkVect)){
-	cerr<<"Omicron::Process: the data chunk cannot be transformed for "<<fChannels[c]<<" in chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<" --> skip"<<endl;
-	cor_data_ctr[c]++;
-	delete dvector;
-	continue;
-      }
       delete dvector;// not needed anymore
 
-      // Save time series if requested
-      if(writetimeseries) SaveData(c,ChunkVect,data->GetChunkTimeStart(),data->GetChunkTimeEnd());
+      // Save info if requested
+      if(writetimeseries) SaveData(c,ChunkVect,dataseq->GetChunkTimeStart(),dataseq->GetChunkTimeEnd());
+      if(writepsd)        SavePSD(c,dataseq->GetChunkTimeStart(),dataseq->GetChunkTimeEnd());
 
-      // Make spectrum
-      if(!spectrum->LoadData(ChunkSize, ChunkVect)){
-	cerr<<"Omicron::Process: the spectrum cannot be computed for "<<fChannels[c]<<" in chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<" --> skip"<<endl;
-	cor_data_ctr[c]++;
-	continue;
-      }
-
-      // Save PSD if requested
-      if(writepsd) SavePSD(c,data->GetChunkTimeStart(),data->GetChunkTimeEnd());
-
-      // set new power for this chunk
-      if(fVerbosity) cout<<"set power to the tiles for this chunk..."<<endl;
-      if(!tile->SetPowerSpectrum(spectrum)){
-	cerr<<"Omicron::Process: the spectrum could not be attached to the tile structure for "<<fChannels[c]<<" in chunk "<<data->GetChunkTimeStart()<<"-"<<data->GetChunkTimeEnd()<<" --> skip"<<endl;
-	cor_data_ctr[c]++;
-	continue;
-      }
-
-      //loop over segments
-      for(int s=0; s<data->GetNSegments(); s++){
-	if(fVerbosity) cout<<"Omicron::Process: segment "<<data->GetSegmentTimeStart(s)+fOverlapDuration/2<<"-"<<data->GetSegmentTimeEnd(s)-fOverlapDuration/2<<endl;
-	
-	// fill segment vector (time-domain) and apply tukey window
-	for(int i=0; i<SegmentSize; i++)
-	  SegVect[i] = ChunkVect[s*(SegmentSize-OverlapSize)+i] * TukeyWindow[i];
-	
-	// get conditioned data
-	if(!Condition(&(c_data[0]), &(c_data[1]))){
-	  cerr<<"Omicron::Process: conditionned data are corrupted!"<<endl;
-	  delete data;
-	  delete sample;
+      // get triggers above SNR threshold
+      for(s=0; s<dataseq->GetNSegments(); s++){
+	if(!tile->GetTriggers(triggers[c],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s))){
+	  cerr<<"Omicron::Process: could not get triggers for channel "<<fChannels[c]<<endl;
 	  return false;
 	}
-
-	// get triggers above SNR threshold
-	if(!tile->GetTriggers(triggers[c],c_data[0],c_data[1],data->GetSegmentTimeStart(s))){
-	  cerr<<"Omicron::Process: could not get triggers for channel "<<fChannels[c]
-	      <<" in segment starting at "<<data->GetSegmentTimeStart(s)<<endl;
-	  delete c_data[0];
-	  delete c_data[1];
-	  continue;
+	else{
+	  triggers[c]->AddSegment(dataseq->GetSegmentTimeStart(s)+fOverlapDuration/2,dataseq->GetSegmentTimeEnd(s)-fOverlapDuration/2);
+	  delete dataRe[s];
+	  delete dataIm[s];
+	  if(triggers[c]->GetMaxFlag()) break;
 	}
-
-	// add processed segment
-	else
-	  triggers[c]->AddSegment(data->GetSegmentTimeStart(s)+fOverlapDuration/2,data->GetSegmentTimeEnd(s)-fOverlapDuration/2);
-
-	delete c_data[0];
-	delete c_data[1];
-
-	//stop getting triggers if max flag
-	if(triggers[c]->GetMaxFlag()) break;
       }
-      
+      for(int ss=s+1; ss<dataseq->GetNSegments(); ss++){
+	delete dataRe[s];
+	delete dataIm[s];
+      } 
+     
       // don't save if max flag
       if(triggers[c]->GetMaxFlag()){
 	cerr<<"Omicron::Process: channel "<<fChannels[c]<<" is maxed-out. This chunk of triggers is not saved"<<endl;
@@ -394,21 +326,83 @@ bool Omicron::Process(Segments *aSeg){
 
       // processed chunks
       else
-	outSegments[c]->AddSegment(data->GetChunkTimeStart()+fOverlapDuration/2,data->GetChunkTimeEnd()-fOverlapDuration/2);
+	outSegments[c]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);
 	
     }
   }
-
-  delete sample;
-  delete data;
   
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+int Omicron::ConditionVector(const int aChNumber, const int aInVectSize, double *aInVect){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::ConditionVector: the Omicron object is corrupted"<<endl;
+    return -1;
+  }
+  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
+    cerr<<"Omicron::ConditionVector: channel number "<<aChNumber<<" does not exist"<<endl;
+    return 1;
+  }
+
+  // Input data checks
+  if(aInVect==NULL){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): input vector is NULL"<<endl;
+    return 2;
+  }
+  if(aInVectSize<=0){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): input vector empty"<<endl;
+    return 3;
+  }
+  if(aInVect[0]==aInVect[aInVectSize-1]){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): input vector is flat"<<endl;
+    return 4;
+  }
+
+  // transform data vector
+  int nativesampling = aInVectSize/fChunkDuration;
+  if(!sample[aChNumber]->SetFrequencies(nativesampling,fSampleFrequency,fFreqRange[0])){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the Sample structure could not be defined"<<endl;
+    return -2;
+  }
+  ChunkSize=fChunkDuration*fSampleFrequency;
+  if(!sample[aChNumber]->Transform(aInVectSize, aInVect, ChunkSize, ChunkVect)){
+    return 5;
+  }
+
+  // Make spectrum
+  if(!spectrum->LoadData(ChunkSize, ChunkVect)){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the spectrum could not be estimated"<<endl;
+    return 6;
+  }
+
+  // set new power for this chunk
+  if(!tile->SetPowerSpectrum(spectrum)){
+    cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the tiling could not be normalized"<<endl;
+    return 7;
+  }
+
+  //loop over segments
+  for(int s=0; s<dataseq->GetNSegments(); s++){
+    	
+    // fill segment vector (time-domain) and apply tukey window
+    for(int i=0; i<SegmentSize; i++)
+      SegVect[i] = ChunkVect[s*(SegmentSize-OverlapSize)+i] * TukeyWindow[i];
+    
+    // get conditioned data
+    if(!Condition(&(dataRe[s]), &(dataIm[s]))){
+      cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the conditioning failed"<<endl;
+      return 8;
+    }
+  }
+  
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::Condition(double **aDataRe, double **aDataIm){
 ////////////////////////////////////////////////////////////////////////////////////
-
   // fft-forward
   if(!offt->Forward(SegVect)){
     cerr<<"Omicron::Condition: FFT-forward failed"<<endl;
@@ -447,117 +441,6 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
   }
 
   return true;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////
-int Omicron::ProcessVector(const int aChNumber, const int aInVectSize, double *aInVect, const int aTimeStart){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::ProcessVector: the Omicron object is corrupted"<<endl;
-    return -1;
-  }
-  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::ProcessVector: channel number "<<aChNumber<<" does not exist"<<endl;
-    return -2;
-  }
-  if(aInVect==NULL){
-    cerr<<"Omicron::ProcessVector: input vector is NULL"<<endl;
-    return -3;
-  }
-  if(fChunkDuration!=fSegmentDuration){
-    cerr<<"Omicron::ProcessVector: this function can only be used if the chunks and segments have the same size"<<endl;
-    return -4;
-
-  }
-
-  // test sampling frequency and update sample if necessary
-  int nativesampling_test = aInVectSize/fChunkDuration;
-  if(nativesampling_test!=nativesampling_online[aChNumber]){
-    nativesampling_online[aChNumber]=nativesampling_test;
-    if(sample_online[aChNumber]!=NULL) delete sample_online;
-    sample_online[aChNumber] = new Sample(nativesampling_online[aChNumber],0);
-    if(!sample_online[aChNumber]->GetStatus()||!sample_online[aChNumber]->SetWorkingFrequency(fSampleFrequency)||!sample_online[aChNumber]->SetHighPassFrequency(fFreqRange[0])){
-      cerr<<"Omicron::ProcessVector: cannot initiate sampling for channel "<<fChannels[aChNumber]<<endl;
-      delete sample_online[aChNumber]; sample_online[aChNumber]=NULL;
-      nativesampling_online[aChNumber]=0;
-      return -5;
-    }
-  }
-
-  // one more chunk of data
-  chunk_ctr[aChNumber]++;
-
-  // flat data?  -> skip channel
-  if(aInVect[0]==aInVect[aInVectSize-1]){
-    cerr<<"Omicron::ProcessVector: chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<" has flat data"<<endl;
-    cor_data_ctr[aChNumber]++;
-    return 1;
-  }
-
-  // transform data vector
-  ChunkSize=fChunkDuration*fSampleFrequency;
-  if(!sample_online[aChNumber]->Transform(aInVectSize, aInVect, ChunkSize, ChunkVect)){
-    cerr<<"Omicron::ProcessVector: chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<" cannot be transformed"<<endl;
-    cor_data_ctr[aChNumber]++;
-    return 2;
-  }
-
-  // Save time series if requested
-  if(writetimeseries) SaveData(aChNumber,ChunkVect,aTimeStart,aTimeStart+fChunkDuration);
-
-  // Make spectrum
-  if(!spectrum->LoadData(ChunkSize, ChunkVect)){
-    cerr<<"Omicron::ProcessVector: PSD for chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<" cannot be computed"<<endl;
-    cor_data_ctr[aChNumber]++;
-    return 3;
-  }
-
-  // Save PSD if requested
-  if(writepsd) SavePSD(aChNumber,aTimeStart,aTimeStart+fChunkDuration);
-
-  // set new power for this chunk
-  if(!tile->SetPowerSpectrum(spectrum)){
-    cerr<<"Omicron::ProcessVector: PSD for chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<" cannot be attached to the tile structure"<<endl;
-    cor_data_ctr[aChNumber]++;
-    return 4;
-  }
-
-  // fill segment vector (time-domain) and apply tukey window
-  for(int i=0; i<SegmentSize; i++)
-    SegVect[i] = ChunkVect[i] * TukeyWindow[i];
-
-  // get conditioned data
-  double *c_data[2]; // conditionned data vector (Re & Im)
-  if(!Condition(&(c_data[0]), &(c_data[1]))){
-    cerr<<"Omicron::ProcessVector: conditionned data for chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<" are corrupted"<<endl;
-    cor_data_ctr[aChNumber]++;
-    return 5;
-  }
-
-  // get triggers above SNR threshold
-  if(!tile->GetTriggers(triggers[aChNumber],c_data[0],c_data[1],aTimeStart)){
-    cerr<<"Omicron::ProcessVector: could not get triggers for chunk "<<aTimeStart<<"-"<<aTimeStart+fChunkDuration<<" for channel "<<fChannels[aChNumber]<<endl;
-    delete c_data[0];
-    delete c_data[1];
-    return 6;
-  }
-
-  // add processed segment
-  else
-    triggers[aChNumber]->AddSegment(aTimeStart+fOverlapDuration/2,aTimeStart+fChunkDuration-fOverlapDuration/2);
-  
-  delete c_data[0];
-  delete c_data[1];
-
-  //stop getting triggers if max flag
-  if(triggers[aChNumber]->GetMaxFlag()){
-    cerr<<"Omicron::ProcessVector: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk is erased"<<endl;
-    triggers[aChNumber]->Reset();
-    return 7;
-  }
-  
-  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -720,26 +603,6 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
-  /*
-  //***** network mode *****
-  fDetectors.clear();
-  fInjFile="none";
-  io.GetOpt("NETWORK","DETECTORS", fDetectors);
-  if(fDetectors.size()){// network mode activated
-    if(fDetectors.size()!=fChannels.size()){
-      cerr<<"Omicron::ReadOptions: NETWORK/DETECTORS is inconsistent with the number of channels"<<endl;
-      return false;
-    }
-    io.GetOpt("NETWORK","INJFILE", fInjFile);
-  }
-  
-  fOptionName.push_back("omicron_NETWORK_DETECTORS");
-  fOptionType.push_back("s");
-  fOptionName.push_back("omicron_NETWORK_INJFILE");
-  fOptionType.push_back("s");
-  */
-  //*****************************
-  
   //***** ffl file *****
   if(io->GetOpt("DATA","LCF", fFflFile)) fFflFormat="lcf";
   if(io->GetOpt("DATA","FFL", fFflFile)) fFflFormat="ffl";

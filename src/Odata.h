@@ -49,14 +49,12 @@ class Odata{
   /**
    * Constructor of the Odata class.
    *
-   * @param aSegments input Segments
    * @param aChunkDuration chunk duration [s]
    * @param aSegmentDuration subsegment duration [s]
    * @param aOverlapDuration overlap duration [s]
    * @param averbose verbosity level
    */
-  Odata(Segments *aSegments, 
-	const int aChunkDuration, 
+  Odata(const int aChunkDuration, 
 	const int aSegmentDuration,
 	const int aOverlapDuration,
 	const int aVerbosity=0);
@@ -69,6 +67,12 @@ class Odata{
      @}
   */
   
+  /**
+   * Sets the segments to read.
+   * The input Segments structure is loaded and chunks can be called with the NewChunk function.
+   * @param aSegments input Segments
+   */
+  bool SetSegments(Segments *aSegments);
 
   /**
    * Loads a new (next) chunk.
