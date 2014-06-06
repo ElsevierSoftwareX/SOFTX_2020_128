@@ -1,13 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
 //////////////////////////////////////////////////////////////////////////////
-#include <iostream>
-#include <string.h>
-#include <stdio.h>
-#include "GwollumPlot.h"
 #include "Omicron.h"
-#include "IO.h"
-#include "TProfile.h"
 
 using namespace std;
 
@@ -15,9 +9,9 @@ int main (int argc, char* argv[]){
   gErrorIgnoreLevel = 3000;
 
   // check the argument
-  if(argc!=4){
+  if(argc!=3){
     cerr<<argv[0]<<" usage:"<<endl<<endl; 
-    cerr<<argv[0]<<" [channel file] [option file] [central time]"<<endl; 
+    cerr<<argv[0]<<" [central time] [option file]"<<endl; 
     return 1;
   }
   
@@ -25,15 +19,10 @@ int main (int argc, char* argv[]){
   /////////                        COMMAND LINE                         /////////
   ///////////////////////////////////////////////////////////////////////////////
   // command line parameters
-  string channelfile=(string)argv[1];
+  double gps=atof(argv[1]);
   string optionfile=(string)argv[2];
-  double gps=atof(argv[3]);
 
   // check command line parameters
-  if(!IsTextFile(channelfile)){
-    cerr<<"Omiscan ERROR: channel file '"<<channelfile<<"' cannot be found"<<endl;
-    return 2;
-  }
   if(!IsTextFile(optionfile)){
     cerr<<"Omiscan ERROR: option file '"<<optionfile<<"' cannot be found"<<endl;
     return 2;
@@ -42,8 +31,28 @@ int main (int argc, char* argv[]){
     cerr<<"Omiscan ERROR: GPS time '"<<gps<<"' is not reasonable"<<endl;
     return 2;
   }
+
+  // init Omicron
+  Omicron *O = new Omicron(optionfile);
+  if(!O->GetStatus()){
+    cerr<<"Omiscan ERROR: input options are invalid"<<endl;
+    delete O;
+    return 3;
+  }
+
+  // scan
+  if(!O->Scan(gps)){
+    cerr<<"Omiscan ERROR: scan failed"<<endl;
+    delete O;
+    return 4;
+  }
+
+
+  delete O;
+  return 0;
+}
   
-  
+  /*
   ///////////////////////////////////////////////////////////////////////////////
   /////////                        OPTION FILE                          /////////
   ///////////////////////////////////////////////////////////////////////////////
@@ -123,7 +132,7 @@ int main (int argc, char* argv[]){
     else{
       fsample_cat.clear(); fsample_cat.push_back(1025);
       frange.clear(); 
-      frange.push_back(0.1); frange.push_back(64);
+      frange.push_back(0.1); frange.push_back(128);
       frange.push_back(16); frange.push_back(1024);
     }
   }
@@ -199,7 +208,7 @@ int main (int argc, char* argv[]){
   delete C;
   if(verbose>1) cout<<"Omiscan: number of channels to process = "<<channels.size()<<endl;
   if(verbose>2) for(int c=0; c<(int)channels.size(); c++) cout<<channels[c]<<endl;
-    
+  
   ///////////////////////////////////////////////////////////////////////////////
   /////////                       INITIALIZATION                        /////////
   ///////////////////////////////////////////////////////////////////////////////
@@ -726,7 +735,4 @@ int main (int argc, char* argv[]){
   delete segment;
   delete GPlot;
   delete map;
-
-  return 0;
-}
-
+  */

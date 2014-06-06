@@ -28,8 +28,8 @@ set OMICRON_WEB             ""\
 set OMICRON_TRIGGERS_BASE   "100000"
 
 #### for the environment
-path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag):$(LIGOTOOLS)/lib"
-path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts:$(LIGOTOOLS)/bin"
+path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
+path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
 macro_prepend RPATH "$(OMICRONROOT)/$(Omicron_tag):"
 
 #### alias scripts
@@ -48,8 +48,8 @@ alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 document rootcint OmicronDict Omicron.h Odata.h Oqplane.h Otile.h LinkDef.h
 
 #### libraries generation
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lSegments -lStreams" 
-library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTriggers" 
+library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Oparameters.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"

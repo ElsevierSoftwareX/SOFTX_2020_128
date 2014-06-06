@@ -4,6 +4,7 @@
 #ifndef __Omicron__
 #define __Omicron__
 
+#include "GwollumPlot.h"
 #include "IO.h"
 #include "ffl.h"
 #include "Streams.h"
@@ -32,11 +33,10 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructors initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, etc.
-   *
+   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
-   * Omicron can be used as a low-latency search and data are provided sequentially when they are available. To activate this mode, the user should remove the DATA FFL/LCF parameters from the option file.
+   * The Omicron class offers a wrapping function (see Process()) where every analysis steps are included. Omicron can also be used piece-by-piece for tailored applications (like a low-latency search where data are provided sequentially when they are available). In this case, the option file can be minimal (or even empty).
    * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
@@ -49,38 +49,76 @@ class Omicron {
      @}
   */
 
+  /**
+   * Sets a new timing structures for the analysis segmentation.
+   */
+  //bool SetTiming(const int aChunkDuration, const int aSegmentDuration, const int aOverlapDuration);
+
 
   /**
-   * Runs the analysis of data segments.
-   * This function runs the Omicron algorithm over the data defined by the input segments.
+   * Runs the full trigger analysis of data segments.
+   * This function runs the Omicron algorithm over the data defined by the input segments. The data are segmented, conditioned, projected on the tiling structure and resulting triggers are saved on disk.
+   *
+   * This function is only available if a FFL structure has been previously declared.
    * @param aSeg Segments to process.
    */
   bool Process(Segments *aSeg);
 
   /**
+   * Runs the full acan analysis of a GPS time.
+   * This function runs the Omicron algorithm over the data defined by a central time.
+   *
+   * This function is only available if a FFL structure has been previously declared.
+   * @param aTimeCenter
+   */
+  bool Scan(const double aTimeCenter);
+
+  /**
    * Conditions a data vector.
-   * This function is typically used for an online analysis. An online process provides a data vector to be processed by Omicron:
    * @param aInVect input data vector (time domain)
    *
    * Before projecting the data onto the tiles, the data are conditioned with this funtion.
    *
-   * This vector MUST have the duration of a chunk as declared in the option file. NO check will be performed against that!
+   * This vector MUST have the duration of a chunk as previously declared. NO check will be performed against that!
    *
-   * The user must provide information about the data vector passed in arguments:
-   * @param aChNumber channel number as declared in the option file (indexing starts at 0)
+   * The user must provide information about the data vector given in argument:
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
    * @param aInVectSize number of samples in the input vector
    *
-   * If the returned integer value is negative, it means that a fatal error occured and the Omicron object is corrupted. If it is positive, it means that the processing ran into some errors but the Omicron object is still valid. If it is 0, the processing ended correctly.
+   * If the returned integer value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the processing ran into some errors but the Omicron object is still valid. If it is 0, the conditioning ended correctly.
    */
   int ConditionVector(const int aChNumber, const int aInVectSize, double *aInVect);
   
   /**
-   * Writes triggers on disk.
-   * When called, this function writes the triggers in the current Triggers structure on disk. Typically, this function should be called when processing data with ProcessVector().
-   * @param aChNumber channel number as declared in the option file (indexing starts at 0)
+   * Projects conditioned data onto the tiles and fills the Triggers structure.
+   * It returns the current number of triggers in memory. -1 is returned if this function fails.
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
+   */
+  int MakeTriggers(const int aChNumber);
+  
+  /**
+   * Writes triggers to disk.
+   * After being saved, triggers are flushed out of memory.
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
    */
   bool WriteTriggers(const int aChNumber);
   
+  /**
+   * Projects conditioned data onto the tiles and fills the maps structure.
+   * This function only projects the first data segment of the current chunk onto the tiles. Maps are saved in memory. See WriteMaps() to save the maps on disk.
+   * By default, the map
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
+   * @param aTimeCenter GPS time where to center the map
+   */
+  bool MakeMaps(const int aChNumber, const double aTimeCenter);
+  
+  /**
+   * Writes mapss to disk.
+   * 
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
+   */
+  bool WriteMaps(const int aChNumber);
+
   //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
   /**
@@ -122,7 +160,6 @@ class Omicron {
 
   // STATUS
   bool status_OK;               ///< general status
-  //bool online;                  ///< online running if true
 
   // INPUT OPTIONS
   bool ReadOptions(void);       ///< to parse option card
@@ -139,21 +176,23 @@ class Omicron {
   int fSampleFrequency;         ///< sampling frequency of input data
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range
-  int fChunkDuration;           ///< segment duration
+  int fChunkDuration;           ///< chunk duration
   int fSegmentDuration;         ///< segment duration
   int fOverlapDuration;         ///< overlap duration
   double fMismatchMax;          ///< maximum mismatch
+  vector <int> fWindows;        ///< scan windows
   double fSNRThreshold;         ///< SNR Threshold
   int fNtriggerMax;             ///< trigger limit
   string fClusterAlgo;          ///< clustering mode
   double fcldt;                 ///< clustering dt
   int fVerbosity;               ///< verbosity level
   string fOutFormat;            ///< output format
+  string fStyle;                ///< plotting style
   bool writepsd;                ///< writing PSD flag
   bool writetimeseries;         ///< writing time series flag
 
-  // MONITORING
-  Segments *inSegments;         ///< requested segments
+  // PROCESS MONITORING
+  Segments *inSegments;         ///< cumulative requested segments
   Segments **outSegments;       ///< segments currently processed
   int *chunk_ctr;               ///< number of chunks
   int *cor_chunk_ctr;           ///< number of corrupted chunks
@@ -181,8 +220,13 @@ class Omicron {
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
-  double **dataRe;              ///< conditioned data (Re)
-  double **dataIm;              ///< conditioned data (Im)
+  double **dataRe;              ///< conditioned data container (Re)
+  double **dataIm;              ///< conditioned data container (Im)
+
+  // SCANS
+  TH2D **Qmap;                  ///< set of Q-maps
+  double Qmap_center;           ///< current GPS time of Q maps
+  GwollumPlot *GPlot;           ///< Gwollum plots
 
   // MISC
   void SavePSD(const int c, const int s, const int e);///< Save PSD in a ROOT file
