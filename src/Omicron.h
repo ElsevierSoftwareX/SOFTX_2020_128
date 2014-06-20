@@ -229,10 +229,9 @@ class Omicron {
   GwollumPlot *GPlot;           ///< Gwollum plots
 
   // MISC
-  void SavePSD(const int c, const int s, const int e);///< Save PSD in a ROOT file
-  bool first_PSD;               ///< flags the PSD to write
+  void SaveAPSD(const int c, const string type="PSD");    ///< Save current PSD in a ROOT file
   void SaveData(const int c, double *aData, const int s, const int e);///< Save time series in a ROOT file
-  bool first_Data;              ///< flags the Data to write
+  bool *first_save;             ///< flags the first save
 
   ClassDef(Omicron,0)  
 };

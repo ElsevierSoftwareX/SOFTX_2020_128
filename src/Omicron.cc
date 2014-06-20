@@ -98,11 +98,12 @@ Omicron::Omicron(const string aOptionFile){
   // init Streams
   if(fVerbosity) cout<<"Omicron::Omicron: Define Streams object..."<<endl;
   streams = new Streams* [(int)fChannels.size()];
+  first_save = new bool [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     streams[c] = new Streams(fChannels[c], fVerbosity);
     status_OK*=streams[c]->GetStatus();
+    first_save[c]=true;
   }
-  first_Data=true;
   
   // init Sample
   sample = new Sample* [(int)fChannels.size()];
@@ -119,18 +120,21 @@ Omicron::Omicron(const string aOptionFile){
   }
   spectrum = new Spectrum(fSampleFrequency,psdsize,fOverlapDuration,fVerbosity);
   status_OK*=spectrum->GetStatus();
-  first_PSD=true;
     
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: Define Triggers object..."<<endl;
   triggers    = new Triggers* [(int)fChannels.size()];
+  string form = "root";
+  if(fOutFormat.find("xml")!=string::npos)  form="xml";
+  if(fOutFormat.find("txt")!=string::npos)  form="txt";
+  if(fOutFormat.find("root")!=string::npos) form="root";
   for(int c=0; c<(int)fChannels.size(); c++){
     
     // create trigger directory
     system(("mkdir -p "+fOutdir[c]).c_str());
     
     // init triggers object
-    triggers[c] = new Triggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
+    triggers[c] = new Triggers(fOutdir[c],fChannels[c],form,fVerbosity);
     triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
     
     // set clustering if any
@@ -215,6 +219,7 @@ Omicron::~Omicron(void){
   delete SegVect;
   delete TukeyWindow;
   delete offt;
+  delete first_save;
 
   fOptionName.clear();
   fOptionType.clear();
@@ -309,7 +314,7 @@ bool Omicron::Process(Segments *aSeg){
 
       // Save info if requested
       if(writetimeseries) SaveData(c,ChunkVect,dataseq->GetChunkTimeStart(),dataseq->GetChunkTimeEnd());
-      if(writepsd)        SavePSD(c,dataseq->GetChunkTimeStart(),dataseq->GetChunkTimeEnd());
+      if(writepsd)        SaveAPSD(c,"PSD");
 
       // get triggers above SNR threshold
       if(MakeTriggers(c)<0){
@@ -415,6 +420,9 @@ bool Omicron::Scan(const double aTimeCenter){
       cerr<<"Omicron::Scan: cannot write maps for channel "<<fChannels[c]<<endl;
       continue;
     }
+
+    // save PSD on disk
+    SaveAPSD(c,"ASD");
 
    
   }
@@ -790,27 +798,77 @@ Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const doub
 */
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::SavePSD(const int c, const int s, const int e){
+void Omicron::SaveAPSD(const int c, const string type){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  TGraph *GPSD = spectrum->GetPSD();
-  if(GPSD==NULL) return;
+  // extract A/PSD 
+  TGraph *GAPSD;
+  if(!type.compare("ASD")) GAPSD = spectrum->GetASD();
+  else GAPSD = spectrum->GetPSD();
+  if(GAPSD==NULL) return;
 
-  stringstream ss;
-  ss<<"PSD_"<<s<<"_"<<e;
-  GPSD->SetName(ss.str().c_str());
-  
-  TFile *fpsd;
-  if(first_PSD){
-    fpsd=new TFile((fOutdir[c]+"/PSD_"+fChannels[c]+".root").c_str(),"RECREATE");
-    first_PSD=false;
+  // cosmetics
+  GPlot->SetLogx(1);
+  GPlot->SetLogy(1);
+  GPlot->SetGridx(1);
+  GPlot->SetGridy(1);
+  GPlot->Draw(GAPSD,"APL");
+  GAPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
+  if(type.compare("ASD")){
+    GAPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
+    GAPSD->SetTitle((fChannels[c]+": Power spectrum density").c_str());
   }
-  else fpsd=new TFile((fOutdir[c]+"/PSD_"+fChannels[c]+".root").c_str(),"UPDATE");
-  fpsd->cd();
-  GPSD->Write();
-  fpsd->Close();
+  else{
+    GAPSD->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
+    GAPSD->SetTitle((fChannels[c]+": Amplitude spectrum density").c_str());
+  }
+  GAPSD->SetLineWidth(2);
+  GAPSD->GetXaxis()->SetLimits(fFreqRange[0],fFreqRange[1]);
+  GAPSD->GetXaxis()->SetTitleOffset(1.1);
+  GAPSD->GetXaxis()->SetLabelSize(0.045);
+  GAPSD->GetYaxis()->SetLabelSize(0.045);
+  GAPSD->GetXaxis()->SetTitleSize(0.045);
+  GAPSD->GetYaxis()->SetTitleSize(0.045);
+   
+  // set new name
+  stringstream ss;
+  if(!type.compare("ASD")) ss<<"ASD_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+  else ss<<"PSD_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+  GAPSD->SetName(ss.str().c_str());
+  ss.str(""); ss.clear();
+
+  // ROOT
+  if(fOutFormat.find("root")!=string::npos){
+    TFile *fpsd;
+    if(first_save[c]){
+      fpsd=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"RECREATE");
+      first_save[c]=false;
+    }
+    else fpsd=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"UPDATE");
+    fpsd->cd();
+    GAPSD->Write();
+    fpsd->Close();
+  }
+
+  // Graphix
+  vector <string> form;
+  if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
+  if(fOutFormat.find("png")!=string::npos) form.push_back("png");
+  if(fOutFormat.find("pdf")!=string::npos) form.push_back("pdf");
+  if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
+  if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
+  if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(form.size()){
+    for(int f=0; f<(int)form.size(); f++){
+      if(!type.compare("ASD")) ss<<fOutdir[c]<<"/asd_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
+      else ss<<fOutdir[c]<<"/psd_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
+      GPlot->Print(ss.str().c_str());
+      ss.str(""); ss.clear();
+    }
+  }
   
-  delete GPSD;
+  form.clear();
+  delete GAPSD;
   return;
 }
 
@@ -829,11 +887,11 @@ void Omicron::SaveData(const int c, double *aData, const int s, const int e){
   for(int i=0; i<N; i++) GDATA->SetPoint(i,(double)s+(double)i*(double)(e-s)/(double)N,aData[i]);
   
   TFile *fdata;
-  if(first_Data){
-    fdata=new TFile((fOutdir[c]+"/DATA_"+fChannels[c]+".root").c_str(),"RECREATE");
-    first_Data=false;
+  if(first_save[c]){
+    fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"RECREATE");
+    first_save[c]=false;
   }
-  else fdata=new TFile((fOutdir[c]+"/DATA_"+fChannels[c]+".root").c_str(),"UPDATE");
+  else fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"UPDATE");
   fdata->cd();
   GDATA->Write();
   fdata->Close();
