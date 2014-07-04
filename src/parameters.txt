@@ -12,9 +12,6 @@ DATA	FFL		/virgoData/ffl/raw.ffl
 //** list of channels you want to process (here you have 2)
 DATA	CHANNELS	V1:Pr_B1_ACp V1:h_16384Hz
 
-//** native sampling frequency (Hz) of working channels (as many as the number of input channels)
-DATA	NATIVEFREQUENCY	20000 16384
-
 //** working sampling (one value for all channels)
 DATA	SAMPLEFREQUENCY	4096
 
@@ -45,7 +42,7 @@ PARAMETER	MISMATCHMAX	0.2
 //*************************************************************************************
 
 //** tile SNR threshold
-TRIGGER		SNRTHRESHOLD	5.5
+TRIGGER		SNRTHRESHOLD	6
 
 //** maximum number of triggers per file
 //TRIGGER		NMAX		1000
