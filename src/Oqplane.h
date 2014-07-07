@@ -20,7 +20,7 @@ using namespace std;
 
 /**
  * Create a frequency row in a time-frequency Q-plane.
- * This class was designed to create and use a frequency row defined by a central frequency and a Q value to build time-frequency Q-planes. This class is private and can only be used by its friends.
+ * This class was designed to create and use a frequency row defined by a central frequency and a Q value to build time-frequency Q-planes. This class is private and can only be used by the Oqplane class.
  *
  * \author    Florent Robinet
  */
@@ -28,9 +28,9 @@ class FreqRow {
 
  public:
   friend class Oqplane;  ///< friendly class
-
-  private:
-
+  
+ private:
+  
   FreqRow(const int aTimeRange, 
 	  const int aTimePad, 
 	  const int aSampleFrequency, 
@@ -40,7 +40,7 @@ class FreqRow {
 	  const double aSNRThreshold);
   virtual ~FreqRow(void);
 
-  double* GetSNRs(double *aDataRe, double *aDataIm);
+  double* GetSNRs(double *aDataRe, double *aDataIm);// Get SNRs in FD
   bool GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime);
   inline void SetPower(const double aPower){ fPower=aPower; };
   
@@ -63,18 +63,19 @@ class FreqRow {
   bool *ValidIndices;       ///< energy indices to keep
   double fPower;            ///< power of the f-row
 
-  // WINDOW
+  // Q-TRANSFORM
   vector <double> fWindow;  ///< bi square window function
   vector <double> fWindowFrequency; ///< window frequencies
   vector <int> fDataIndices;///< vector of data indices to inverse fourier transform
   int fZeroPadLength;       ///< number of zeros to append to windowed data
-
+  double *working_vector[2];///< working vector for FFT
+  fft *offt;                ///< fft of the row
 };
 
 
 /**
  * Create a time-frequency Q-plane.
- * This class was designed to create and use a time-frequency Q-plane defined by a Q value. This class is private and can only be used by its friends.
+ * This class was designed to create and use a time-frequency Q-plane defined by a Q value. This class is private and can only be used by the Otile class.
  *
  * \author    Florent Robinet
  */
@@ -100,7 +101,7 @@ class Oqplane {
   TH2D* GetMap(double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
   
   // STATUS
-  bool status_OK; ///< class status
+  bool status_OK;                  ///< class status
 
   // PARAMETERS
   double fQ;

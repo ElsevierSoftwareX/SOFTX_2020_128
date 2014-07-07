@@ -14,7 +14,7 @@ using namespace std;
 
 /**
  * Construct a time-frequency-Q tiling.
- * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of those planes is divided in logarithmically spaced frequency bands. Each of those bands are then linearly divided in time bins.
+ * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins.
  * \author    Florent Robinet
  */
 class Otile {
@@ -27,7 +27,7 @@ class Otile {
   */
   /**
    * Constructor of the Otile class.
-   * The tiling is constructed given the user parameters. The parameter space is defined by a time range, a frequency range and a Q range. A time pad value is given to exclude triggers produced at both ends of the time range (to remove filtering artifacts, for example). The user must specify a maximum mismatch value corresponding to a maximal fractional energy loss from one tile to the next. When GetTriggers() is called only triggers with a SNR value larger than the threshold are saved.
+   * The tiling is constructed given the user parameters. The parameter space is defined by a time range, a frequency range and a Q range. A time pad value is given to exclude triggers produced at both ends of the time range (to remove filtering artifacts, for example). The user must specify a maximum mismatch value corresponding to a maximal fractional energy loss from one tile to the next. When GetTriggers() is called, only triggers with a SNR value larger than the threshold are saved.
    *
    * Some conditions are to be met:
    * - The time range must be a power of 2
@@ -65,7 +65,7 @@ class Otile {
   
   /**
    * Sets the data power spectrum.
-   * This function must be called before the GetTriggers() function. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over the tile (weighted by the tile Gaussian window).
+   * This function must be called before the GetTriggers() or GetMap() functions. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over the tile (weighted by the tile Gaussian window).
    * If this function is not called, power is set to 1 and the amplitude is just the SNR.
    *
    * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.

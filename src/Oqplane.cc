@@ -232,7 +232,7 @@ bool Oqplane::CheckParameters(void){
 ////////////////////////////////////////////////////////////////////////////////////  
   if(!status_OK) return false;
 
-  if(fTimeRange<=0){
+  if(fTimeRange<1){
     cerr<<"Oqplane::CheckParameters: incorrect time range"<<endl;
     return false;
   }
@@ -241,9 +241,7 @@ bool Oqplane::CheckParameters(void){
     cerr<<"Oqplane::CheckParameters: The time range is too small to cover this frequency range"<<endl;
     return false;
   }
-
-  int x = fSampleFrequency * fTimeRange;
-  if(!IsPowerOfTwo(x)){
+  if(!IsPowerOfTwo(fSampleFrequency * fTimeRange)){
     cerr<<"Oqplane::CheckParameters: data length is not an integer power of two"<<endl;
     return false;
   }
@@ -280,8 +278,7 @@ FreqRow::FreqRow(const int aTimeRange, const int aTimePad, const int aSampleFreq
   // mismatch between tiles
   double QPrime = fQ / sqrt(11);
   double TimeCumulativeMismatch = (double)fTimeRange * 2.0 * TMath::Pi() * fF / fQ;
-  double nextpowerof2=ceil(log(TimeCumulativeMismatch / fMismatchStep)/log(2));
-  fNumberOfTiles = (int)pow(2.0,nextpowerof2);
+  fNumberOfTiles = NextPowerOfTwo(TimeCumulativeMismatch / fMismatchStep);
   double TimeMismatchStep = TimeCumulativeMismatch / (double)fNumberOfTiles;
   double fTimeStep = fQ*TimeMismatchStep/2.0/TMath::Pi()/fF;
 
@@ -295,7 +292,7 @@ FreqRow::FreqRow(const int aTimeRange, const int aTimePad, const int aSampleFreq
   fWindow.clear(); fDataIndices.clear();
   double windowargument;
   double WindowFrequency;
-  double RowNormalization = sqrt(315*QPrime/128/fF);
+  double RowNormalization = sqrt(315.0*QPrime/128.0/fF);
   double IfftNormalization = (double)fNumberOfTiles / ((double)fSampleFrequency*(double)fTimeRange);
   for(int i=0; i<fWindowLength; i++){
     WindowFrequency=(double)(-HalfWindowLength + i) * fMinimumFrequencyStep;
@@ -308,6 +305,10 @@ FreqRow::FreqRow(const int aTimeRange, const int aTimePad, const int aSampleFreq
 
   // allocate memory
   ValidIndices=new bool [fNumberOfTiles];
+  working_vector[0] = new double [fNumberOfTiles];
+  working_vector[1] = new double [fNumberOfTiles];
+  offt = new fft(fNumberOfTiles,"FFTW_MEASURE");
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -318,12 +319,16 @@ FreqRow::~FreqRow(void){
   fDataIndices.clear();
   fTime.clear();
   delete ValidIndices;
+  delete working_vector[0];
+  delete working_vector[1];
+  delete offt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool FreqRow::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime){
 ////////////////////////////////////////////////////////////////////////////////////
   
+  // get SNRs
   double *snrs = GetSNRs(aDataRe,aDataIm);
   if(snrs==NULL){
     cerr<<"FreqRow::GetTriggers: the trigger extraction failed for row f="<<fF<<endl;
@@ -366,12 +371,9 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
     cerr<<"FreqRow::GetSNRs: the padding is too large???"<<endl;
     return NULL;
   }
+  
   // fill windowed vector with zero padding
-  double *working_vector[2];
-  working_vector[0] = new double [fNumberOfTiles];
-  working_vector[1] = new double [fNumberOfTiles];
   int i=0, index=0, end=0;
-
   end=fNumberOfTiles/2-rightZeroPadLength;
   for(; i<end; i++){
     index=i+fNumberOfTiles/2-leftZeroPadLength;
@@ -391,20 +393,14 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   }
 
   // fft-backward
-  fft *offt = new fft(fNumberOfTiles);
   if(!offt->Backward(working_vector[0],working_vector[1])){
     cerr<<"FreqRow::GetSNRs: FFT failed"<<endl;
-    delete working_vector[0];
-    delete working_vector[1];
     return NULL;
   }
   
   // get energies
   double *energies = offt->GetNorm2();
-  delete working_vector[0];
-  delete working_vector[1];
-  delete offt;
- 
+   
   // get threshold to exclude outliers
   double MeanEnergy=0; double RMSEnergy=0; 
   int numberofvalidtiles=0;

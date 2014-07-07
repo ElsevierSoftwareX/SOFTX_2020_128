@@ -31,10 +31,6 @@ Otile::Otile(const int aTimeRange, const int aTimePad,
   
   // adjust Q range
   if(fQMin<sqrt(11.0)) fQMin=sqrt(11.0);
-  if(fQMin>=fQMax){
-    cerr<<"Otile::Otile: the Q range does not make sense"<<endl;
-    status_OK=false;
-  }
 
   // number of planes
   double QCumulativeMismatch = log(fQMax/fQMin)/sqrt(2.0);// cumulative mismatch across Q range
@@ -147,7 +143,7 @@ bool Otile::CheckParameters(void){
 ////////////////////////////////////////////////////////////////////////////////////  
   if(!status_OK) return false;
 
-  if(fTimeRange<=0){
+  if(fTimeRange<1){
     cerr<<"Otile::CheckParameters: time range does not make any sense"<<endl;
     return false;
   }
