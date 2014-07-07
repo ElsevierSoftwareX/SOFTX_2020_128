@@ -61,12 +61,7 @@ bool Omicron::ReadOptions(void){
   //*****************************
 
   //***** ffl file *****
-  if(io->GetOpt("DATA","FFL", fFflFile)) fFflFormat="ffl";
-  else if(io->GetOpt("DATA","LCF", fFflFile)) fFflFormat="lcf";
-  else{
-    fFflFile="none";
-    fFflFormat="none";
-  }
+  if(!io->GetOpt("DATA","FFL", fFflFile)&&!io->GetOpt("DATA","LCF", fFflFile)) fFflFile="none";
   //*****************************
 
   //***** Sampling frequency *****

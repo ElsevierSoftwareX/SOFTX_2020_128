@@ -172,7 +172,6 @@ class Omicron {
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   string fFflFile;              ///< path to FFL file
-  string fFflFormat;            ///< FFL format
   int fSampleFrequency;         ///< sampling frequency of input data
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range

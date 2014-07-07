@@ -31,7 +31,6 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_INJECTION_CHANNEL");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_FACTOR");          fOptionType.push_back("d");
   fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
-  fOptionName.push_back("omicron_DATA_FFLFORMAT");            fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_FMIN");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FMAX");            fOptionType.push_back("d");
@@ -90,7 +89,7 @@ Omicron::Omicron(const string aOptionFile){
   FFL=NULL;
   if(fFflFile.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: Define FFL object..."<<endl;
-    FFL = new ffl(fFflFile, fFflFormat, fVerbosity);
+    FFL = new ffl(fFflFile, fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
   }
@@ -150,24 +149,23 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fFflFile);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fFflFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fSampleFrequency);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFreqRange[0]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fFreqRange[1]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fQRange[0]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fQRange[1]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fChunkDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fSegmentDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fOverlapDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fMismatchMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fSNRThreshold);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fNtriggerMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fcldt);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],(int)writepsd);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],(int)writetimeseries);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fSampleFrequency);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFreqRange[0]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFreqRange[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fQRange[0]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fQRange[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fChunkDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fSegmentDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fOverlapDuration);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fNtriggerMax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fcldt);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],(int)writepsd);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],(int)writetimeseries);
     triggers[c]->SetMprocessname("Omicron");
     triggers[c]->SetMstreamname(streams[c]->GetName());
     triggers[c]->SetMdetindex(streams[c]->GetDetIndex());
