@@ -123,10 +123,11 @@ Omicron::Omicron(const string aOptionFile){
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: Define Triggers object..."<<endl;
   triggers    = new Triggers* [(int)fChannels.size()];
-  string form = "root";
-  if(fOutFormat.find("xml")!=string::npos)  form="xml";
-  if(fOutFormat.find("txt")!=string::npos)  form="txt";
-  if(fOutFormat.find("root")!=string::npos) form="root";
+  string form = "";
+  if(fOutFormat.find("xml")!=string::npos)  form+="xml";
+  if(fOutFormat.find("txt")!=string::npos)  form+="txt";
+  if(fOutFormat.find("root")!=string::npos) form+="root";
+  if(!form.compare("")) form="root";
   for(int c=0; c<(int)fChannels.size(); c++){
     
     // create trigger directory
