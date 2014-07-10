@@ -17,7 +17,8 @@ printhelp(){
     echo "  -c  [CHANNEL_FILE]  path to a text file listing all the channels to process"
     echo "                      Different settings are available and are specified by"    
     echo "                      a keyword given after the channel name:"
-    echo "                         STD:  8    to 2048Hz, SNR>8 (default)"
+    echo "                         STD:  8    to 1024Hz, SNR>8 (default)"
+    echo "                         STD2: 8    to 2048Hz, SNR>8 (default)"
     echo "                         LOW:  0.1  to 64Hz,   SNR>8"
     echo "                         HIGH: 1024 to 8192Hz, SNR>8"
     echo "                         GW:   8    to 4096Hz, SNR>5, fine tiling"
@@ -59,10 +60,19 @@ printoption(){
 	overlap=6
 	mmmax=0.2
 	snrthr=5	
-    else
+    elif [ $1 = "STD2" ]; then
 	sampling=4096
 	freqmin=8
 	freqmax=2048
+	chunk=506
+	block=256
+	overlap=6
+	mmmax=0.35
+	snrthr=8
+    else
+	sampling=2048
+	freqmin=8
+	freqmax=1024
 	chunk=506
 	block=256
 	overlap=6
@@ -181,12 +191,13 @@ fi
 
 ##### user channel lists
 awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.getomicronoptions.std
+awk '$2=="STD2" {print $1}' $chanfile | sort | uniq           > ./channel.getomicronoptions.std2
 awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.getomicronoptions.low
 awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.getomicronoptions.high
 awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.getomicronoptions.gw
 
 ##### break into freq
-rm -f ./parameters_STD_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
+rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
 
 ############## STD SETTING
 if [ -s ./channel.getomicronoptions.std ]; then
@@ -209,6 +220,29 @@ if [ -s ./channel.getomicronoptions.std ]; then
     done < ./channel.getomicronoptions.std;
     echo "STD_${p} = $channel_list"
     printoption "STD" $optfile $p "$channel_list"
+fi
+
+############## STD2 SETTING
+if [ -s ./channel.getomicronoptions.std2 ]; then
+    n=0
+    p=0
+    channel_list=""
+    nchanmax=5 # maximum number of channels per option file
+    while read channel; do
+	channel_list="$channel $channel_list"
+	n=$(($n+1))
+	# this is one option file
+	if [ $n -eq $nchanmax ]; then
+	    echo "STD2_${p} = $channel_list"
+	    printoption "STD2" $optfile $p "$channel_list"
+	    channel_list=""
+	    p=$(($p+1))
+	    n=0
+	fi
+	
+    done < ./channel.getomicronoptions.std2;
+    echo "STD2_${p} = $channel_list"
+    printoption "STD2" $optfile $p "$channel_list"
 fi
 
 ############## LOW SETTING
