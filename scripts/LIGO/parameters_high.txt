@@ -2,7 +2,7 @@
 //************************   Omicron configuration file   *****************************
 //*************************************************************************************
 
-DATA		LCF		/home/florent/Analysis/Omicron/SGinj/frames.ffl
+DATA		LCF		./frames.ffl
 DATA		CHANNELS	H1:LDAS-STRAIN
 DATA		SAMPLEFREQUENCY	4096
 
