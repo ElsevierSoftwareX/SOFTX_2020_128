@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # GetOmicronOptions.sh
 #
@@ -8,26 +8,92 @@
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronOptions -o [OPTION FILE]"
+    echo "GetOmicronOptions -c [CHANNEL_FILE]"
     echo ""
     echo "This script produces Omicron parameter files."
     echo ""
     echo "  -o  [OPTION FILE]   path to an Omicron parameter file used as a template"
     echo "                      Default: use a standardized parameter file"
     echo "  -c  [CHANNEL_FILE]  path to a text file listing all the channels to process"
-    echo "                      The channel file must contain 2 columns:"    
-    echo "                      [channel_name]  [sampling_frequency]"    
-    echo "                      Default: all channels with f0 >= 256Hz"
-    echo "  -d  [OUTDIR]        trigger output directory (inactive if template given)"
-    echo "  -f  [FFL_FILE]      path to FFL file to consider (inactive if template given)"
-    echo "  -l                  only produce the list of available channels"
+    echo "                      Different settings are available and are specified by"    
+    echo "                      a keyword given after the channel name:"
+    echo "                         STD:  8    to 2048Hz, SNR>8 (default)"
+    echo "                         LOW:  0.1  to 64Hz,   SNR>8"
+    echo "                         HIGH: 1024 to 8192Hz, SNR>8"
+    echo "                         GW:   8    to 4096Hz, SNR>5, fine tiling"
+    echo ""
+    echo ""
+
+    echo "  -d  [TRIG_OUTDIR]   trigger output directory (inactive if option file given)"
+    echo "  -f  [FFL_FILE]      path to a FFL/LCF file to consider (inactive if option file given)"
     echo ""
     echo "  -h                  prints this help message"
     echo ""
 } 
 
+printoption(){
+    if [ $1 = "LOW" ]; then
+	sampling=128
+	freqmin=0.1
+	freqmax=64
+	chunk=2048
+	block=2048
+	overlap=48
+	mmmax=0.35
+	snrthr=8
+    elif [ $1 = "HIGH" ]; then
+	sampling=16384
+	freqmin=1024
+	freqmax=8192
+	chunk=506
+	block=256
+	overlap=6
+	mmmax=0.35
+	snrthr=8	
+    elif [ $1 = "GW" ]; then
+	sampling=8192
+	freqmin=32
+	freqmax=4096
+	chunk=506
+	block=256
+	overlap=6
+	mmmax=0.2
+	snrthr=5	
+    else
+	sampling=4096
+	freqmin=8
+	freqmax=2048
+	chunk=506
+	block=256
+	overlap=6
+	mmmax=0.35
+	snrthr=8
+    fi
+    	
+    sed -e '/DATA[ \t]*CHANNELS/d' \
+	-e '/DATA[ \t]*SAMPLEFREQUENCY/d' \
+	-e '/PARAMETER[ \t]*CHUNKDURATION/d' \
+	-e '/PARAMETER[ \t]*BLOCKDURATION/d' \
+	-e '/PARAMETER[ \t]*OVERLAPDURATION/d' \
+	-e '/PARAMETER[ \t]*FREQUENCYRANGE/d' \
+	-e '/PARAMETER[ \t]*MISMATCHMAX/d' \
+	-e '/TRIGGER[ \t]*SNRTHRESHOLD/d' \
+	$2 > ./parameters_${1}_${3}.txt
+    
+    echo "" >> ./parameters_${1}_${3}.txt
+    echo "DATA  CHANNELS  $4" >> ./parameters_${1}_${3}.txt
+    echo "DATA  SAMPLEFREQUENCY      ${sampling}" >> ./parameters_${1}_${3}.txt
+    echo "PARAMETER CHUNKDURATION    ${chunk}" >> ./parameters_${1}_${3}.txt
+    echo "PARAMETER BLOCKDURATION    ${block}" >> ./parameters_${1}_${3}.txt
+    echo "PARAMETER OVERLAPDURATION  ${overlap}" >> ./parameters_${1}_${3}.txt
+    echo "PARAMETER FREQUENCYRANGE   ${freqmin}  ${freqmax}" >> ./parameters_${1}_${3}.txt
+    echo "PARAMETER MISMATCHMAX      ${mmmax}" >> ./parameters_${1}_${3}.txt
+    echo "TRIGGER SNRTHRESHOLD       ${snrthr}" >> ./parameters_${1}_${3}.txt
+    
+} 
+
 ##### Check the Omicron environment
-if [[ -z "$OMICRONROOT" ]]; then
+if [ -z "$OMICRONROOT" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
@@ -38,16 +104,23 @@ chanfile="./no.chance.this.file.exists"
 framefile="./no.chance.this.file.exists"
 fflfile="./no.chance.this.file.exists"
 outdir="./no.chance.this.dir.exists"
-printlist=0
 
 ##### read options
-while getopts ":o:c:f:d:lh" opt; do
+while getopts ":o:c:f:d:h" opt; do
     case $opt in
 	o)
 	    optfile="$OPTARG"
+	    if [ ! -e $optfile ]; then
+		echo "GetOmicronOptions: the option file $optfile cannot be found"
+		exit 2
+	    fi
 	    ;;
 	c)
 	    chanfile="$OPTARG"
+	    if [ ! -e $chanfile ]; then
+		echo "GetOmicronOptions: the channel file $chanfile cannot be found"
+		exit 2
+	    fi
 	    ;;
 	f)
 	    fflfile="$OPTARG"
@@ -63,9 +136,6 @@ while getopts ":o:c:f:d:lh" opt; do
 		exit 2
 	    fi
 	    ;;
-	l)
-	    printlist=1
-	    ;;
 	h)
 	    printhelp
 	    exit 0
@@ -80,6 +150,13 @@ done
 
 
 ##### check option file
+if [ ! -e $chanfile ]; then
+    echo "GetOmicronOptions: you must provide a channel file"
+    echo "type  'GetOmicronOptions.sh -h'  for help"
+    exit 3
+fi
+
+##### check option file
 if [ ! -e $optfile ]; then
     echo ""
     echo "******************************************"
@@ -90,9 +167,10 @@ if [ ! -e $optfile ]; then
     if [ ! -d $outdir ]; then
 	echo "Please enter a path to an output directory: "
 	read outdir
+	outdir="${outdir}/triggers"
     fi
     if [ ! -e $fflfile ]; then
-	echo "Please enter a path to an FFL file: "
+	echo "Please enter a path to an FFL/LCF file: "
 	read fflfile
     fi
     sed -e "s|\[FFL]|$fflfile|g" \
@@ -101,173 +179,106 @@ if [ ! -e $optfile ]; then
     optfile="./parameters.template"
 fi
 
-randnum=$RANDOM
-
-##### user channel list
-if [ -e $chanfile ]; then
-    sort -n $chanfile | uniq | sed '/^$/d' > ${TMP}/channel.getomicronoptions.$randnum
-    mv ${TMP}/channel.getomicronoptions.$randnum ./channel.getomicronoptions
-else
-##### get reference frame file
-    fflfile=`grep DATA $optfile | grep -m1 FFL | awk '{print $3}'`
-    if [ ! -z $fflfile ]; then
-	if [ -e $fflfile ]; then
-	    framefile=`head -1 $fflfile | awk '{print $1}'`
-	    gps=`head -1 $fflfile | awk '{print $2}'`
-	fi
-    else # let's try LCF 
-	lcffile=`grep DATA $optfile | grep -m1 LCF | awk '{print $3}'`
-	if [ ! -z $fflfile ]; then
-	    if [ -e $lcffile ]; then
-		framefile=`head -1 $lcffile | awk '{print $5}'`
-		gps=`head -1 $lcffile | awk '{print $3}'`
-	    fi
-	else
-	    echo "No valid FFL/LCF file in the option file"
-	    exit 2
-	fi
-    fi
-    if [ ! -e $framefile ]; then
-	echo "No valid reference frame file"
-	exit 2
-    else
-	echo "Reference frame file: $framefile"
-    fi
-
-##### get channel list
-##### FIXME: this is very dirty!!
-    ${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$7>0&&$7<0.004{print int(1.0/$7+0.5),$1}' | sort -n | uniq> ./channel.getomicronoptions
-    if [ ! -s ./channel.getomicronoptions ]; then
-	${FRROOT}/${FRCONFIG}/FrDump.exe -i $framefile -d 4 -f $gps -l $gps | grep Vector: | grep -v -w Auxiliary | sed 's|Vector:||g' | sed 's|dx=||g' | awk '$6>0&&$6<0.004{print int(1.0/$6+0.5),$1}' | sort -n | uniq> ./channel.getomicronoptions
-	if [ ! -s ./channel.getomicronoptions ]; then
-	    echo "No channel"
-	    exit 2
-	fi
-    fi
-fi
-if [ $printlist -eq 1 ]; then exit 0; fi
-
+##### user channel lists
+awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.getomicronoptions.std
+awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.getomicronoptions.low
+awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.getomicronoptions.high
+awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.getomicronoptions.gw
 
 ##### break into freq
-rm -f ./channel.*Hz
-rm -f ./parameters_*Hz_*.txt
-while read line; do
-    freq=`echo $line | awk '{print $1}'`
-    echo $line >> ./channel.${freq}Hz
-done < ./channel.getomicronoptions
+rm -f ./parameters_STD_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
 
-# customized parameters
-# freq       = native sampling frequency
-# freqsample = working sampling frequency
-# trigmax    = max number of triggers per file
-# freqmin    = min frequency
-# freqmax    = max frequency
-# chunk      = chunk duration;
-# overlap    = overlap duration;
-# block      = block duration;
-
-##### loop over channels
-for file in ./channel.*Hz; do
-    freq=`head -1 $file | awk '{print $1}'`
-        
-    echo ""
-    echo "Making parameter files for channels at $freq Hz..."
-    echo ""
-
-    # maximum number of channels to process
-    if [ $freq -le 1024 ]; then nmax=12;
-    elif [ $freq -le 2048 ]; then nmax=20;
-    elif [ $freq -le 4096 ]; then nmax=10;
-    else nmax=5; fi
-    
-    # sampling frequency
-    # FIXME = it does not work if $freq is not a power of 2 and if 1024<$freq<4096
-    freqsample=$freq
-    if [ $freqsample -gt 4096 ]; then freqsample=4096; fi
-    
-    # frequency range
-    if [ $freq -le 1024 ]; then # LOW FREQUENCY REGIME
-	freqsample=128
-	freqmin=0.1; 
-	overlap=1280;
-	chunk=8192;
-	block=8192;
-	trigmax=500000;
-    else
-	freqmin=8; 
-	overlap=4;
-	chunk=484;
-	block=64;
-	trigmax=50000;
-    fi
-    freqmax=$(( $freqsample / 2 ))
-
+############## STD SETTING
+if [ -s ./channel.getomicronoptions.std ]; then
     n=0
     p=0
     channel_list=""
-    freq_list=""
-    while read line; do
-
-	channel=`echo $line | awk '{print $2}'`
+    nchanmax=5 # maximum number of channels per option file
+    while read channel; do
 	channel_list="$channel $channel_list"
-	freq_list="$freq $freq_list"
-	let "n+=1"
-
-	if [ $n -eq $nmax ]; then
-	    echo "#${p}"
-	    sed -e '/DATA[ \t]*CHANNELS/d' \
-		-e '/DATA[ \t]*NATIVEFREQUENCY/d' \
-		-e '/DATA[ \t]*SAMPLEFREQUENCY/d' \
-		-e '/PARAMETER[ \t]*CHUNKDURATION/d' \
-		-e '/PARAMETER[ \t]*BLOCKDURATION/d' \
-		-e '/PARAMETER[ \t]*OVERLAPDURATION/d' \
-		-e '/PARAMETER[ \t]*FREQUENCYRANGE/d' \
-		-e '/TRIGGER[ \t]*NMAX/d' \
-		$optfile > ./parameters_${freq}Hz_${p}.txt
-
-	    echo "" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "DATA  CHANNELS  ${channel_list}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "DATA  NATIVEFREQUENCY  ${freq_list}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "DATA  SAMPLEFREQUENCY  ${freqsample}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "PARAMETER CHUNKDURATION  ${chunk}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "PARAMETER BLOCKDURATION  ${block}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "PARAMETER OVERLAPDURATION  ${overlap}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "PARAMETER FREQUENCYRANGE  ${freqmin}  ${freqmax}" >> ./parameters_${freq}Hz_${p}.txt
-	    echo "TRIGGER NMAX  ${trigmax}" >> ./parameters_${freq}Hz_${p}.txt
+	n=$(($n+1))
+	# this is one option file
+	if [ $n -eq $nchanmax ]; then
+	    echo "STD_${p} = $channel_list"
+	    printoption "STD" $optfile $p "$channel_list"
 	    channel_list=""
-	    freq_list=""
-	    let "p+=1"
+	    p=$(($p+1))
 	    n=0
 	fi
-    done < $file
-
-    # one more file
-    if [ $n -gt 0 ]; then
-	echo "#${p}"
-	sed -e '/DATA[ \t]*CHANNELS/d' \
-	    -e '/DATA[ \t]*NATIVEFREQUENCY/d' \
-	    -e '/DATA[ \t]*SAMPLEFREQUENCY/d' \
-	    -e '/PARAMETER[ \t]*CHUNKDURATION/d' \
-	    -e '/PARAMETER[ \t]*BLOCKDURATION/d' \
-	    -e '/PARAMETER[ \t]*OVERLAPDURATION/d' \
-	    -e '/PARAMETER[ \t]*FREQUENCYRANGE/d' \
-	    -e '/TRIGGER[ \t]*NMAX/d' \
-	    $optfile > ./parameters_${freq}Hz_${p}.txt
 	
-	echo "" >> ./parameters_${freq}Hz_${p}.txt
-	echo "DATA  CHANNELS  ${channel_list}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "DATA  NATIVEFREQUENCY  ${freq_list}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "DATA  SAMPLEFREQUENCY  ${freqsample}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "PARAMETER CHUNKDURATION  ${chunk}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "PARAMETER BLOCKDURATION  ${block}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "PARAMETER OVERLAPDURATION  ${overlap}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "PARAMETER FREQUENCYRANGE  ${freqmin}  ${freqmax}" >> ./parameters_${freq}Hz_${p}.txt
-	echo "TRIGGER NMAX  ${trigmax}" >> ./parameters_${freq}Hz_${p}.txt
-    fi
+    done < ./channel.getomicronoptions.std;
+    echo "STD_${p} = $channel_list"
+    printoption "STD" $optfile $p "$channel_list"
+fi
 
-done
+############## LOW SETTING
+if [ -s ./channel.getomicronoptions.low ]; then
+    n=0
+    p=0
+    channel_list=""
+    nchanmax=20 # maximum number of channels per option file
+    while read channel; do
+	channel_list="$channel $channel_list"
+	n=$(($n+1))
+	# this is one option file
+	if [ $n -eq $nchanmax ]; then
+	    echo "LOW_${p} = $channel_list"
+	    printoption "LOW" $optfile $p "$channel_list"
+	    channel_list=""
+	    p=$(($p+1))
+	    n=0
+	fi
+	
+    done < ./channel.getomicronoptions.low;
+    echo "LOW_${p} = $channel_list"
+    printoption "LOW" $optfile $p "$channel_list"
+fi
+############## HIGH SETTING
+if [ -s ./channel.getomicronoptions.high ]; then
+    n=0
+    p=0
+    channel_list=""
+    nchanmax=4 # maximum number of channels per option file
+    while read channel; do
+	channel_list="$channel $channel_list"
+	n=$(($n+1))
+	# this is one option file
+	if [ $n -eq $nchanmax ]; then
+	    echo "HIGH_${p} = $channel_list"
+	    printoption "HIGH" $optfile $p "$channel_list"
+	    channel_list=""
+	    p=$(($p+1))
+	    n=0
+	fi
+	
+    done < ./channel.getomicronoptions.high;
+    echo "HIGH_${p} = $channel_list"
+    printoption "HIGH" $optfile $p "$channel_list"
+fi
+############## GW SETTING
+if [ -s ./channel.getomicronoptions.gw ]; then
+    n=0
+    p=0
+    channel_list=""
+    nchanmax=4 # maximum number of channels per option file
+    while read channel; do
+	channel_list="$channel $channel_list"
+	n=$(($n+1))
+	# this is one option file
+	if [ $n -eq $nchanmax ]; then
+	    echo "GW_${p} = $channel_list"
+	    printoption "GW" $optfile $p "$channel_list"
+	    channel_list=""
+	    p=$(($p+1))
+	    n=0
+	fi
+	
+    done < ./channel.getomicronoptions.gw;
+    echo "GW_${p} = $channel_list"
+    printoption "GW" $optfile $p "$channel_list"
+fi
 
 # cleaning
-rm -f ./channel.*Hz
+rm -f ./parameters.template channel.getomicronoptions.*
 
 exit 0
