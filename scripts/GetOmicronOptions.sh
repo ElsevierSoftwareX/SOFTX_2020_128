@@ -61,18 +61,18 @@ printoption(){
 	mmmax=0.2
 	snrthr=5	
     elif [ $1 = "STD2" ]; then
-	sampling=4096
+	sampling=2048
 	freqmin=8
-	freqmax=2048
+	freqmax=1024
 	chunk=506
 	block=256
 	overlap=6
 	mmmax=0.35
 	snrthr=8
     else
-	sampling=2048
+	sampling=4096
 	freqmin=8
-	freqmax=1024
+	freqmax=2048
 	chunk=506
 	block=256
 	overlap=6
@@ -204,7 +204,7 @@ if [ -s ./channel.getomicronoptions.std ]; then
     n=0
     p=0
     channel_list=""
-    nchanmax=5 # maximum number of channels per option file
+    nchanmax=8 # maximum number of channels per option file
     while read channel; do
 	channel_list="$channel $channel_list"
 	n=$(($n+1))
@@ -227,7 +227,7 @@ if [ -s ./channel.getomicronoptions.std2 ]; then
     n=0
     p=0
     channel_list=""
-    nchanmax=5 # maximum number of channels per option file
+    nchanmax=15 # maximum number of channels per option file
     while read channel; do
 	channel_list="$channel $channel_list"
 	n=$(($n+1))
@@ -294,7 +294,7 @@ if [ -s ./channel.getomicronoptions.gw ]; then
     n=0
     p=0
     channel_list=""
-    nchanmax=4 # maximum number of channels per option file
+    nchanmax=5 # maximum number of channels per option file
     while read channel; do
 	channel_list="$channel $channel_list"
 	n=$(($n+1))

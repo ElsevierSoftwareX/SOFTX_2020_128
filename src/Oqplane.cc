@@ -131,6 +131,8 @@ bool Oqplane::SetPowerSpectrum(Spectrum *aSpec){
     freqrow[f]->SetPower(power/sumofweight);
   }
 
+  
+
   return true;
 }
 
