@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # process.sh
 #
@@ -18,17 +18,17 @@ proddir=`pwd`
 
 
 # GWOLLUM environment
-#source /home/detchar/opt/virgosoft/environment.sh "" >> /dev/null
+source /home/detchar/opt/virgosoft/environment.v1r3.sh "" >> /dev/null
 
 # directories
 mkdir -p ./logs
-mkdir -p ./high/triggers
+mkdir -p ./std/triggers
 mkdir -p ./low/triggers
 mkdir -p ./gw
 
 # vars
 now=`tconvert now`
-logfile=./logs/process.${now}.txt
+logfile=`pwd`/logs/process.${now}.txt
 echo "Local time: `date`" > $logfile
 echo "UTC time: `date`" >> $logfile
 
@@ -46,10 +46,10 @@ fi
 ################################################################################
 
 # timing
-tstop=$(( ($now - $delay) / 2000 ))000
+tstop=$(( ($now - $delay) / 1000 ))
+if [ $(( $tstop % 2 )) -eq 1 ]; then let "tstop-=1"; fi
+tstop="${tstop}000"
 tstart=$(( $tstop - 2000 ))
-let "tstop+=3"  # for overlap
-let "tstart-=3" # for overlap
 if [ ! -e ./segments.txt ]; then
     echo "`date -u`: no previous segment --> start a new one [$tstart; $tstop]" >> $logfile
     echo "$tstart $tstop" > ./segments.tmp
@@ -59,12 +59,12 @@ else
 	echo "`date -u`: the last processed segment is too old --> start a new one [$tstart; $tstop]" >> $logfile
 	echo "$tstart $tstop" > ./segments.tmp
     else
-	tstart=$(( $prev_stop - 6 ))
+	tstart=$prev_stop
 	echo "`date -u`: create new segment [$tstart; $tstop]" >> $logfile
         echo "$tstart $tstop" > ./segments.tmp
     fi
 fi
-if [ `segsum ./segments.tmp` -lt 2006 ]; then
+if [ `segsum ./segments.tmp` -lt 2000 ]; then
     echo "`date -u`: the new segment is too short, start again later..." >> $logfile
     rm -f ./segments.tmp
     exit 0
@@ -75,34 +75,53 @@ mv ./segments.tmp ./segments.txt
 # data
 echo "`date -u`: get LCF file" >> $logfile
 for type in $data_type; do
-    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $tstart -e $tstop > ./frames.lcf
+    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./frames.lcf 2>> $logfile
     if [ -s ./frames.lcf ]; then break; fi
 done
-if [ !-s ./frames.lcf ]; then
+if [ ! -s ./frames.lcf ]; then
     echo "`date -u`: data are missing for this segment" >> $logfile
     rm -f ./frames.lcf
     exit 0
-}
+fi
 
 ################################################################################
 ###########                    directory prep                        ###########
 ################################################################################
 
 # channel lists
-awk '$1>1024 {print}'  ./channels.${IFO} > ./high/channels.list
-awk '$1<=1024 {print}' ./channels.${IFO} > ./low/channels.list
+awk '$2=="STD" {print}' ./channels.${IFO} > ./std/channels.list
+awk '$2=="LOW" {print}' ./channels.${IFO} > ./low/channels.list
 
 # segments
-cp -f ./segments.txt ./high/segments.txt
-cp -f ./segments.txt ./low/segments.txt
+awk '{print $1-3,$2+3}' ./segments.txt > ./std/segments.txt
+awk '{print $1-24,$2+24}' ./segments.txt > ./low/segments.txt
 
 # LCF
-lalcache2ffl ./frames.lcf > ./high/frames.ffl
-cp -f ./high/frames.ffl ./low/frames.ffl
-rm -f ./frames.lcf
+cp ./frames.lcf ./std/frames.lcf
+mv ./frames.lcf ./low/frames.lcf
 
 # Omicron parameters
-cd ./high
-GetOmicronOptions -o ../parameters_high.txt -c ./channels.list
+cd ./std
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
 cd ../low
-GetOmicronOptions -o ../parameters_low.txt -c ./channels.list
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
+cd ..
+
+# make dags
+GetOmicronDAG -f -d `pwd`/std >> $logfile 2>&1
+GetOmicronDAG -f -d `pwd`/low >> $logfile 2>&1
+
+################################################################################
+###########                         GO!                              ###########
+################################################################################                 
+
+cd ./std
+condor_submit_dag omicron.dag
+cd ../low
+condor_submit_dag omicron.dag
+cd ..
+
+# cleaning
+rm -f ./low/parameters_LOW_.txt
+
+exit 0
