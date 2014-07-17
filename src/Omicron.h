@@ -182,13 +182,14 @@ class Omicron {
   vector <int> fWindows;        ///< scan windows
   double fSNRThreshold;         ///< SNR Threshold
   int fNtriggerMax;             ///< trigger limit
-  string fClusterAlgo;          ///< clustering mode
+  vector <string> fClusterAlgo; ///< clustering modes
   double fcldt;                 ///< clustering dt
   int fVerbosity;               ///< verbosity level
   string fOutFormat;            ///< output format
   string fStyle;                ///< plotting style
   bool writepsd;                ///< writing PSD flag
   bool writetimeseries;         ///< writing time series flag
+  string fWriteMode;            ///< write mode
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< cumulative requested segments

@@ -139,8 +139,8 @@ Omicron::Omicron(const string aOptionFile){
     triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
     
     // set clustering if any
-    if(fClusterAlgo.compare("none")){// clustering is requested
-      status_OK*=triggers[c]->SetClustering(fClusterAlgo);// set clustering
+    if(fClusterAlgo[0].compare("none")){// clustering is requested
+      status_OK*=triggers[c]->SetClustering(fClusterAlgo[0]);// set clustering
       status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
     }
     
@@ -162,7 +162,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fNtriggerMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo[0]+"_"+fClusterAlgo[1]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fcldt);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fVerbosity);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fOutFormat);
@@ -230,6 +230,7 @@ Omicron::~Omicron(void){
   fFreqRange.clear();
   fQRange.clear();
   fWindows.clear();
+  fClusterAlgo.clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -332,7 +333,7 @@ bool Omicron::Process(Segments *aSeg){
       }
       
       // save triggers for this chunk
-      if(!triggers[c]->Write("ALL", "default").compare("none")){
+      if(!triggers[c]->Write(fWriteMode, "default").compare("none")){
 	cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[c]<<endl;
 	return false;
       }

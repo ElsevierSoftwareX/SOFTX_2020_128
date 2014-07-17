@@ -147,14 +147,6 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
-  //***** set clustering *****
-  if(!io->GetOpt("TRIGGER","CLUSTERING", fClusterAlgo)){
-    cout<<"Omicron::ReadOptions: No clustering (TRIGGER/CLUSTERING)                   --> set default: none"<<endl;
-    fClusterAlgo="none";
-  }
-  if(!io->GetOpt("TRIGGER","CLUSTERDT", fcldt)) fcldt=0.1;
-  //*****************************
-
   //***** set verbosity *****
   if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=1;
   //*****************************
@@ -164,6 +156,17 @@ bool Omicron::ReadOptions(void){
     cout<<"Omicron::ReadOptions: No output format (OUTPUT/FORMAT)                     --> set default: root"<<endl;
     fOutFormat="root";
   }
+  //*****************************
+
+  //***** set clustering *****
+  if(!io->GetOpt("TRIGGER","CLUSTERING", fClusterAlgo)){
+    cout<<"Omicron::ReadOptions: No clustering (TRIGGER/CLUSTERING)                   --> set default: none"<<endl;
+    fClusterAlgo.push_back("none"); fClusterAlgo.push_back("all");
+  }
+  if(fClusterAlgo.size()==1) fClusterAlgo.push_back("all");
+  if(!fClusterAlgo[1].compare("noroot")) fWriteMode="UNPROC";
+  else fWriteMode="ALL";
+  if(!io->GetOpt("TRIGGER","CLUSTERDT", fcldt)) fcldt=0.1;
   //*****************************
 
   //***** set plotting style ***** 
