@@ -19,6 +19,20 @@ types="std std2 low gw"
 
 ######################
 
+# vars
+now=`tconvert now`
+logfile=`pwd`/logs/postprocess.${now}.txt
+echo "Local time: `date`" > $logfile
+echo "UTC time: `date -u`" >> $logfile
+
+npostjob=`ps -efd | grep detchar | grep postprocess |wc -l`
+if [ $npostjob -gt 1 ]; then
+    echo "postprocess is already running" >> $logfile
+    exit 0
+fi
+
+# clean log files
+find ./logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
 
 # loop over production types
 for t in $types; do
@@ -31,8 +45,9 @@ for t in $types; do
 	mkdir -p ${OMICRON_ONLINE_TRIGGERS}/${channel}
 	mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel}
 	if [ ! -d ./$channel ]; then continue; fi
-
+	
 	# move root files
+	echo "${channel}: moving root files" >> $logfile
 	mv ${channel}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel} >> /dev/null 2>&1
 
 	# XML outdir
@@ -41,9 +56,10 @@ for t in $types; do
 	xmloutdir="${XMLDIR}/${naked_chan}_Omicron"
 
 	# move xml files
+	echo "${channel}: moving xml files" >> $logfile
 	for file in ${channel}/*.xml; do
 	    if [ ! -e $file ]; then continue; fi
-	    gps=`ligolw_print -t segment_summary -c start_time`
+	    gps=`ligolw_print -t segment_summary -c start_time ./$file`
 	    gpsroot=$(( $gps / 100000 ))
 	    mkdir -p ${xmloutdir}/$gpsroot
 	    mv $file ${xmloutdir}/$gpsroot
@@ -54,16 +70,9 @@ for t in $types; do
     cd ../..
 done
 
-
 # archiving
-cd ${OMICRON_ONLINE_TRIGGERS}
-rmdir * >> /dev/null 2>&1
-for chan in ??:*; do
-    if [ ! -d ${chan} ]; then continue; fi
-    if [ "$(ls -A ./$chan)" ]; then
-	Online2Offline.sh -c $chan -d 100000 -a
-    else rmdir ./$chan
-    fi
-done
+rmdir ${OMICRON_ONLINE_TRIGGERS}/* >> /dev/null 2>&1
+Online2Offline.sh -d 100000 -a >> $logfile 2>&1
+rmdir ${OMICRON_ONLINE_TRIGGERS}/* >> /dev/null 2>&1
 
 exit 0
