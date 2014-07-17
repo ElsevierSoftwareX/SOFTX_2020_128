@@ -34,7 +34,7 @@ mkdir -p ./gw/triggers ./gw/dags; rmdir ./gw/triggers/* >> /dev/null 2>&1
 now=`tconvert now`
 logfile=`pwd`/logs/process.${now}.txt
 echo "Local time: `date`" > $logfile
-echo "UTC time: `date`" >> $logfile
+echo "UTC time: `date -u`" >> $logfile
 
 # check channels
 if [ ! -e ./channels.${IFO} ]; then

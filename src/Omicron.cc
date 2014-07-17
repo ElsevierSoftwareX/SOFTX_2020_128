@@ -101,6 +101,7 @@ Omicron::Omicron(const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++){
     streams[c] = new Streams(fChannels[c], fVerbosity);
     status_OK*=streams[c]->GetStatus();
+    streams[c]->MakeLVDetector();// just an attempt
     first_save[c]=true;
   }
   
