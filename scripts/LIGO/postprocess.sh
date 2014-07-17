@@ -26,7 +26,7 @@ echo "Local time: `date`" > $logfile
 echo "UTC time: `date -u`" >> $logfile
 
 npostjob=`ps -efd | grep detchar | grep postprocess |wc -l`
-if [ $npostjob -gt 1 ]; then
+if [ $npostjob -gt 3 ]; then
     echo "postprocess is already running" >> $logfile
     exit 0
 fi
