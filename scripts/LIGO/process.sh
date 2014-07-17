@@ -174,13 +174,13 @@ mv ./frames.lcf ./low/frames.lcf
 
 # Omicron parameters
 cd ./std
-GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
 cd ../std2
-GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
 cd ../low
-GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
 cd ../gw
-GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers >> $logfile 2>&1
+GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
 cd ..
 
 # make dags
