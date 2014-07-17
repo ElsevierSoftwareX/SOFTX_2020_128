@@ -9,7 +9,9 @@ cd `dirname $0`
 ###### user parameters
 
 delay=300 # do not look at data after now-delay
-IFO="H1"
+hn=`hostname -d`
+if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
+else  IFO="L1"; fi
 data_type="${IFO}_C ${IFO}_R"
 tmax=16000 # delay after which a new segment is started to get back on track
 proddir=`pwd`
@@ -25,10 +27,10 @@ source /home/detchar/opt/virgosoft/environment.v1r3.sh "" >> /dev/null
 
 # directories
 mkdir -p ./logs
-mkdir -p ./std/triggers ./std/dags; rmdir ./std/triggers/* >> /dev/null 2>&1
-mkdir -p ./std2/triggers ./std2/dags; rmdir ./std2/triggers/* >> /dev/null 2>&1
-mkdir -p ./low/triggers ./low/dags; rmdir ./low/triggers/* >> /dev/null 2>&1
-mkdir -p ./gw/triggers ./gw/dags; rmdir ./gw/triggers/* >> /dev/null 2>&1
+mkdir -p ./std/triggers ./std/dags;
+mkdir -p ./std2/triggers ./std2/dags;
+mkdir -p ./low/triggers ./low/dags;
+mkdir -p ./gw/triggers ./gw/dags;
 
 # vars
 now=`tconvert now`
@@ -102,6 +104,8 @@ if [ -e ./gw/omicron.dag.dagman.out ]; then
     rm -f ./gw/omicron.dag*
 fi
 
+# more cleaning
+rmdir ./std/triggers/* ./std2/triggers/* ./low/triggers/* ./gw/triggers/* >> /dev/null 2>&1
 
 ################################################################################
 ###########                          input                           ###########
