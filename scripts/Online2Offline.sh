@@ -70,7 +70,7 @@ now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
 oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
 now_base1000=$(( $now / 1000 ))
 echo "Online2Offline: now=$now"
-echo "Online2Offline: archive triggers before $oldtime"
+echo "Online2Offline: archive triggers before $(( $oldtime_base * $OMICRON_TRIGGERS_BASE ))"
 
 ##### select run
 run="NONE"
