@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Online2Offline.sh
 #
@@ -15,27 +15,27 @@ printhelp(){
     echo "Example: Online2Offline -c V1:h_4096Hz"
     echo ""
     echo "TRIGGER SELECTION"
-    echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
+    echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME] only"
     echo ""
     echo "TIMING"
     echo "  -d  [DELAY]         time delay to mark files as old [s]"
     echo "                      Default = '100000'"
     echo ""
     echo "OUTPUT CONTROL"
-    echo "  -a                  only perform archiving"
+    echo "  -a                  only perform archiving (no online merging)"
     echo ""
     echo "  -h                  print this help"
     echo ""
 } 
 
 ##### Check the environment
-if [[ -z "$OMICRON_ONLINE_TRIGGERS" ]]; then
+if [ -z "$OMICRON_ONLINE_TRIGGERS" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
 
 ##### default options
-channel="unknown" # channel name
+channel="${OMICRON_ONLINE_TRIGGERS}/??:*" # channel name
 delay=100000
 only_archive=0
 
@@ -43,7 +43,7 @@ only_archive=0
 while getopts ":c:d:ah" opt; do
     case $opt in
 	c)
-	    channel="$OPTARG"
+	    channel="${OMICRON_ONLINE_TRIGGERS}/$OPTARG"
 	    ;;
 	d)
 	    delay=`echo $OPTARG | awk '{print int($1)}'`
@@ -63,18 +63,14 @@ while getopts ":c:d:ah" opt; do
     esac
 done
 
-##### Check channel
-if [ ! -d ${OMICRON_ONLINE_TRIGGERS}/${channel} ]; then
-    echo "Error: the online channel ${channel} does not exist"
-    exit 1
-fi
-
 ##### timing
 now=`tconvert now`
-oldtime=$(( $now - $delay + 0 ))
+oldtime=$(( $now - $delay ))
 now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
 oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
 now_base1000=$(( $now / 1000 ))
+echo "Online2Offline: now=$now"
+echo "Online2Offline: archive triggers before $oldtime"
 
 ##### select run
 run="NONE"
@@ -93,63 +89,54 @@ if [ $run = "NONE" ]; then
     exit 1 
 fi
 
-##### get available channels
-. GetOmicronChannels.sh -r $run > /dev/null 2>&1
+# loop over channels
+for chandir in ${channel}; do
+    if [ ! -d ${chandir} ]; then continue; fi
+    if [ ! "$(ls -A $chandir)" ]; then continue; fi
+    echo "Online2Offline: archive triggers in ${chandir}..."
 
-##### check channel is available
-if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
-    echo "Invalid option: channel '${channel}' is not available (offline)"
-    echo "type  'Online2Offline -h'  for help"
-    exit 1
-fi
+    # first online file
+    first_file=`ls ${chandir}/ |head -1`
+    first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 
-# first online file
-first_file=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/ |head -1`
-if [ "$first_file=" = "" ]; then
-    echo "Error: there is no online files"
-    exit 1
-fi
-first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
-
-# starting base
-b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
-echo "Starting base = ${b}"
-
-if [ $only_archive -eq 0 ]; then
-    b1000=$(( $first_start / 1000 ))
-    echo "Starting base1000 = ${b1000}"
-    
-    # tmp place holder
-    mkdir -p ${TMP}/${channel}-${now}
-
-    # merge online files
-    while [ $b1000 -lt $now_base1000 ]; do
-	echo "Merging ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root ..."
-	nfiles=`ls ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root 2>&1 | wc -l`
-	if [ $nfiles -lt 2 ]; then
-	    echo "nothing to merge"
-	    let "b1000+=1"
-	    continue;
-	fi
-	if triggermerge.exe ${TMP}/${channel}-${now} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root" 2>&1 | grep -q "no livetime"; then
-	    echo "no files -> skip"
-	else
-	    if [ "$(ls -A ${TMP}/${channel}-${now})" ]; then
-		rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b1000}*.root
-		mv ${TMP}/${channel}-${now}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel}/
+    # merging online trigger files
+    if [ $only_archive -eq 0 ]; then
+	echo "                merging online triggers..."
+	b1000=$(( $first_start / 1000 ))		
+ 
+	# tmp place holder
+	o2o_tmp=${TMP}/o2o_${RANDOM}-${now}
+	mkdir -p $o2o_tmp
+ 	while [ $b1000 -lt $now_base1000 ]; do
+	    nfiles=`ls ${chandir}/*_${b1000}*_*.root 2>&1 | wc -l`
+	    if [ $nfiles -lt 2 ]; then
+		b1000=$(( $b1000 + 1 ))
+		continue;
 	    fi
-	fi
-	let "b1000+=1"
-    done
-    rm -fr ${TMP}/${channel}-${now}/
-fi
+	    if triggermerge.exe $o2o_tmp "${chandir}/*_${b1000}*_*.root" 2>&1 | grep -q "no livetime"; then
+		echo "no files -> skip"
+	    else
+		if [ "$(ls -A ${o2o_tmp})" ]; then
+		    rm -f ${chandir}/*_${b1000}*_*.root
+		    mv ${o2o_tmp}/*.root ${chandir}/
+		fi
+	    fi
+	    b1000=$(( $b1000 + 1 ))
+	done
+	rm -fr $o2o_tmp
+    fi
 
-# merge and archive files
-while [ $b -lt $oldtime_base ]; do
-    echo "Merging and archiving ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root ..."
-    triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel} ${channel} "${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root"
-    rm -f ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${b}*.root
-    let "b+=1"
+    # merge and archive files
+    echo "                archiving online triggers..."
+    b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
+    channel_name=${channel##*/}
+    mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel_name}
+    while [ $b -lt $oldtime_base ]; do
+	triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel_name} "${chandir}/*_${b}*_*.root"
+	rm -f ${chandir}/*_${b}*_*.root
+	b=$(( $b + 1 ))
+    done
+
 done
 
 exit 0
