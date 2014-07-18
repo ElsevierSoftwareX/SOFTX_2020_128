@@ -234,7 +234,7 @@ if [ -s ./channel.getomicronoptions.std ]; then
 	
     done < ./channel.getomicronoptions.std;
     echo "STD_${p} = $channel_list"
-    printoption "STD" $optfile $p "$channel_list" $outxml
+    if [ $n -gt 0 ]; then printoption "STD" $optfile $p "$channel_list" $outxml; fi
 fi
 
 ############## STD2 SETTING
@@ -280,7 +280,7 @@ if [ -s ./channel.getomicronoptions.low ]; then
 	
     done < ./channel.getomicronoptions.low;
     echo "LOW_${p} = $channel_list"
-    printoption "LOW" $optfile $p "$channel_list" $outxml
+    if [ $n -gt 0 ]; then printoption "LOW" $optfile $p "$channel_list" $outxml; fi
 fi
 ############## HIGH SETTING
 if [ -s ./channel.getomicronoptions.high ]; then
@@ -302,7 +302,7 @@ if [ -s ./channel.getomicronoptions.high ]; then
 	
     done < ./channel.getomicronoptions.high;
     echo "HIGH_${p} = $channel_list"
-    printoption "HIGH" $optfile $p "$channel_list" $outxml
+    if [ $n -gt 0 ]; then printoption "HIGH" $optfile $p "$channel_list" $outxml; fi
 fi
 ############## GW SETTING
 if [ -s ./channel.getomicronoptions.gw ]; then
@@ -324,7 +324,7 @@ if [ -s ./channel.getomicronoptions.gw ]; then
 	
     done < ./channel.getomicronoptions.gw;
     echo "GW_${p} = $channel_list"
-    printoption "GW" $optfile $p "$channel_list" $outxml
+    if [ $n -gt 0 ]; then printoption "GW" $optfile $p "$channel_list" $outxml; fi
 fi
 
 # cleaning
