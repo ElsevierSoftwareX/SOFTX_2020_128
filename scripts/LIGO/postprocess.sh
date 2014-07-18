@@ -59,7 +59,7 @@ for t in $types; do
 	echo "${channel}: moving xml files" >> $logfile
 	for file in ${channel}/*.xml; do
 	    if [ ! -e $file ]; then continue; fi
-	    gps=`ligolw_print -t segment_summary -c start_time ./$file`
+	    gps=`echo $file | cut -d "-" -f 4`
 	    gpsroot=$(( $gps / 100000 ))
 	    mkdir -p ${xmloutdir}/$gpsroot
 	    mv $file ${xmloutdir}/$gpsroot
@@ -74,5 +74,6 @@ done
 rmdir ${OMICRON_ONLINE_TRIGGERS}/* >> /dev/null 2>&1
 Online2Offline.sh -d 100000 -a >> $logfile 2>&1
 rmdir ${OMICRON_ONLINE_TRIGGERS}/* >> /dev/null 2>&1
+
 
 exit 0
