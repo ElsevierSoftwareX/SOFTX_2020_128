@@ -26,8 +26,9 @@ echo "Local time: `date`" > $logfile
 echo "UTC time: `date -u`" >> $logfile
 
 npostjob=`ps -efd | grep detchar | grep postprocess |wc -l`
+echo "$npostjob postprocess jobs were detected" >> $logfile
 if [ $npostjob -gt 3 ]; then
-    echo "postprocess is already running" >> $logfile
+    echo "too many postprocess jobs -> exit" >> $logfile
     exit 0
 fi
 
