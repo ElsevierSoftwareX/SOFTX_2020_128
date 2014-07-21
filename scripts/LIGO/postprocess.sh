@@ -15,7 +15,7 @@ if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
 else  IFO="L1"; fi
 run=${RUN_NAMES##* }
 XMLDIR="/home/detchar/triggers/${run}/${IFO}"
-types="std std2 low gw"
+types="std std2 low fine gw"
 
 ######################
 
