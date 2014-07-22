@@ -79,7 +79,7 @@ Omicron::Omicron(const string aOptionFile){
   ChunkVect   = new double [ChunkSize];
   SegVect     = new double [SegmentSize];
   TukeyWindow = GetTukeyWindow(SegmentSize,OverlapSize);
-  offt = new fft(SegmentSize,"FFTW_MEASURE");
+  offt = new fft(SegmentSize,"FFTW_"+ffftplan);
   dataseq = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
   status_OK*=dataseq->GetStatus();
   dataRe = new double* [dataseq->GetNSegments()];
@@ -524,7 +524,7 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
   double asdval;
   for(int i=icutoff; i<SegmentSize/2; i++){
     asdval=spectrum->GetPower(i*(double)fSampleFrequency/(double)SegmentSize);
-    if(asdval<0){
+    if(asdval<=0){
       cerr<<"Omicron::Condition: could not retrieve power"<<endl;
       delete *aDataRe; delete *aDataIm;
       *aDataRe=NULL; *aDataIm=NULL;
@@ -929,7 +929,7 @@ void Omicron::PrintStatusInfo(void){
   cout<<"\n************* Omicron status info *************"<<endl;
   cout<<"requested start = "<<inSegments->GetStart(0)<<endl;
   cout<<"requested end   = "<<inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
-  cout<<"requested livetime   = "<<inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
+  cout<<"requested livetime   = "<<inSegments->GetLivetime()<<endl;
   for(int c=0; c<(int)fChannels.size(); c++){
     cout<<"\n*** "<<fChannels[c]<<endl;
     if(outSegments[c]->GetNsegments()){

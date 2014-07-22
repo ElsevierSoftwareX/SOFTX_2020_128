@@ -180,6 +180,7 @@ class Omicron {
   int fOverlapDuration;         ///< overlap duration
   double fMismatchMax;          ///< maximum mismatch
   vector <int> fWindows;        ///< scan windows
+  string ffftplan;              ///< fft plan
   double fSNRThreshold;         ///< SNR Threshold
   int fNtriggerMax;             ///< trigger limit
   vector <string> fClusterAlgo; ///< clustering modes

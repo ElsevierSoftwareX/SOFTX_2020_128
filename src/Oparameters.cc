@@ -129,6 +129,13 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** set fftplan *****
+  if(!io->GetOpt("PARAMETER","FFTPLAN", ffftplan)){
+    cout<<"Omicron::ReadOptions: No FFT plan threshold (PARAMETER/FFTPLAN)           --> set default: ESTIMATE"<<endl;
+    ffftplan="ESTIMATE";
+  }
+  //*****************************
+
   //***** SNR Threshold *****
   if(!io->GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold)){
     cout<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 8"<<endl;
