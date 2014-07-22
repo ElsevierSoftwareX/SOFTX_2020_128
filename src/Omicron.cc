@@ -929,7 +929,7 @@ void Omicron::PrintStatusInfo(void){
   cout<<"\n************* Omicron status info *************"<<endl;
   cout<<"requested start = "<<inSegments->GetStart(0)<<endl;
   cout<<"requested end   = "<<inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
-  cout<<"requested livetime   = "<<inSegments->GetLivetime()<<endl;
+  cout<<"requested livetime   = "<<inSegments->GetLiveTime()<<endl;
   for(int c=0; c<(int)fChannels.size(); c++){
     cout<<"\n*** "<<fChannels[c]<<endl;
     if(outSegments[c]->GetNsegments()){
