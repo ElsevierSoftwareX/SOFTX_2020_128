@@ -531,8 +531,8 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
       return false;
     }
     asdval=sqrt(asdval);
-    (*aDataRe)[i] /= sqrt(asdval);
-    (*aDataIm)[i] /= sqrt(asdval);
+    (*aDataRe)[i] /= asdval;
+    (*aDataIm)[i] /= asdval;
     // NOTE: no FFT normalization here because we do a FFTback in Oqplane later with no normalization either.
   }
 
