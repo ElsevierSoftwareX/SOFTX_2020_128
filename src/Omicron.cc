@@ -274,11 +274,11 @@ bool Omicron::Process(Segments *aSeg){
   
   // loop over chunks
   while(dataseq->NewChunk()){
-    if(fVerbosity) cout<<"Omicron::Process: chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<endl;
+    cout<<"Omicron::Process: ** chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<endl;
     
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
-      if(fVerbosity) cout<<"Omicron::Process: channel "<<fChannels[c]<<"..."<<endl;
+      cout<<"Omicron::Process: * channel "<<fChannels[c]<<"..."<<endl;
       
       // one more chunk of data
       chunk_ctr[c]++;
