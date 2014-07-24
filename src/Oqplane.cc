@@ -309,7 +309,7 @@ FreqRow::FreqRow(const int aTimeRange, const int aTimePad, const int aSampleFreq
   ValidIndices=new bool [fNumberOfTiles];
   working_vector[0] = new double [fNumberOfTiles];
   working_vector[1] = new double [fNumberOfTiles];
-  offt = new fft(fNumberOfTiles,"FFTW_MEASURE");
+  offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
 
 }
 

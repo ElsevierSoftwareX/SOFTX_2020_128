@@ -278,7 +278,7 @@ bool Omicron::Process(Segments *aSeg){
     
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
-      cout<<"Omicron::Process: * channel "<<fChannels[c]<<"..."<<endl;
+      cout<<"Omicron::Process: *  channel "<<fChannels[c]<<"..."<<endl;
       
       // one more chunk of data
       chunk_ctr[c]++;
@@ -938,13 +938,14 @@ void Omicron::PrintStatusInfo(void){
       cout<<"processed livetime         = "<<outSegments[c]->GetLiveTime()<<" ("<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100<<"%)"<<endl;
     }
     else{
-      cout<<"start_out                  = -1"<<endl;
-      cout<<"end_out                    = -1"<<endl;
-      cout<<"processed livetime         = "<<"0 (0%)"<<endl;
+      cout<<"start_out                    = -1"<<endl;
+      cout<<"end_out                      = -1"<<endl;
+      cout<<"processed livetime           = "<<"0 (0%)"<<endl;
     }
-    cout<<"number of chunks           = "<<chunk_ctr[c]<<endl;
-    cout<<"number of corrupted chunks = "<<cor_chunk_ctr[c]<<endl;
-    cout<<"number of maxed-out chunks = "<<max_chunk_ctr[c]<<endl;
+    cout<<"number of chunks             = "<<chunk_ctr[c]<<endl;
+    cout<<"number of corrupted chunks   = "<<cor_chunk_ctr[c]<<endl;
+    cout<<"number of unprocessed chunks = "<<cor_data_ctr[c]<<endl;
+    cout<<"number of maxed-out chunks   = "<<max_chunk_ctr[c]<<endl;
   }
   cout<<"***********************************************\n"<<endl;
 
