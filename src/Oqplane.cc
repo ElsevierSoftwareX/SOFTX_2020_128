@@ -370,8 +370,7 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   double *  working_vector[2];
   working_vector[0] = new double [fNumberOfTiles];
   working_vector[1] = new double [fNumberOfTiles];
-  fft *offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
-
+  
   // fill windowed vector with zero padding
   int i=0, index=0, end=0;
   end=fNumberOfTiles/2-rightZeroPadLength;
@@ -393,7 +392,7 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   }
 
   // fft-backward
-  offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
+  fft *offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
   if(!offt->Backward(working_vector[0],working_vector[1])){
     cerr<<"FreqRow::GetSNRs: FFT failed"<<endl;
     delete working_vector[0];
