@@ -381,8 +381,8 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   }
   end+=leftZeroPadLength+rightZeroPadLength;
   for(; i<end; i++){
-    working_vector[0][i]=0;
-    working_vector[1][i]=0;
+    working_vector[0][i]=0.0;
+    working_vector[1][i]=0.0;
   }
   end=fNumberOfTiles;
   for(; i<end; i++){
