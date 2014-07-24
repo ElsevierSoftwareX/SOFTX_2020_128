@@ -307,6 +307,7 @@ FreqRow::FreqRow(const int aTimeRange, const int aTimePad, const int aSampleFreq
 
   // allocate memory
   ValidIndices=new bool [fNumberOfTiles];
+  offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -317,6 +318,7 @@ FreqRow::~FreqRow(void){
   fDataIndices.clear();
   fTime.clear();
   delete ValidIndices;
+  delete offt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -367,7 +369,7 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
     return NULL;
   }
   
-  double *  working_vector[2];
+  double *working_vector[2];
   working_vector[0] = new double [fNumberOfTiles];
   working_vector[1] = new double [fNumberOfTiles];
   
@@ -392,12 +394,10 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   }
 
   // fft-backward
-  fft *offt = new fft(fNumberOfTiles,"FFTW_ESTIMATE");
   if(!offt->Backward(working_vector[0],working_vector[1])){
     cerr<<"FreqRow::GetSNRs: FFT failed"<<endl;
     delete working_vector[0];
     delete working_vector[1];
-    delete offt;
     return NULL;
   }
   delete working_vector[0];
@@ -405,8 +405,7 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   
   // get energies
   double *energies = offt->GetNorm2();
-  delete offt;
-
+ 
   // get threshold to exclude outliers
   double MeanEnergy=0; double RMSEnergy=0; 
   int numberofvalidtiles=0;
