@@ -403,11 +403,11 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   }
   delete working_vector[0];
   delete working_vector[1];
-  delete offt;
-
+  
   // get energies
   double *energies = offt->GetNorm2();
-   
+  delete offt;
+
   // get threshold to exclude outliers
   double MeanEnergy=0; double RMSEnergy=0; 
   int numberofvalidtiles=0;
