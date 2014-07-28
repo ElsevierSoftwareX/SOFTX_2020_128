@@ -351,8 +351,9 @@ bool FreqRow::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm,
 			      amplitude))// maximum number of trigger limit reached
       break;
   }
-
+ 
   delete snrs;
+ 
   return true;
 }
 

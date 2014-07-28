@@ -68,8 +68,7 @@ class FreqRow {
   vector <double> fWindowFrequency; ///< window frequencies
   vector <int> fDataIndices;///< vector of data indices to inverse fourier transform
   int fZeroPadLength;       ///< number of zeros to append to windowed data
-  //double *  working_vector[2];
-  fft *offt;
+  fft *offt;                ///< row fft
 };
 
 

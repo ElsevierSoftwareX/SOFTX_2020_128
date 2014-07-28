@@ -566,10 +566,10 @@ int Omicron::MakeTriggers(const int aChNumber){
     }
   }
   for(int ss=s+1; ss<dataseq->GetNSegments(); ss++){
-    delete dataRe[s];
-    delete dataIm[s];
+    delete dataRe[ss];
+    delete dataIm[ss];
   } 
-   
+  
   return triggers[aChNumber]->GetNTrig();
 
 }
