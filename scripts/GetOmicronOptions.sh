@@ -63,13 +63,13 @@ printoption(){
 	overlap=14
 	mmmax=0.2
 	snrthr=5	
-    elif [ $1 = "FINE" ]; then
+    elif [ $1 = "FINE" ]; then # this was optimized for ligo scripts
 	sampling=8192
 	freqmin=8
 	freqmax=4096
-	chunk=506
-	block=256
-	overlap=6
+	chunk=314
+	block=64
+	overlap=14
 	mmmax=0.2
 	snrthr=6	
     elif [ $1 = "STD2" ]; then
