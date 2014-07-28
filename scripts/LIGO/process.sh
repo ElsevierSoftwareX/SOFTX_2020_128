@@ -183,7 +183,7 @@ awk '$2=="FINE" {print}' ./channels.${IFO} > ./fine/channels.list
 # segments
 awk '{print $1-3,$2+3}' ./segments.txt > ./std/segments.txt
 awk '{print $1-3,$2+3}' ./segments.txt > ./std2/segments.txt
-awk '{print $1-3,$2+3}' ./segments.txt > ./gw/segments.txt
+awk '{print $1-7,$2+7}' ./segments.txt > ./gw/segments.txt
 awk '{print $1-24,$2+24}' ./segments.txt > ./low/segments.txt
 awk '{print $1-3,$2+3}' ./segments.txt > ./fine/segments.txt
 
