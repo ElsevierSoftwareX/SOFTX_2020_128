@@ -5,13 +5,13 @@
 # Author: Florent Robinet
 # robinet@lal.in2p3.fr
 
-if [ $# -neq 3 ]; then
-    ./reprocess.sh [CHANNEL_LIST] [GPS_START] [GPS_END]
+if [ ! $# -eq 3 ]; then
+    echo "./reprocess.sh [CHANNEL_LIST] [GPS_START] [GPS_END]"
     exit 1
 fi
-start=$1
-end=$2
-chanfile=$3
+start=$2
+end=$3
+chanfile=$1
 if [ -d ./reprocess ]; then
     echo "remove ./reprocess before running this script"
     exit 1
@@ -50,6 +50,7 @@ mkdir -p ./reprocess/fine/triggers
 ################################################################################
 
 # timing
+echo "get timing..."
 tstart=$(( $start / 1000 ))
 if [ $(( $tstart % 2 )) -eq 1 ]; then tstart=$(( $tstart - 1 )); fi
 tstart="${tstart}000"
@@ -61,10 +62,10 @@ if [ $tstart -ge $tstop ]; then
     exit 1
 fi
 echo "$tstart $tstop" >  ./reprocess/segments.txt
-
+echo "segment to process: $tstart $tstop"
 
 # raw data
-echo "get LCF file for raw data" >> $logfile
+echo "get LCF file for raw data..."
 for type in $data_type; do
     ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./reprocess/frames.lcf
     if [ -s ./reprocess/frames.lcf ]; then break; fi
@@ -76,7 +77,7 @@ if [ ! -s ./reprocess/frames.lcf ]; then
 fi
 
 # gw data
-echo "get LCF file for gw data" >> $logfile
+echo "get LCF file for gw data"
 for type in $gw_type; do
     ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./reprocess/frames.gw.lcf
     if [ -s ./reprocess/frames.gw.lcf ]; then break; fi
@@ -121,7 +122,7 @@ if [ -s ./reprocess/frames.lcf ]; then
 fi
 if [ -s ./reprocess/frames.gw.lcf ]; then
     cd ./reprocess/gw
-    GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
+    GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X
     cd ../..
 fi
 
