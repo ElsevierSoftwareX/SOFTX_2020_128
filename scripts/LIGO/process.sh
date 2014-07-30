@@ -125,7 +125,7 @@ rmdir ./std/triggers/* ./std2/triggers/* ./low/triggers/* ./gw/triggers/* ./fine
 
 # timing
 tstop=$(( ($now - $delay) / 1000 ))
-if [ $(( $tstop % 2 )) -eq 1 ]; then let "tstop-=1"; fi
+if [ $(( $tstop % 2 )) -eq 1 ]; then tstop=$(( $tstop - 1 )); fi
 tstop="${tstop}000"
 tstart=$(( $tstop - 2000 ))
 if [ ! -e ./segments.txt ]; then
