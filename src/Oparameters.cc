@@ -92,7 +92,7 @@ bool Omicron::ReadOptions(void){
   fQRange.clear();
   if(!io->GetOpt("PARAMETER","QRANGE", fQRange)){
     cout<<"Omicron::ReadOptions: No search Q range (PARAMETER/QRANGE)                 --> set default: 3.3167-100"<<endl;
-    fQRange.push_back(3.3167);  fQRange.push_back(100);
+    fQRange.push_back(sqrt(11));  fQRange.push_back(100);
   }
   if(fQRange.size()!=2){
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct"<<endl;

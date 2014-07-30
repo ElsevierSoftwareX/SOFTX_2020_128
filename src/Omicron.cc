@@ -314,7 +314,7 @@ bool Omicron::Process(Segments *aSeg){
       delete dvector;// not needed anymore
 
       // Save info if requested
-      if(writetimeseries) SaveData(c,ChunkVect,dataseq->GetChunkTimeStart(),dataseq->GetChunkTimeEnd());
+      if(writetimeseries) SaveTS(c);
       if(writepsd)        SaveAPSD(c,"PSD");
 
       // get triggers above SNR threshold
@@ -424,6 +424,9 @@ bool Omicron::Scan(const double aTimeCenter){
 
     // save PSD on disk
     SaveAPSD(c,"ASD");
+
+    // save data on disk
+    SaveTS(c, aTimeCenter);
 
    
   }
@@ -874,29 +877,81 @@ void Omicron::SaveAPSD(const int c, const string type){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::SaveData(const int c, double *aData, const int s, const int e){
+void Omicron::SaveTS(const int c, double tcenter){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  int N = (e-s)*fSampleFrequency;
-  TGraph *GDATA = new TGraph(N);
+  TGraph *GDATA = new TGraph(ChunkSize);
   if(GDATA==NULL) return;
 
   stringstream ss;
-  ss<<"data_"<<s<<"_"<<e;
+  ss<<"ts_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
   GDATA->SetName(ss.str().c_str());
+  ss.str(""); ss.clear();
 
-  for(int i=0; i<N; i++) GDATA->SetPoint(i,(double)s+(double)i*(double)(e-s)/(double)N,aData[i]);
-  
-  TFile *fdata;
-  if(first_save[c]){
-    fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"RECREATE");
-    first_save[c]=false;
+  for(int i=0; i<ChunkSize; i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i*(double)(dataseq->GetChunkTimeEnd()-dataseq->GetChunkTimeStart())/(double)ChunkSize-tcenter,ChunkVect[i]);
+     
+  // cosmetics
+  GPlot->SetLogx(0);
+  GPlot->SetLogy(0);
+  GPlot->SetGridx(1);
+  GPlot->SetGridy(1);
+  GPlot->Draw(GDATA,"APL");
+  //GDATA->GetXaxis()->SetTimeOffset(-toffset);
+  GDATA->GetHistogram()->SetXTitle("Time [s]");
+  GDATA->GetHistogram()->SetYTitle("Amplitude [?]");
+  GDATA->SetTitle((fChannels[c]+": amplitude time series").c_str());
+  GDATA->SetLineWidth(1);
+  //GDATA->GetXaxis()->SetLimits(dataseq->GetChunkTimeStart()+toffset,dataseq->GetChunkTimeEnd()+toffset);
+  GDATA->GetXaxis()->SetNoExponent();
+  GDATA->GetXaxis()->SetTitleOffset(1.1);
+  GDATA->GetXaxis()->SetLabelSize(0.045);
+  GDATA->GetYaxis()->SetLabelSize(0.045);
+  GDATA->GetXaxis()->SetTitleSize(0.045);
+  GDATA->GetYaxis()->SetTitleSize(0.045);
+
+  // ROOT
+  if(fOutFormat.find("root")!=string::npos){
+    TFile *fdata;
+    if(first_save[c]){
+      fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"RECREATE");
+      first_save[c]=false;
+    }
+    else fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"UPDATE");
+    fdata->cd();
+    GDATA->Write();
+    fdata->Close();
   }
-  else fdata=new TFile((fOutdir[c]+"/data_"+fChannels[c]+".root").c_str(),"UPDATE");
-  fdata->cd();
-  GDATA->Write();
-  fdata->Close();
+
+    // Graphix
+  vector <string> form;
+  if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
+  if(fOutFormat.find("png")!=string::npos) form.push_back("png");
+  if(fOutFormat.find("pdf")!=string::npos) form.push_back("pdf");
+  if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
+  if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
+  if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(form.size()){
+    
+    if(!tcenter) tcenter=(double)(dataseq->GetChunkTimeStart()+dataseq->GetChunkTimeEnd())/2.0;
+    else{
+      ss<<fChannels[c]+": amplitude time series centred at "<<setprecision(15)<<tcenter;
+      tcenter=0;
+      GDATA->SetTitle(ss.str().c_str());
+      ss.str(""); ss.clear();
+    }
+
+    // zoom
+    for(int w=(int)fWindows.size()-1; w>=0; w--){
+      GDATA->GetXaxis()->SetLimits(tcenter-(double)fWindows[w]/2.0,tcenter+(double)fWindows[w]/2.0);
+      for(int f=0; f<(int)form.size(); f++){
+	ss<<fOutdir[c]<<"/ts_"<<fChannels[c]<<"_"<<dataseq->GetChunkTimeStart()<<"_dt"<<fWindows[w]<<"."<<form[f];
+	GPlot->Print(ss.str().c_str());
+	ss.str(""); ss.clear();
+      }
+    }
+  }
   
+  form.clear();
   delete GDATA;
   return;
 }
