@@ -138,7 +138,7 @@ bool Omicron::ReadOptions(void){
 
   //***** SNR Threshold *****
   if(!io->GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold)){
-    cout<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 8"<<endl;
+    cout<<"Omicron::ReadOptions: No SNR threshold (TRIGGER/SNRTHRESHOLD)            --> set default: 8"<<endl;
     fSNRThreshold=8.0;
   }
   //*****************************

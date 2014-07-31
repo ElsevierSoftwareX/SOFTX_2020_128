@@ -113,11 +113,16 @@ class Omicron {
   bool MakeMaps(const int aChNumber, const double aTimeCenter);
   
   /**
-   * Writes mapss to disk.
+   * Writes current maps to disk.
    * 
-   * @param aChNumber channel number as previously declared (indexing starts at 0)
    */
-  bool WriteMaps(const int aChNumber);
+  bool WriteMaps(void);
+
+  /**
+   * Writes map summary to disk.
+   * 
+   */
+  bool WriteMapSummary(void);
 
   //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   
@@ -228,8 +233,11 @@ class Omicron {
   double **dataIm;              ///< conditioned data container (Im)
 
   // SCANS
+  int MapChNumber;              ///< channel currently mapped
   TH2D **Qmap;                  ///< set of Q-maps
+  TH2D **Qmap_full;             ///< combined Q-maps
   double Qmap_center;           ///< current GPS time of Q maps
+  int *loudest_qmap;            ///< Q-map conatining the loudest tile
   GwollumPlot *GPlot;           ///< Gwollum plots
 
   // MISC
