@@ -8,7 +8,9 @@ ClassImp(Omicron)
 ////////////////////////////////////////////////////////////////////////////////////
 Omicron::Omicron(const string aOptionFile){ 
 ////////////////////////////////////////////////////////////////////////////////////
-
+  time ( &timer );
+  timer_start=timer;
+  ptm = gmtime ( &timer );
   cout<<"############################################################################"<<endl;
   cout<<"############################################################################"<<endl;
   cout<<endl;
@@ -18,10 +20,11 @@ Omicron::Omicron(const string aOptionFile){
   cout<<"         ██║   ██║██║╚██╔╝██║██║██║     ██╔══██╗██║   ██║██║╚██╗██║"<<endl;
   cout<<"         ╚██████╔╝██║ ╚═╝ ██║██║╚██████╗██║  ██║╚██████╔╝██║ ╚████║"<<endl;
   cout<<"          ╚═════╝ ╚═╝     ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"<<endl;
-  cout<<endl;
+  cout<<"                                                               V1R3"<<endl;
   cout<<"############################################################################"<<endl;
   cout<<"############################################################################"<<endl;
- 
+  cout<<"#### Omicron::Omicron timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
+
   // input
   fOptionFile=aOptionFile;
 
@@ -191,6 +194,9 @@ Omicron::Omicron(const string aOptionFile){
 ////////////////////////////////////////////////////////////////////////////////////
 Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
+  time ( &timer );
+  ptm = gmtime ( &timer );
+  cout<<"#### Omicron::~Omicron timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
   if(fVerbosity>1) cout<<"delete Omicron"<<endl;
   delete inSegments;
   delete chunk_ctr;
@@ -252,6 +258,9 @@ bool Omicron::Process(Segments *aSeg){
     cerr<<"Omicron::Process: this function can only be used with a valid FFL object"<<endl;
     return false;
   }
+  time ( &timer );
+  ptm = gmtime ( &timer );
+  if(fVerbosity) cout<<"#### Omicron::Process timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
 
   // add requested segments (try to optimize the update of inSegments)
   if(inSegments->GetLiveTime()&&aSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
@@ -363,6 +372,9 @@ bool Omicron::Scan(const double aTimeCenter){
     cerr<<"Omicron::Scan: this function can only be called if the chunk and segment durations are identical"<<endl;
     return false;
   }
+  time ( &timer );
+  ptm = gmtime ( &timer );
+  if(fVerbosity) cout<<"#### Omicron::Scan timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
 
   // locals
   int dsize;         // native data size

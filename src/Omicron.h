@@ -160,6 +160,9 @@ class Omicron {
 
   // STATUS
   bool status_OK;               ///< general status
+  time_t timer;                 ///< timer
+  time_t timer_start;           ///< start time
+  struct tm * ptm;              ///< gmt time
 
   // INPUT OPTIONS
   bool ReadOptions(void);       ///< to parse option card
