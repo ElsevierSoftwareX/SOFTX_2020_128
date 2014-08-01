@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # MakeOmicronScan.sh
 #
@@ -12,13 +12,11 @@ here=`pwd`
 outdir=`pwd` # output directory
 channelfile="none"
 omegafile="none"
-lalfile="none"
 fflfile="none"
-cachefile="none"
 gps=0
 windows="2 8 32"
 snrthr=8
-writeroot=0
+writeroot=""
 verbose=0
 style="GWOLLUM"
 
@@ -34,14 +32,10 @@ printhelp(){
     echo "  -f  [FFL_FILE]        path to a FFL file pointing to the data to be used."
     echo "                        the user must make sure the data are available"
     echo "                        for the requested time stretch"
-    echo ""
-    echo "  -l  [LAL_CACHE_FILE]  path to a lal-cache file pointing to the data to be used."
-    echo "                        the user must make sure the data are available"
-    echo "                        for the requested time stretch"
-    echo ""
-    echo "  -W  [FRAMECACHE_FILE] path to a frame-cache file pointing to the data to be used."
-    echo "                        the user must make sure the data are available"
-    echo "                        for the requested time stretch"
+    echo "                        Several formats are supported:"
+    echo "                        - Virgo FFL"
+    echo "                        - LIGO lalcache"
+    echo "                        - LIGO framecache"
     echo ""
     echo "  -g  [GPS_CENTER]      central GPS time of of the scan"
     echo ""
@@ -79,7 +73,7 @@ printhelp(){
 
 
 ##### Check the environment
-if [[ -z "$OMICRONROOT" ]]; then
+if [ -z "$OMICRONROOT" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
@@ -95,12 +89,6 @@ while getopts ":c:O:f:l:W:g:d:w:s:v:SRh" opt; do
 	    ;;
 	f)
 	    fflfile="$OPTARG"
-	    ;;
-	l)
-	    lalfile="$OPTARG"
-	    ;;
-	W)
-	    cachefile="$OPTARG"
 	    ;;
 	g)
 	    gps="$OPTARG"
@@ -121,7 +109,7 @@ while getopts ":c:O:f:l:W:g:d:w:s:v:SRh" opt; do
 	    style="STANDARD"
 	    ;;
 	R)
-	    writeroot=1
+	    writeroot="root"
 	    ;;
 	h)
 	    printhelp
@@ -157,7 +145,7 @@ fi
 echo "MakeOmicronScan: Output directory = ${outdir}/${gps}"
 echo "                 You can check the progress of your scan when loading this address in your web browser"
 outdir="${outdir}/${gps}"
-mkdir -p ${outdir}; #rm -fr ${outdir}/*
+mkdir -p ${outdir};
 template=${outdir}/index.template
 cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
 cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
@@ -194,40 +182,26 @@ if [ ! -s ${outdir}/channels.list ]; then
 fi
 
 ##### check FFL/LAL/CACHE
-if [ "$fflfile" = "none" ]; then
-    if [ "$lalfile" = "none" ]; then
-	if [ "$cachefile" = "none" ]; then
-	    echo "ERROR: A FFL/lal-cache/framecache file must be provided with the '-f'/'-l'/'-W' option"
-	    echo "type  'MakeOmicronScan -h'  for help"
-	    exit 1
-	else
-	    if [ ! -e $cachefile ]; then
-		echo "ERROR: The lal-cache file $cachefile does not exist"
-		echo "type  'MakeOmicronScan -h'  for help"
-		exit 1
-	    fi
-	    fflfile=$outdir/ffl_omiscan_${gps}.ffl
-	    $GWOLLUM_SCRIPTS/framecache2ffl.sh $cachefile > $fflfile
-	fi
-    else
-	if [ ! -e $lalfile ]; then
-	    echo "ERROR: The lal-cache file $lalfile does not exist"
-	    echo "type  'MakeOmicronScan -h'  for help"
-	    exit 1
-	fi
-	fflfile=$outdir/ffl_omiscan_${gps}.ffl
-	$GWOLLUM_SCRIPTS/lalcache2ffl.sh $lalfile > $fflfile
-    fi
-fi
 if [ ! -e $fflfile ]; then
-    echo "ERROR: The FFL file $fflfile does not exist"
+    echo "ERROR: The ffl file $fflfile is missing"
     echo "type  'MakeOmicronScan -h'  for help"
     exit 1
 fi
 
+# detect framecache format
+ncol=`awk -F'|' '{print NF; exit}' $fflfile`
+if [ $ncol -eq 6 ]; then # framecache
+    ${GWOLLUM_SCRIPTS}/framecache2ffl.sh $fflfile > ${outdir}/ffl_omiscan_${gps}.ffl
+    fflfile=${outdir}/ffl_omiscan_${gps}.ffl
+fi
+
+# extract channels
+printchannels.exe $fflfile > ${outdir}/channels.total
+
 ##### check windows
 winids="["
 nwin=0
+winmax=0
 for w in $windows; do
     if [ $w -lt 1 ]; then
 	echo "ERROR: The time window must be an integer"
@@ -235,7 +209,8 @@ for w in $windows; do
 	exit 1
     fi
     winids="${winids}'dt${w}',"
-    let "nwin+=1"
+    nwin=$(( nwin + 1 ))
+    if [ $w -gt $winmax ]; then winmax=$w; fi
 done
 winids="${winids%?}]"
 if [ $nwin -eq 0 ]; then
@@ -256,18 +231,49 @@ sed -e "s|\[TITLE\]|${title}|g" \
 
 ##### prepare option file
 echo "MakeOmicronScan: Make option file..."
-echo "//***************** OmiScan option file *****************" > ${outdir}/options.txt
-echo "VERBOSITY   LEVEL       ${verbose}"   >> ${outdir}/options.txt
-echo "DATA        FFL         ${fflfile}"   >> ${outdir}/options.txt
-echo "PARAMETER   WINDOW      ${windows}"   >> ${outdir}/options.txt
-echo "PARAMETER   SNR_THRESHOLD ${snrthr}"  >> ${outdir}/options.txt
-echo "OUTPUT      DIRECTORY   ${outdir}"    >> ${outdir}/options.txt
-echo "OUTPUT      STYLE       ${style}"     >> ${outdir}/options.txt
-echo "OUTPUT      WRITEROOT   ${writeroot}" >> ${outdir}/options.txt
+paramfile=${outdir}/parameters.txt
+paramfile_low=${outdir}/parameters.low.txt
+paramfile_std=${outdir}/parameters.std.txt
+echo "//***************** OmiScan option file *****************" > $paramfile
+echo "DATA        FFL           ${fflfile}"   >> $paramfile
+echo "PARAMETER   WINDOW        ${windows}"   >> $paramfile
+echo "TRIGGER     SNRTHRESHOLD  ${snrthr}"    >> $paramfile
+echo "OUTPUT      DIRECTORY     ${outdir}"    >> $paramfile
+echo "OUTPUT      LEVEL         ${verbose}"   >> $paramfile
+echo "OUTPUT      PLOTSTYLE     ${style}"     >> $paramfile
+echo "OUTPUT      FORMAT        gif ${root}"  >> $paramfile
+
+cp -f $paramfile $paramfile_low
+cp -f $paramfile $paramfile_std
+
+echo "PARAMETER   CHUNKDURATION   $(( 2 * winmax ))"  >> $paramfile_std
+echo "PARAMETER   BLOCKDURATION   $(( 2 * winmax ))"  >> $paramfile_std
+echo "PARAMETER   OVERLAPDURATION 2"                  >> $paramfile_std
+echo "DATA	  SAMPLEFREQUENCY 2048"               >> $paramfile_std
+echo "PARAMETER   FREQUENCYRANGE  16  1024"           >> $paramfile_std
+
+echo "PARAMETER   CHUNKDURATION   $(( 2 * winmax ))"  >> $paramfile_low
+echo "PARAMETER   BLOCKDURATION   $(( 2 * winmax ))"  >> $paramfile_low
+echo "PARAMETER   OVERLAPDURATION 2"                  >> $paramfile_low
+echo "DATA	  SAMPLEFREQUENCY 256"                >> $paramfile_low
+echo "PARAMETER   FREQUENCYRANGE  0.1  128"           >> $paramfile_low
+
+while read line; do
+    channelname=`echo $line | awk '{print $1}'`
+    sampling=`grep -w $channelname ${outdir}/channels.total | awk '{print $2}'`
+    if [ $sampling -gt 1024 ]; then 
+	echo "DATA CHANNELS  $channelname"            >> $paramfile_std
+    else
+	echo "DATA CHANNELS  $channelname"            >> $paramfile_low
+    fi
+done < ${outdir}/channels.list
 
 ##### run omiscan
-echo "MakeOmicronScan: Run OmiScan..."
-omiscan.exe ${outdir}/channels.list ${outdir}/options.txt $gps > ${outdir}/log.txt 2>&1
+echo "MakeOmicronScan: Run OmiScan (std)..."
+omiscan.exe $gps $paramfile_std > ${outdir}/log.txt 2>&1
+omiscan.exe $gps $paramfile_low >> ${outdir}/log.txt 2>&1
+exit
+
 if [ ! -e ${outdir}/summary.txt ]; then
     echo "                 omiscan failed"
     exit 2

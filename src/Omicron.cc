@@ -74,6 +74,26 @@ Omicron::Omicron(const string aOptionFile){
     max_chunk_ctr[c]  = 0;
   }
   
+  // init FFL
+  FFL=NULL;
+  if(fFflFile.compare("none")){
+    if(fVerbosity) cout<<"Omicron::Omicron: Define FFL object..."<<endl;
+    FFL = new ffl(fFflFile, fVerbosity);
+    status_OK*=FFL->DefineTmpDir(fMaindir);
+    status_OK*=FFL->LoadFrameFile();
+    
+    // guess best sampling if not provided
+    if(fSampleFrequency<0){
+      fSampleFrequency=2048;
+      for(int c=0; c<(int)fChannels.size(); c++){
+	sampling=FFL->GetChannelSampling(fChannels[c]);
+	if(sampling<=0) continue;
+	if(sampling<fSampleFrequency) fSampleFrequency=sampling;
+      }
+    }
+  }
+
+  
   // DATA
   if(fVerbosity) cout<<"Omicron::Omicron: Allocate memory for data container and procedures..."<<endl;
   ChunkSize   = fSampleFrequency * fChunkDuration;
@@ -87,15 +107,6 @@ Omicron::Omicron(const string aOptionFile){
   status_OK*=dataseq->GetStatus();
   dataRe = new double* [dataseq->GetNSegments()];
   dataIm = new double* [dataseq->GetNSegments()];
-
-  // init FFL
-  FFL=NULL;
-  if(fFflFile.compare("none")){
-    if(fVerbosity) cout<<"Omicron::Omicron: Define FFL object..."<<endl;
-    FFL = new ffl(fFflFile, fVerbosity);
-    status_OK*=FFL->DefineTmpDir(fMaindir);
-    status_OK*=FFL->LoadFrameFile();
-  }
   
   // init Streams
   if(fVerbosity) cout<<"Omicron::Omicron: Define Streams object..."<<endl;

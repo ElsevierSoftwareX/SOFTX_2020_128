@@ -67,12 +67,11 @@ bool Omicron::ReadOptions(void){
   //***** Sampling frequency *****
   if(!io->GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency)){
     cout<<"Omicron::ReadOptions: No working sampling frequency (PARAMETER/SAMPLEFREQUENCY) --> set default: 2048 Hz"<<endl;
-    fSampleFrequency=2048;// adjusted later
+    fSampleFrequency=-1;
   }
   if(fSampleFrequency<16){
     cerr<<"Omicron::ReadOptions: the working sampling frequency (PARAMETER/SAMPLEFREQUENCY) should be at least 16Hz"<<endl;
-    fSampleFrequency=2048;// adjusted later
-    return false;
+    fSampleFrequency=-1;
   }
   //*****************************
 
@@ -125,6 +124,10 @@ bool Omicron::ReadOptions(void){
   //***** scan windows *****
   if(!io->GetOpt("PARAMETER","WINDOWS", fWindows)){
     cout<<"Omicron::ReadOptions: No windows (PARAMETER/WINDOWS)                       --> set default: 2 8 32"<<endl;
+    fWindows.push_back(2); fWindows.push_back(8); fWindows.push_back(32); 
+  }
+  if(fWindows[0]<=0){
+    fWindows.clear();
     fWindows.push_back(2); fWindows.push_back(8); fWindows.push_back(32); 
   }
   //*****************************
