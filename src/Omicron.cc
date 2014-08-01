@@ -85,6 +85,7 @@ Omicron::Omicron(const string aOptionFile){
     // guess best sampling if not provided
     if(fSampleFrequency<0){
       fSampleFrequency=2048;
+      double sampling;
       for(int c=0; c<(int)fChannels.size(); c++){
 	sampling=FFL->GetChannelSampling(fChannels[c]);
 	if(sampling<=0) continue;
