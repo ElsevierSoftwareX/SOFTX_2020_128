@@ -139,7 +139,8 @@ Omicron::Omicron(const string aOptionFile){
   // output directory
   // will change for Process() and Scan()
   for(int c=0; c<(int)fChannels.size(); c++) fOutdir.push_back(fMaindir);
-    
+  fScandir="";// used for scans
+
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: Define Triggers object..."<<endl;
   triggers    = new Triggers* [(int)fChannels.size()];
@@ -447,12 +448,13 @@ bool Omicron::Scan(const double aTimeCenter){
   // create map directories
   fOutdir.clear();
   ostringstream tmpstream;
+  tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aTimeCenter;
+  fScandir=tmpstream.str();
+  tmpstream.clear(); tmpstream.str("");
   for(int c=0; c<(int)fChannels.size(); c++){
-    tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aTimeCenter<<"/"<<fChannels[c];
-    fOutdir.push_back(tmpstream.str());
+    fOutdir.push_back(fScandir+"/"+fChannels[c]);
     system(("mkdir -p "+fOutdir[c]).c_str());
     triggers[c]->SetOutputDirectory(fOutdir[c]);
-    tmpstream.clear(); tmpstream.str("");
   }
 
   // loop over channels
@@ -827,8 +829,8 @@ bool Omicron::WriteMaps(void){
   for(int q=0; q<tile->GetNQPlanes(); q++){
 
     // plot
-    GPlot->Draw(Qmap[q],"COLZ");
     Qmap[q]->GetZaxis()->SetRangeUser(1,50);
+    GPlot->Draw(Qmap[q],"COLZ");
     
     // window resize
     center=(Qmap[q]->GetXaxis()->GetXmax()+Qmap[q]->GetXaxis()->GetXmin())/2.0;
@@ -859,9 +861,9 @@ bool Omicron::WriteMaps(void){
 
   // draw overall maps
   for(int w=0; w<(int)fWindows.size(); w++){
-    GPlot->Draw(Qmap_full[w],"COLZ");
     Qmap_full[w]->GetZaxis()->SetRangeUser(1,50);
     Qmap_full[w]->GetXaxis()->SetRangeUser(center-(double)fWindows[w]/2.0,center+(double)fWindows[w]/2.0);
+    GPlot->Draw(Qmap_full[w],"COLZ");
 
     // get max bin
     Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
@@ -953,6 +955,7 @@ bool Omicron::WriteMapSummary(void){
   ofstream summary((fOutdir[MapChNumber]+"/"+fChannels[MapChNumber]+"_mapsummary.txt").c_str());// outfile stream
 
   summary<<"channel_name = "<<fChannels[MapChNumber]<<endl;
+  summary<<"gps_center = "<<Qmap_center<<endl;
   summary<<"number_of_q_planes = "<<tile->GetNQPlanes()<<endl;
   summary<<"list_q_values = ";
   for(int q=0; q<tile->GetNQPlanes(); q++){
@@ -990,6 +993,7 @@ bool Omicron::WriteMapSummary(void){
     summary<<setprecision(5)<<Qmap_full[w]->GetMaximum()<<" ";
   }
   summary<<endl;
+  summary.close();
   
   return true;
 }

@@ -74,6 +74,13 @@ class Omicron {
   bool Scan(const double aTimeCenter);
 
   /**
+   * Create a html report for a scan.
+   * @param aScanDir path to scan directory
+   */
+  bool ScanReport(const string aScanDir="");
+
+
+  /**
    * Conditions a data vector.
    * @param aInVect input data vector (time domain)
    *
@@ -239,6 +246,7 @@ class Omicron {
   double Qmap_center;           ///< current GPS time of Q maps
   int *loudest_qmap;            ///< Q-map conatining the loudest tile
   GwollumPlot *GPlot;           ///< Gwollum plots
+  string fScandir;              ///< latest scan directory
 
   // MISC
   void SaveAPSD(const int c, const string type="PSD");    ///< Save current PSD

@@ -63,6 +63,7 @@ int main (int argc, char* argv[]){
     O = new Omicron(optionfile[o]);
     if(!O->GetStatus()){
       cerr<<"Omiscan ERROR: input options of "<<optionfile[o]<<" are invalid"<<endl;
+      if(o==nopt-1) O->ScanReport(); // report if this is the last round
       delete O;
       continue;
     }
@@ -70,10 +71,13 @@ int main (int argc, char* argv[]){
     // scan it
     if(!O->Scan(gps)){
       cerr<<"Omiscan ERROR: scan failed for "<<optionfile[o]<<endl;
+      if(o==nopt-1) O->ScanReport(); // report if this is the last round
       delete O;
       continue;
     }
 
+    // report if this is the last round
+    if(o==nopt-1) O->ScanReport();
     delete O;
   }
 
