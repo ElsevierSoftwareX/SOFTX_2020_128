@@ -22,8 +22,8 @@ bool Omicron::ReadOptions(void){
     fMaindir=".";
   }
   if(!IsDirectory(fMaindir)){
-    cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY"<<endl;
-    return false;
+    cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY   --> set default: current"<<endl;
+    fMaindir=".";
   }
   //*****************************
 
@@ -32,8 +32,6 @@ bool Omicron::ReadOptions(void){
     cout<<"Omicron::ReadOptions: No channel (DATA/CHANNELS)                           --> set default: V1:Pr_B1_ACp"<<endl;
     fChannels.push_back("V1:Pr_B1_ACp");
   }
-  for(int c=0; c<(int)fChannels.size(); c++) // trigger output dir
-    fOutdir.push_back(fMaindir+"/"+fChannels[c]);
   //*****************************
   
   //***** injection channels *****
@@ -67,11 +65,11 @@ bool Omicron::ReadOptions(void){
   //***** Sampling frequency *****
   if(!io->GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency)){
     cout<<"Omicron::ReadOptions: No working sampling frequency (PARAMETER/SAMPLEFREQUENCY) --> set default: 2048 Hz"<<endl;
-    fSampleFrequency=-1;
+    fSampleFrequency=0;// a guess will be done later based on FFL
   }
   if(fSampleFrequency<16){
     cerr<<"Omicron::ReadOptions: the working sampling frequency (PARAMETER/SAMPLEFREQUENCY) should be at least 16Hz"<<endl;
-    fSampleFrequency=-1;
+    fSampleFrequency=0;// a guess will be done later based on FFL
   }
   //*****************************
 

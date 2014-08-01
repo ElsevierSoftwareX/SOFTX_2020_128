@@ -83,7 +83,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=FFL->LoadFrameFile();
     
     // guess best sampling if not provided
-    if(fSampleFrequency<0){
+    if(!fSampleFrequency){
       fSampleFrequency=2048;
       double sampling;
       for(int c=0; c<(int)fChannels.size(); c++){
@@ -135,6 +135,10 @@ Omicron::Omicron(const string aOptionFile){
   }
   spectrum = new Spectrum(fSampleFrequency,psdsize,fOverlapDuration,fVerbosity);
   status_OK*=spectrum->GetStatus();
+
+  // output directory
+  // will change for Process() and Scan()
+  for(int c=0; c<(int)fChannels.size(); c++) fOutdir.push_back(fMaindir);
     
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: Define Triggers object..."<<endl;
@@ -145,9 +149,6 @@ Omicron::Omicron(const string aOptionFile){
   if(fOutFormat.find("root")!=string::npos) form+="root";
   if(!form.compare("")) form="root";
   for(int c=0; c<(int)fChannels.size(); c++){
-    
-    // create trigger directory
-    system(("mkdir -p "+fOutdir[c]).c_str());
     
     // init triggers object
     triggers[c] = new Triggers(fOutdir[c],fChannels[c],form,fVerbosity);
@@ -161,7 +162,7 @@ Omicron::Omicron(const string aOptionFile){
     
     // set metadata
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fOutdir[c]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fMaindir);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
@@ -320,6 +321,14 @@ bool Omicron::Process(Segments *aSeg){
   int dsize;         // native data size
   double *dvector;   // data vector before resampling
   int res;
+
+  // create trigger directories
+  fOutdir.clear();
+  for(int c=0; c<(int)fChannels.size(); c++){
+    fOutdir.push_back(fMaindir+"/"+fChannels[c]);
+    system(("mkdir -p "+fOutdir[c]).c_str());
+    triggers[c]->SetOutputDirectory(fOutdir[c]);
+  }
   
   // loop over chunks
   while(dataseq->NewChunk()){
@@ -435,9 +444,21 @@ bool Omicron::Scan(const double aTimeCenter){
     return false;
   }
 
+  // create map directories
+  fOutdir.clear();
+  ostringstream tmpstream;
+  for(int c=0; c<(int)fChannels.size(); c++){
+    tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aTimeCenter<<"/"<<fChannels[c];
+    fOutdir.push_back(tmpstream.str());
+    system(("mkdir -p "+fOutdir[c]).c_str());
+    triggers[c]->SetOutputDirectory(fOutdir[c]);
+    tmpstream.clear(); tmpstream.str("");
+  }
+
   // loop over channels
   for(int c=0; c<(int)fChannels.size(); c++){
     if(fVerbosity) cout<<"Omicron::Scan: channel "<<fChannels[c]<<"..."<<endl;
+
       
     // get data vector
     dvector=FFL->GetData(dsize, fChannels[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
