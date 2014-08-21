@@ -64,7 +64,7 @@ for t in $types; do
 	    gpsroot=$(( $gps / 100000 ))
 	    mkdir -p ${xmloutdir}/$gpsroot
 	    mv $file ${xmloutdir}/$gpsroot
-	    gzip ${xmloutdir}/${gpsroot}/*.xml
+	    gzip -f ${xmloutdir}/${gpsroot}/*.xml
 	done
     done
 
