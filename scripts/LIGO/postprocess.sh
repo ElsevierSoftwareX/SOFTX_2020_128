@@ -42,11 +42,11 @@ for t in $types; do
 
     # loop over channels
     for channel in ${IFO}:*; do
-	if [ ! -d ./$channel ]; then continue; fi
+	if [ ! -d ./${channel} ]; then continue; fi
+	if [ ! "$(ls -A ./${channel})" ]; then continue; fi
 	mkdir -p ${OMICRON_ONLINE_TRIGGERS}/${channel}
 	mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel}
-	if [ ! -d ./$channel ]; then continue; fi
-	
+		
 	# move root files
 	echo "${channel}: moving root files" >> $logfile
 	mv ${channel}/*.root ${OMICRON_ONLINE_TRIGGERS}/${channel} >> /dev/null 2>&1
