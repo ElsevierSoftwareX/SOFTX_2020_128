@@ -276,7 +276,7 @@ if [ -s ./channel.getomicronoptions.low ]; then
     n=0
     p=0
     channel_list=""
-    nchanmax=50 # maximum number of channels per option file
+    nchanmax=20 # maximum number of channels per option file
     while read channel; do
 	channel_list="$channel $channel_list"
 	n=$(($n+1))
