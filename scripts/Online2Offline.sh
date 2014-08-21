@@ -129,7 +129,7 @@ for chandir in ${channel}; do
     # merge and archive files
     echo "                archiving online triggers..."
     b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
-    channel_name=${channel##*/}
+    channel_name=${chandir##*/}
     mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel_name}
     while [ $b -lt $oldtime_base ]; do
 	triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel_name} "${chandir}/*_${b}*_*.root"
