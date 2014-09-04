@@ -14,6 +14,7 @@
 #include "TMath.h"
 #include "Otile.h"
 #include "Odata.h"
+#include "Date.h"
 
 using namespace std;
 
@@ -124,12 +125,6 @@ class Omicron {
    * 
    */
   bool WriteMaps(void);
-
-  /**
-   * Writes map summary to disk.
-   * 
-   */
-  bool WriteMapSummary(void);
 
   //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
   

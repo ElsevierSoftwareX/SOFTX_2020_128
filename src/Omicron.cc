@@ -492,7 +492,7 @@ bool Omicron::Scan(const double aTimeCenter){
     }
 
     // apply SNR threshold
-    if(Qmap_full[0]->GetMaximum()<fSNRThreshold){
+    if(c&&Qmap_full[0]->GetMaximum()<fSNRThreshold){
       cout<<"Omicron::Scan: below SNR threshold "<<Qmap_full[0]->GetMaximum()<<"<"<<fSNRThreshold<<" for channel "<<fChannels[c]<<endl;
       continue;
     }
@@ -500,12 +500,6 @@ bool Omicron::Scan(const double aTimeCenter){
     // save maps on disk
     if(!WriteMaps()){
       cerr<<"Omicron::Scan: cannot write maps for channel "<<fChannels[c]<<endl;
-      continue;
-    }
-
-    // save map summary
-    if(!WriteMapSummary()){
-      cerr<<"Omicron::Scan: cannot write map summary for channel "<<fChannels[c]<<endl;
       continue;
     }
 
@@ -812,6 +806,29 @@ bool Omicron::WriteMaps(void){
   if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
   if(!form.size()) return true;
 
+  // summary tree
+  TTree *MS = new TTree("mapsummary", "map summary");
+  double map_gps, map_q, map_gpsmax, map_freqmax, map_snrmax;
+  int map_win, map_nq, map_nwin, map_nformat, map_wstart, map_wstop;
+  string map_format;
+  MS->Branch("gps_center",&map_gps,"gps_center/D");
+  MS->Branch("gps_whitening_start",&map_wstart,"gps_whitening_start/I");
+  MS->Branch("gps_whitening_stop",&map_wstop,"gps_whitening_stop/I");
+  MS->Branch("nQ",&map_nq,"nQ/I");
+  MS->Branch("nwindow",&map_nwin,"nwindow/I");
+  MS->Branch("Q",&map_q,"Q/D");
+  MS->Branch("window",&map_win,"window/I");
+  MS->Branch("gps_loudest",&map_gpsmax,"gps_loudest/D");
+  MS->Branch("freq_loudest",&map_freqmax,"freq_loudest/D");
+  MS->Branch("snr_loudest",&map_snrmax,"snr_loudest/D");
+  MS->Branch("nformat",&map_nformat,"nformat/I");
+  MS->Branch("format",&map_format);
+  map_gps=Qmap_center;
+  map_nwin=(int)fWindows.size();
+  map_nq=tile->GetNQPlanes();
+  map_nformat=(int)form.size();
+  map_wstart=dataseq->GetChunkTimeStart();
+  map_wstop=dataseq->GetChunkTimeEnd();
 
   // canvas style
   GPlot->SetLogx(0);
@@ -827,6 +844,7 @@ bool Omicron::WriteMaps(void){
 
   // draw Qmaps
   for(int q=0; q<tile->GetNQPlanes(); q++){
+    map_q=tile->GetQ(q);
 
     // plot
     Qmap[q]->GetZaxis()->SetRangeUser(1,50);
@@ -835,7 +853,8 @@ bool Omicron::WriteMaps(void){
     // window resize
     center=(Qmap[q]->GetXaxis()->GetXmax()+Qmap[q]->GetXaxis()->GetXmin())/2.0;
     for(int w=0; w<(int)fWindows.size(); w++){
-      
+      map_win=fWindows[w];
+
       // zoom
       Qmap[q]->GetXaxis()->SetRangeUser(center-(double)fWindows[w]/2.0,center+(double)fWindows[w]/2.0);
 
@@ -846,17 +865,29 @@ bool Omicron::WriteMaps(void){
       tmpstream<<"Loudest tile: GPS="<<setprecision(12)<<Qmap_center+Qmap[q]->GetXaxis()->GetBinCenter(xmax)<<setprecision(5)<<", f="<<Qmap[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap[q]->GetBinContent(xmax,ymax);
       GPlot->AddText(tmpstream.str(), 0.01,0.01,0.03);
       tmpstream.str(""); tmpstream.clear();
+      map_gpsmax=Qmap_center+Qmap[q]->GetXaxis()->GetBinCenter(xmax);
+      map_freqmax=Qmap[q]->GetYaxis()->GetBinCenter(ymax);
+      map_snrmax=Qmap[q]->GetBinContent(xmax,ymax);
 
       // save qmaps
       for(int f=0; f<(int)form.size(); f++){
 	tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_mapQ"<<q<<"_dt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(tmpstream.str());
 	tmpstream.str(""); tmpstream.clear();
+ 	tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_mapQ"<<q<<"th_dt"<<fWindows[w]<<"."<<form[f];
+	GPlot->SetGridx(0); GPlot->SetGridy(0);
+	GPlot->Print(tmpstream.str(),0.5);
+	GPlot->SetGridx(1); GPlot->SetGridy(1);
+ 	tmpstream.str(""); tmpstream.clear();
+	map_format=form[f];
+	
+	// fill summary tree
+	MS->Fill();
       }
+
     }
     Qmap[q]->GetXaxis()->UnZoom();
     Qmap[q]->GetZaxis()->UnZoom();
-
   }
 
   // draw overall maps
@@ -878,11 +909,15 @@ bool Omicron::WriteMaps(void){
       tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_map_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
+      tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_mapth_dt"<<fWindows[w]<<"."<<form[f];
+      GPlot->SetGridx(0); GPlot->SetGridy(0);
+      GPlot->Print(tmpstream.str(),0.5);
+      GPlot->SetGridx(1); GPlot->SetGridy(1);
+      tmpstream.str(""); tmpstream.clear();
     }
     Qmap_full[w]->GetXaxis()->UnZoom();
     Qmap_full[w]->GetZaxis()->UnZoom();
   }
-
 
   // save projections
   GPlot->SetLogx(0);
@@ -909,6 +944,9 @@ bool Omicron::WriteMaps(void){
       tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_projt_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
+      tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_projtth_dt"<<fWindows[w]<<"."<<form[f];
+      GPlot->Print(tmpstream.str(),0.5);
+      tmpstream.str(""); tmpstream.clear();
     }
     delete proj;
 
@@ -929,72 +967,20 @@ bool Omicron::WriteMaps(void){
       tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_projf_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
+      tmpstream<<fOutdir[MapChNumber]<<"/"<<fChannels[MapChNumber]<<"_projfth_dt"<<fWindows[w]<<"."<<form[f];
+      GPlot->Print(tmpstream.str(),0.5);
+      tmpstream.str(""); tmpstream.clear();
     }
     delete proj;
   }
 
-  return true;
-}
+  // save map summary
+  TFile summary((fOutdir[MapChNumber]+"/"+fChannels[MapChNumber]+"_mapsummary.root").c_str(),"RECREATE");
+  summary.cd();
+  MS->Write();
+  summary.Close();
+  delete MS;
 
-////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::WriteMapSummary(void){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::WriteMapSummary: the Omicron object is corrupted"<<endl;
-    return false;
-  }
-  if(MapChNumber<0){
-    cerr<<"Omicron::WriteMapSummary: so far nothing has been mapped"<<endl;
-    return false;
-  }
-
-  int xmax, ymax, zmax;
-
-  if(fVerbosity) cout<<"Omicron::WriteMapSummary: write map summary for channel "<<fChannels[MapChNumber]<<endl;
-  
-  ofstream summary((fOutdir[MapChNumber]+"/"+fChannels[MapChNumber]+"_mapsummary.txt").c_str());// outfile stream
-
-  summary<<"channel_name = "<<fChannels[MapChNumber]<<endl;
-  summary<<"gps_center = "<<Qmap_center<<endl;
-  summary<<"number_of_q_planes = "<<tile->GetNQPlanes()<<endl;
-  summary<<"list_q_values = ";
-  for(int q=0; q<tile->GetNQPlanes(); q++){
-    summary<<setprecision(5)<<tile->GetQ(q)<<" ";
-  }
-  summary<<endl;
-
-  summary<<"number_of_q_time_windows = "<<fWindows.size()<<endl;
-  summary<<"time_windows = ";
-  for(int w=0; w<(int)fWindows.size(); w++) summary<<fWindows[w]<<" ";
-  summary<<endl;
-
-  summary<<"loudest_tile_gps = ";
-  for(int w=0; w<(int)fWindows.size(); w++){
-    Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
-    summary<<setprecision(12)<<Qmap_center+Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)<<" ";
-  }
-  summary<<endl;
-  
-  summary<<"loudest_tile_frequency = ";
-  for(int w=0; w<(int)fWindows.size(); w++){
-    Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
-    summary<<setprecision(5)<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<" ";
-  }
-  summary<<endl;
-  
-  summary<<"loudest_tile_q = ";
-  for(int w=0; w<(int)fWindows.size(); w++){
-    summary<<setprecision(5)<<tile->GetQ(loudest_qmap[w])<<" ";
-  }
-  summary<<endl;
-  
-  summary<<"loudest_tile_snr = ";
-  for(int w=0; w<(int)fWindows.size(); w++){
-    summary<<setprecision(5)<<Qmap_full[w]->GetMaximum()<<" ";
-  }
-  summary<<endl;
-  summary.close();
-  
   return true;
 }
 
@@ -1084,6 +1070,10 @@ void Omicron::SaveAPSD(const int c, const string type){
       else ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_psd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
+      if(!type.compare("ASD")) ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_asd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"th."<<form[f];
+      else ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_psd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"th."<<form[f];
+      GPlot->Print(ss.str(),0.5);
+      ss.str(""); ss.clear();
     }
   }
   
@@ -1160,8 +1150,11 @@ void Omicron::SaveTS(const int c, double tcenter){
     for(int w=(int)fWindows.size()-1; w>=0; w--){
       GDATA->GetXaxis()->SetLimits(tcenter-(double)fWindows[w]/2.0,tcenter+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
-	ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_ts_"<<dataseq->GetChunkTimeStart()<<"_dt"<<fWindows[w]<<"."<<form[f];
+	ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_ts_dt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
+	ss.str(""); ss.clear();
+	ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_tsth_dt"<<fWindows[w]<<"."<<form[f];
+	GPlot->Print(ss.str(),0.5);
 	ss.str(""); ss.clear();
       }
     }
