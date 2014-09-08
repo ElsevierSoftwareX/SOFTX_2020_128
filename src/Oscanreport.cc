@@ -240,6 +240,7 @@ bool Omicron::ScanReport(const string aScanDir){
 	report<<"    <td><a id=\"a_"<<chan[c]<<"_dt"<<winset[w]<<"_"<<formatset[f]<<"\" href=\"./"<<chan[c]<<"/"<<chan[c]<<"_map_dt"<<winset[w]<<"."<<formatset[f]<<"\"><img id=\"img_"<<chan[c]<<"_dt"<<winset[w]<<"_"<<formatset[f]<<"\" src=\"./"<<chan[c]<<"/"<<chan[c]<<"_mapth_dt"<<winset[w]<<"."<<formatset[f]<<"\" alt=\""<<chan[c]<<"_map\" /></a></td>"<<endl;
     report<<"  </tr>"<<endl;
 
+    qset.clear();
     delete MS;
     sumfile.Close();
     report<<"</table>"<<endl;

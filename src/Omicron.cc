@@ -304,17 +304,9 @@ bool Omicron::Process(Segments *aSeg){
   ptm = gmtime ( &timer );
   if(fVerbosity) cout<<"#### Omicron::Process timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
 
-  // add requested segments (try to optimize the update of inSegments)
-  if(inSegments->GetLiveTime()&&aSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
-    inSegments->Append(aSeg);
-  else{
-    for(int s=0; s<aSeg->GetNsegments(); s++) inSegments->AddSegment(aSeg->GetStart(s),aSeg->GetEnd(s));
-  }
-
-  // data structure
-  if(fVerbosity) cout<<"Omicron::Process: initiate data segments..."<<endl;
-  if(!dataseq->SetSegments(aSeg)){
-    cerr<<"Omicron::Process: cannot initiate data segments."<<endl;
+  // init segments
+  if(!InitSegment(aSeg)){
+    cerr<<"Omicron::Process: the requested segments cannot be initialized"<<endl;
     return false;
   }
 
@@ -324,11 +316,9 @@ bool Omicron::Process(Segments *aSeg){
   int res;
 
   // create trigger directories
-  fOutdir.clear();
-  for(int c=0; c<(int)fChannels.size(); c++){
-    fOutdir.push_back(fMaindir+"/"+fChannels[c]);
-    system(("mkdir -p "+fOutdir[c]).c_str());
-    triggers[c]->SetOutputDirectory(fOutdir[c]);
+  if(!MakeDirectories(0.0)){
+    cerr<<"Omicron::Process: the directory structure cannot be created"<<endl;
+    return false;
   }
   
   // loop over chunks
@@ -383,24 +373,13 @@ bool Omicron::Process(Segments *aSeg){
 	continue;
       }
      
-      // don't save if max flag
-      if(triggers[c]->GetMaxFlag()){
-	cerr<<"Omicron::Process: channel "<<fChannels[c]<<" is maxed-out. This chunk of triggers is not saved"<<endl;
-	triggers[c]->Reset();
+      // save triggers on disk
+      if(!WriteTriggers(c)){
+	cerr<<"Omicron::Process: This chunk of triggers is not saved"<<endl;
 	max_chunk_ctr[c]++;
 	continue; // move to next channel
       }
-      
-      // save triggers for this chunk
-      if(!triggers[c]->Write(fWriteMode, "default").compare("none")){
-	cerr<<"Omicron::Process: writing events failed for channel "<<fChannels[c]<<endl;
-	return false;
-      }
-
-      // processed chunks
-      else
-	outSegments[c]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);
-	
+      	
     }
   }
   
@@ -446,15 +425,9 @@ bool Omicron::Scan(const double aTimeCenter){
   }
 
   // create map directories
-  fOutdir.clear();
-  ostringstream tmpstream;
-  tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aTimeCenter;
-  fScandir=tmpstream.str();
-  tmpstream.clear(); tmpstream.str("");
-  for(int c=0; c<(int)fChannels.size(); c++){
-    fOutdir.push_back(fScandir+"/"+fChannels[c]);
-    system(("mkdir -p "+fOutdir[c]).c_str());
-    triggers[c]->SetOutputDirectory(fOutdir[c]);
+  if(!MakeDirectories(aTimeCenter)){
+    cerr<<"Omicron::Scan: the directory structure cannot be created"<<endl;
+    return false;
   }
 
   // loop over channels
@@ -512,6 +485,71 @@ bool Omicron::Scan(const double aTimeCenter){
    
   }
   
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::InitSegment(Segments *aSeg){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::InitSegment: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+  if(aSeg==NULL){
+    cerr<<"Omicron::InitSegment: the input segment is NULL"<<endl;
+    return false;
+  }
+  if(!aSeg->GetNsegments()){
+    cerr<<"Omicron::InitSegment: there is no input segment"<<endl;
+    return false;
+  }
+
+  // add requested segments (try to optimize the update of inSegments)
+  if(inSegments->GetLiveTime()&&aSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
+    inSegments->Append(aSeg);
+  else{
+    for(int s=0; s<aSeg->GetNsegments(); s++) inSegments->AddSegment(aSeg->GetStart(s),aSeg->GetEnd(s));
+  }
+
+  // data structure
+  if(fVerbosity) cout<<"Omicron::InitSegment: initiate data segments..."<<endl;
+  if(!dataseq->SetSegments(aSeg)){
+    cerr<<"Omicron::InitSegment: cannot initiate data segments."<<endl;
+    return false;
+  }
+
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::MakeDirectories(const double aGPS){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::MakeDirectories: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+
+  fOutdir.clear();
+  ostringstream tmpstream;
+
+  if(!aGPS){// basic trigger directories
+    for(int c=0; c<(int)fChannels.size(); c++){
+      fOutdir.push_back(fMaindir+"/"+fChannels[c]);
+      system(("mkdir -p "+fOutdir[c]).c_str());
+      triggers[c]->SetOutputDirectory(fOutdir[c]);
+    }
+  }
+  else{
+    tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aGPS;
+    fScandir=tmpstream.str();
+    tmpstream.clear(); tmpstream.str("");
+    for(int c=0; c<(int)fChannels.size(); c++){
+      fOutdir.push_back(fScandir+"/"+fChannels[c]);
+      system(("mkdir -p "+fOutdir[c]).c_str());
+      triggers[c]->SetOutputDirectory(fOutdir[c]);
+    }
+  }
+
   return true;
 }
 
@@ -670,7 +708,25 @@ bool Omicron::WriteTriggers(const int aChNumber){
     return false;
   }
   if(fVerbosity) cout<<"Omicron::WriteTriggers: write triggers for channel "<<fChannels[aChNumber]<<endl;
-  return !(triggers[aChNumber]->Write("PROC","default").compare("none"));
+
+  // don't save if max flag
+  if(triggers[aChNumber]->GetMaxFlag()){
+    cerr<<"Omicron::WriteTriggers: channel "<<fChannels[aChNumber]<<" is maxed-out. This chunk of triggers is not saved"<<endl;
+    triggers[aChNumber]->Reset();
+    return false;
+  }
+      
+  // save triggers for this chunk
+  if(!triggers[aChNumber]->Write(fWriteMode, "default").compare("none")){
+    cerr<<"Omicron::WriteTriggers: writing events failed for channel "<<fChannels[aChNumber]<<endl;
+    return false;
+  }
+
+  // processed chunks
+  else
+    outSegments[aChNumber]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);
+	
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

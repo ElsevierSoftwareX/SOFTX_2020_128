@@ -82,6 +82,26 @@ class Omicron {
 
 
   /**
+   * Initialize a segment to process.
+   * This function should be called before any type of processing.
+   * @param *aSeg pointer to the input Segments structure
+   */
+  bool InitSegment(Segments *aSeg);
+
+  /**
+   * Create the output directory structure.
+   * Two directory structures are possible:
+   * - [path_to_outdir]/aGPS/[channel_name] if aGPS is not 0
+   * - [path_to_outdir]/[channel_name] if aGPS is 0
+   *
+   * where [path_to_outdir] is the output directory specified by the user in the option file and [channel_name] is the channel name being processed.
+   * 
+   * If this function is never called, all the output is dumped in the output directory specified by the user in the option file.
+   * @param aGPS GPS time
+   */
+  bool MakeDirectories(const double aGPS = 0);
+
+  /**
    * Conditions a data vector.
    * @param aInVect input data vector (time domain)
    *
@@ -204,7 +224,7 @@ class Omicron {
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< cumulative requested segments
-  Segments **outSegments;       ///< segments currently processed
+  Segments **outSegments;       ///< segments currently written on disk
   int *chunk_ctr;               ///< number of chunks
   int *cor_chunk_ctr;           ///< number of corrupted chunks
   int *cor_data_ctr;            ///< number of corrupted data chunks
