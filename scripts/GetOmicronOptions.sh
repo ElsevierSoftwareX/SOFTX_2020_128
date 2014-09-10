@@ -180,7 +180,7 @@ fi
 online=0
 chanfile="./no.chance.this.file.exists"
 fflfile="./no.chance.this.file.exists"
-outdir="./no.chance.this.dir.exists"
+outdir="."
 outxml=0
 
 ##### read options
