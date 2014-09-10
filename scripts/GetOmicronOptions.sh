@@ -158,7 +158,7 @@ printoption(){
     fi
 
     # outdir
-    echo "OUTPUT         DIRECTORY        $6"                                    >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     
     # XML output
     if [ $7 -eq 1 ]; then 
