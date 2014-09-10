@@ -102,6 +102,12 @@ class Omicron {
   bool MakeDirectories(const double aGPS = 0);
 
   /**
+   * Load a new chunk segment
+   * 
+   */
+  inline bool NewChunk(){return dataseq->NewChunk();};
+
+  /**
    * Conditions a data vector.
    * @param aInVect input data vector (time domain)
    *
