@@ -157,6 +157,9 @@ printoption(){
 	echo "DATA       FFL              $5"                                    >> ./parameters_${1}_${2}.txt
     fi
 
+    # outdir
+    echo "OUTPUT         DIRECTORY        $6"                                    >> ./parameters_${1}_${2}.txt
+    
     # XML output
     if [ $6 -eq 1 ]; then 
 	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
@@ -260,7 +263,7 @@ if [ -s ./channel.getomicronoptions.std ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "STD_${p} = $channel_list"
-	    printoption "STD" $p "$channel_list" $online $fflfile $outxml
+	    printoption "STD" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -268,7 +271,7 @@ if [ -s ./channel.getomicronoptions.std ]; then
 	
     done < ./channel.getomicronoptions.std;
     echo "STD_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "STD" $p "$channel_list" $online $fflfile $outxml; fi
+    if [ $n -gt 0 ]; then printoption "STD" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 fi
 
 ############## STD2 SETTING
@@ -283,7 +286,7 @@ if [ -s ./channel.getomicronoptions.std2 ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "STD2_${p} = $channel_list"
-	    printoption "STD2" $p "$channel_list" $online $fflfile $outxml
+	    printoption "STD2" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -291,7 +294,7 @@ if [ -s ./channel.getomicronoptions.std2 ]; then
 	
     done < ./channel.getomicronoptions.std2;
     echo "STD2_${p} = $channel_list"
-    printoption "STD2" $p"$channel_list" $online $fflfile $outxml
+    printoption "STD2" $p"$channel_list" $online $fflfile $outdir $outxml
 fi
 
 ############## LOW SETTING
@@ -306,7 +309,7 @@ if [ -s ./channel.getomicronoptions.low ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "LOW_${p} = $channel_list"
-	    printoption "LOW" $p "$channel_list" $online $fflfile $outxml
+	    printoption "LOW" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -314,7 +317,7 @@ if [ -s ./channel.getomicronoptions.low ]; then
 	
     done < ./channel.getomicronoptions.low;
     echo "LOW_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "LOW" $p "$channel_list" $online $fflfile $outxml; fi
+    if [ $n -gt 0 ]; then printoption "LOW" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 fi
 ############## HIGH SETTING
 if [ -s ./channel.getomicronoptions.high ]; then
@@ -328,7 +331,7 @@ if [ -s ./channel.getomicronoptions.high ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "HIGH_${p} = $channel_list"
-	    printoption "HIGH" $p "$channel_list" $online $fflfile $outxml
+	    printoption "HIGH" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -336,7 +339,7 @@ if [ -s ./channel.getomicronoptions.high ]; then
 	
     done < ./channel.getomicronoptions.high;
     echo "HIGH_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "HIGH" $p "$channel_list" $online $fflfile $outxml; fi
+    if [ $n -gt 0 ]; then printoption "HIGH" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 fi
 ############## FINE SETTING
 if [ -s ./channel.getomicronoptions.fine ]; then
@@ -350,7 +353,7 @@ if [ -s ./channel.getomicronoptions.fine ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "FINE_${p} = $channel_list"
-	    printoption "FINE" $p "$channel_list" $online $fflfile $outxml
+	    printoption "FINE" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -358,7 +361,7 @@ if [ -s ./channel.getomicronoptions.fine ]; then
 	
     done < ./channel.getomicronoptions.fine;
     echo "FINE_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "FINE" $p "$channel_list" $online $fflfile $outxml; fi
+    if [ $n -gt 0 ]; then printoption "FINE" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 fi
 ############## GW SETTING
 if [ -s ./channel.getomicronoptions.gw ]; then
@@ -372,7 +375,7 @@ if [ -s ./channel.getomicronoptions.gw ]; then
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
 	    echo "GW_${p} = $channel_list"
-	    printoption "GW" $p "$channel_list" $online $fflfile $outxml
+	    printoption "GW" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
@@ -380,7 +383,7 @@ if [ -s ./channel.getomicronoptions.gw ]; then
 	
     done < ./channel.getomicronoptions.gw;
     echo "GW_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "GW" $p "$channel_list" $online $fflfile $outxml; fi
+    if [ $n -gt 0 ]; then printoption "GW" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 fi
 
 # cleaning
