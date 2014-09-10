@@ -305,7 +305,7 @@ bool Omicron::Process(Segments *aSeg){
   if(fVerbosity) cout<<"#### Omicron::Process timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
 
   // init segments
-  if(!InitSegment(aSeg)){
+  if(!InitSegments(aSeg)){
     cerr<<"Omicron::Process: the requested segments cannot be initialized"<<endl;
     return false;
   }
@@ -489,18 +489,22 @@ bool Omicron::Scan(const double aTimeCenter){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::InitSegment(Segments *aSeg){
+bool Omicron::InitSegments(Segments *aSeg){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
-    cerr<<"Omicron::InitSegment: the Omicron object is corrupted"<<endl;
+    cerr<<"Omicron::InitSegments: the Omicron object is corrupted"<<endl;
     return false;
   }
   if(aSeg==NULL){
-    cerr<<"Omicron::InitSegment: the input segment is NULL"<<endl;
+    cerr<<"Omicron::InitSegments: the input segment is NULL"<<endl;
+    return false;
+  }
+  if(!aSeg->GetStatus()){
+    cerr<<"Omicron::InitSegments: the input segment is corrupted"<<endl;
     return false;
   }
   if(!aSeg->GetNsegments()){
-    cerr<<"Omicron::InitSegment: there is no input segment"<<endl;
+    cerr<<"Omicron::InitSegments: there is no input segment"<<endl;
     return false;
   }
 
@@ -512,9 +516,9 @@ bool Omicron::InitSegment(Segments *aSeg){
   }
 
   // data structure
-  if(fVerbosity) cout<<"Omicron::InitSegment: initiate data segments..."<<endl;
+  if(fVerbosity) cout<<"Omicron::InitSegments: initiate data segments..."<<endl;
   if(!dataseq->SetSegments(aSeg)){
-    cerr<<"Omicron::InitSegment: cannot initiate data segments."<<endl;
+    cerr<<"Omicron::InitSegments: cannot initiate data segments."<<endl;
     return false;
   }
 

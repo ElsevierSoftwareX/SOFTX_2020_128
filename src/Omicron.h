@@ -82,11 +82,11 @@ class Omicron {
 
 
   /**
-   * Initialize a segment to process.
+   * Initialize the segments to process.
    * This function should be called before any type of processing.
    * @param *aSeg pointer to the input Segments structure
    */
-  bool InitSegment(Segments *aSeg);
+  bool InitSegments(Segments *aSeg);
 
   /**
    * Create the output directory structure.
@@ -102,10 +102,12 @@ class Omicron {
   bool MakeDirectories(const double aGPS = 0);
 
   /**
-   * Load a new chunk segment
-   * 
+   * Load a new chunk.
+   * The chunks are loaded following the structure defined in the option file and the Segments object defined with InitSegments(). When there is not enough data to fill one chunk (end of a segment), the chunk duration is shortened. This function should be called iteratively to cover the full data set. The returned value indicates the status of this operation:
+   * - true : a new chunk has been loaded
+   * - false : no more chunk to load
    */
-  inline bool NewChunk(){return dataseq->NewChunk();};
+  inline bool NewChunk(void){return dataseq->NewChunk();};
 
   /**
    * Conditions a data vector.

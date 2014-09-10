@@ -10,7 +10,7 @@ printhelp(){
     echo "Usage:"
     echo "GetOmicronOptions -c [CHANNEL_FILE]"
     echo ""
-    echo "This script produces Omicron parameter files."
+    echo "This script generates Omicron parameter files."
     echo ""
     echo "  -c  [CHANNEL_FILE]  path to a text file listing all the channels to process"
     echo "                      Different settings are available and are specified by"    
@@ -22,9 +22,9 @@ printhelp(){
     echo "                         FINE: 8    to 4096Hz, SNR>6, fine tiling"
     echo "                         GW:   32   to 4096Hz, SNR>5, fine tiling"
     echo ""
-    echo "  -o                     flag for online analyses"
-    echo "                         chunks are forced ro 16s and overlaps to 2s"
-    echo "                         (except for LOW)"
+    echo "  -o                  flag for online analyses"
+    echo "                      chunks are forced ro 16s and overlaps to 2s"
+    echo "                      (except for LOW)"
     echo ""
 
     echo "  -d  [TRIG_OUTDIR]   trigger output directory"
@@ -142,7 +142,7 @@ printoption(){
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     
     # Tunable parameters
-    echo "DATA       CHANNELS  $3"                                               >> ./parameters_${1}_${2}.txt
+    echo "DATA       CHANNELS         $3"                                        >> ./parameters_${1}_${2}.txt
     echo "DATA       SAMPLEFREQUENCY  ${sampling}"                               >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  CHUNKDURATION    ${chunk}"                                  >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  BLOCKDURATION    ${block}"                                  >> ./parameters_${1}_${2}.txt

@@ -16,6 +16,8 @@ printhelp(){
     echo ""
     echo "TRIGGER SELECTION"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME] only"
+    echo "                      a pattern can be used"
+    echo "                      all channels if not provided"
     echo ""
     echo "TIMING"
     echo "  -d  [DELAY]         time delay to mark files as old [s]"
