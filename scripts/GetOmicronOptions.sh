@@ -161,7 +161,7 @@ printoption(){
     echo "OUTPUT         DIRECTORY        $6"                                    >> ./parameters_${1}_${2}.txt
     
     # XML output
-    if [ $6 -eq 1 ]; then 
+    if [ $7 -eq 1 ]; then 
 	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
 	echo "TRIGGER    CLUSTERING       TIME noroot"                           >> ./parameters_${1}_${2}.txt
     else
