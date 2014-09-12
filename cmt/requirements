@@ -45,6 +45,7 @@ library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Oparamete
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
+macro_append Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
 
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
