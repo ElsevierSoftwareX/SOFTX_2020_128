@@ -124,10 +124,16 @@ bool Omicron::ReadOptions(void){
     cout<<"Omicron::ReadOptions: No windows (PARAMETER/WINDOWS)                       --> set default: 2 8 32"<<endl;
     fWindows.push_back(2); fWindows.push_back(8); fWindows.push_back(32); 
   }
-  if(fWindows[0]<=0){
-    fWindows.clear();
-    fWindows.push_back(2); fWindows.push_back(8); fWindows.push_back(32); 
+  for(int w=0; w<(int)fWindows.size(); w++){
+    if(fWindows[w]<=0||fWindows[w]>fSegmentDuration-fOverlapDuration){
+      cerr<<"Omicron::ReadOptions: The window value "<<fWindows[w]<<" is not valid"<<endl;
+      fWindows.clear();
+      fWindows.push_back((fSegmentDuration-fOverlapDuration)/4); fWindows.push_back((fSegmentDuration-fOverlapDuration)/2); fWindows.push_back(fSegmentDuration-fOverlapDuration); 
+      break;
+    }
   }
+  fWindowMax=1;
+  for(int w=0; w<(int)fWindows.size(); w++) if(fWindows[w]>fWindowMax) fWindowMax=fWindows[w];
   //*****************************
 
   //***** set fftplan *****
