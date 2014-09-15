@@ -74,7 +74,7 @@ now_base1000=$(( $now / 1000 ))
 echo "Online2Offline: now=$now"
 echo "Online2Offline: archive triggers before $(( $oldtime_base * $OMICRON_TRIGGERS_BASE ))"
 
-##### select run
+##### select run (based on now!)
 run="NONE"
 for r in $RUN_NAMES; do
     r_s=${r}_START

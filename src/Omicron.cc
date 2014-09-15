@@ -76,7 +76,7 @@ Omicron::Omicron(const string aOptionFile){
     // guess best sampling if not provided
     if(!fSampleFrequency){
       fSampleFrequency=2048;
-      double sampling;
+      int sampling;
       for(int c=0; c<(int)fChannels.size(); c++){
 	sampling=FFL->GetChannelSampling(fChannels[c]);
 	if(sampling<=0) continue;
@@ -117,7 +117,7 @@ Omicron::Omicron(const string aOptionFile){
   
   // init Spectrum
   if(fVerbosity) cout<<"Omicron::Omicron: init Spectra..."<<endl;
-  double psdsize;
+  int psdsize;
   if(fFreqRange[0]>=1.0) psdsize = fSampleFrequency; // 0.5Hz binning
   else{
     psdsize = (int)floor((double)fSampleFrequency/fFreqRange[0]);// over-binning (factor 2)
@@ -196,7 +196,7 @@ Omicron::Omicron(const string aOptionFile){
   // init full maps
   Qmap_full = new TH2D* [(int)fWindows.size()];
   int nfbins; ostringstream tmpstream;
-  if(fFreqRange[0]>=1) nfbins = fabs(fFreqRange[1]-fFreqRange[0])+1;
+  if(fFreqRange[0]>=1) nfbins = (int)fabs(fFreqRange[1]-fFreqRange[0])+1;
   else nfbins = 500;
   double *f_bin = new double [nfbins+1];
   for(int f=0; f<nfbins+1; f++) f_bin[f]=fFreqRange[0]*pow(10,f*log10(fFreqRange[1]/fFreqRange[0])/nfbins);
