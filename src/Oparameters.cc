@@ -155,8 +155,8 @@ bool Omicron::ReadOptions(void){
   if(io->GetOpt("TRIGGER","RATEMAX", ratemax)) fNtriggerMax=(int)ceil(ratemax*fChunkDuration);
   else{
     if(!io->GetOpt("TRIGGER","NMAX", fNtriggerMax)){
-      cout<<"Omicron::ReadOptions: No trigger limit (TRIGGER/NMAX)                      --> set default: 1,000,000"<<endl;
-      fNtriggerMax=1000000;
+      cout<<"Omicron::ReadOptions: No trigger limit (TRIGGER/NMAX)                      --> set default: 100 Hz"<<endl;
+      fNtriggerMax=fChunkDuration*100;
     }
   }
   //*****************************

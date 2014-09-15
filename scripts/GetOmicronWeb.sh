@@ -116,8 +116,8 @@ fi
 
 ##### channel is required
 if [ "$channel" = "required" ]; then
-    echo "GetOmicronPlots: the channel name is required with the -c option"
-    echo "type  'GetOmicronPlots -h'  for help"
+    echo "GetOmicronWeb: the channel name is required with the -c option"
+    echo "type  'GetOmicronWeb -h'  for help"
     exit 1
 fi
 
@@ -181,9 +181,9 @@ date -u > ${outdir}/${channel}/plot.log.txt 2>&1
 
 ##### make plots
 if [ "$triggerfiles" = "NONE" ]; then
-    GetOmicronPlots.sh -c${channel} -d${outdir}/${channel} $tmin $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
+    GetOmicronPlots.sh -c${channel} -d${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
 else
-    GetOmicronPlots.sh -c${channel} -t "$triggerfiles" -d${outdir}/${channel} $tmin $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
+    GetOmicronPlots.sh -c${channel} -t "$triggerfiles" -d${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
 fi
 
 ##### ending date

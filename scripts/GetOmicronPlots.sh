@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 #
 # GetOmicronPlots.sh
 #
-# produce omicron-style plots
+# produce Omicron monitoring plots
 #
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
@@ -11,19 +11,21 @@
 channel="required"  # channel name
 outdir=`pwd`        # output directory
 triggerfiles="NONE" # user trigger files
+tmin=0
+tmax=0
 
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronPlots -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
+    echo "GetOmicronPlots -c [CHANNEL_NAME] -s [GPS_START] -e [GPS_STOP]"
     echo ""
-    echo "Example: GetOmicronPlots -ch_4096Hz 934228815 934232415"
+    echo "Example: GetOmicronPlots -c V1:h_4096Hz -s 934228815 -e 934232415"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
     echo "                      this option is required"
     echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
-    echo "                      The file pattern is [TRIGGER_FILES]"
+    echo "                      The trigger file pattern is [TRIGGER_FILES]"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -d  [OUTDIR]        output directory where to save plots"
@@ -34,20 +36,20 @@ printhelp(){
 } 
 
 ##### Check the Omicron environment
-if [[ -z "$OMICRONROOT" ]]; then
+if [ -z "$OMICRONROOT" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
 
-##### needs argument
-if [ $# -lt 1 ]; then
-    printhelp
-    exit 1
-fi
-
 ##### read options
-while getopts ":c:d:t:h" opt; do
+while getopts ":s:e:c:d:t:h" opt; do
     case $opt in
+	s)
+	    tmin=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
+	e)
+	    tmax=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
 	c)
 	    channel="$OPTARG"
 	    ;;
@@ -68,12 +70,6 @@ while getopts ":c:d:t:h" opt; do
 	    ;;
     esac
 done
-
-##### gps interval
-shift $(($OPTIND - 1))
-tmin=`echo $1 | awk '{print int($1)}'`
-tmax=`echo $2 | awk '{print int($1)}'`
-OPTIND=0
 
 ##### check timing
 if [ $tmin -lt 700000000 ]; then
@@ -108,7 +104,7 @@ if [ ! "$triggerfiles" = "NONE" ]; then
 fi
 
 ##### Check the trigger environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
+if [ -z "$OMICRON_TRIGGERS" ]; then
     echo "Error: The Omicron trigger environment is not set"
     exit 1
 fi
@@ -133,7 +129,7 @@ if [ $run = "NONE" ]; then
 fi
 
 ##### get available channels
-. GetOmicronChannels.sh -r $run > /dev/null 2>&1
+. GetOmicronChannels.sh -r $run >> /dev/null 2>&1
 
 ##### check channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
