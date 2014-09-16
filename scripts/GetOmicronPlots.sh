@@ -22,6 +22,8 @@ printhelp(){
     echo "Example: GetOmicronPlots -c V1:h_4096Hz -s 934228815 -e 934232415"
     echo ""
     echo "TRIGGER SELECTION OPTIONS"
+    echo "  -s  [GPS_START]     GPS start time"
+    echo "  -e  [GPS_STOP]      GPS stop time"
     echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
     echo "                      this option is required"
     echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
