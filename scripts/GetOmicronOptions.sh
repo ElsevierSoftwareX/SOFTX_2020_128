@@ -134,8 +134,7 @@ printoption(){
     echo "// ------------------------------------------------------------------" >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  QRANGE           3.3166  100.0"                             >> ./parameters_${1}_${2}.txt
-    echo "TRIGGER    RATEMAX          100"                                       >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     FORMAT           root"                                      >> ./parameters_${1}_${2}.txt
+    echo "TRIGGER    RATEMAX          1000"                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     WRITEPSD         0"                                         >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     WRITETIMESERIES  0"                                         >> ./parameters_${1}_${2}.txt
@@ -224,6 +223,7 @@ while getopts ":oc:f:d:Xh" opt; do
 	    ;;
     esac
 done
+OPTIND=0
 
 
 ##### check option file
