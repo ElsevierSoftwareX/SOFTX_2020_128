@@ -7,74 +7,63 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-##### default options
-workdir=`pwd`    # working directory
-usertag=""
-merging=0
-forceprompt=0
-
 printhelp(){
     echo ""
     echo "Usage:"
     echo "GetOmicronDAG -d [WORKING_DIRECTORY]"
+    echo " |__ produce a CONDOR DAG in a working directory"
     echo ""
+    echo "The working directory MUST contain:"
     echo ""
-    echo "  -d  [WORKING_DIRECTORY]  path to the working directory"
-    echo "                           if this option is not given, the current directory"
-    echo "                           is considered"
-    echo ""
-    echo ""
-    echo "The working directory must contain:"
-    echo ""
-    echo "1/ A segment file to process. The name of this file must be 'segments.txt'"
+    echo "1/ A file with time segments to process. The name of this file must be 'segments.txt'"
     echo "   This file must contain 2 columns exactly: [GPS start] [GPS end]"
     echo ""
     echo "2/ Omicron parameter files. The name of these files must be 'parameters_[ID].txt"
     echo "   where [ID] is a unique identifier (an integer for example)"
     echo "   These parameter files must be carefully checked by the user to be sure that"
-    echo "   all the options are valid"
-    echo "   This script will create specific output directories. As a consequence the"
+    echo "   all the options are valid. No check will be performed."
+    echo "   GetOmicronDAG will create specific output directories. As a consequence the"
     echo "   output directory option (OUTPUT/DIRECTORY) is not used. In other words,"
     echo "   the user is free to set this option to the value of his choice (it could"
     echo "   even be wrong)"
     echo ""
-
     echo ""
-    echo "  -t [USER_TAG]       Set a user tag for this DAG [USER_TAG]"
+    echo "OPTIONS:"
+    echo "  -d  [WORKING_DIRECTORY]  Path to a working directory"
+    echo "                           if this option is not given, the current directory"
+    echo "                           is considered"
+    echo "  -t [USER_TAG]            Set a user tag for this DAG [USER_TAG]"
+    echo "                           This is useful when one wants to generates several"
+    echo "                           dags in the same working directory"
+    echo "  -f                       Flag to shortcut the user prompt"
+    echo "  -h                       print this help"
     echo ""
-    echo ""
-    echo "  -m                  Flag to activate merging of trigger files"
-    echo "                      This option is only available for ROOT file format"
-    echo "                      --- NOT AVAILABLE OPTION ---"
-    echo ""
-    echo "  -f                  Flag to shortcut the user prompt"
-    echo ""
-    echo ""
-    echo "  -h                  Print this help"
-    echo ""
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
 } 
 
 ##### Check the Omicron environment
-if [[ -z "$OMICRONROOT" ]]; then
+if [ -z "$OMICRONROOT" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
-if [[ -z "$USER" ]]; then
+if [ -z "$USER" ]; then
     echo "Error: Please set the environment variable 'USER' with your user name"
     exit 1
 fi
 
+##### default options
+workdir=`pwd`    # working directory
+usertag=""
+forceprompt=0
+
 ##### read options
-while getopts ":d:t:mfh" opt; do
+while getopts ":d:t:fh" opt; do
     case $opt in
 	d)
 	    workdir="$OPTARG"
 	    ;;
 	t)
 	    usertag="$OPTARG"
-	    ;;
-	m)
-	    merging=1
 	    ;;
 	f)
 	    forceprompt=1
@@ -90,17 +79,18 @@ while getopts ":d:t:mfh" opt; do
 	    ;;
     esac
 done
+OPTIND=1
 
 ##### check workdir
 if [ ! -d $workdir ] ; then
-    echo "Invalid option: the working directory $workdir cannot be found"
+    echo "`basename $0`: the working directory $workdir cannot be found"
     echo "type  'GetOmicronDAG -h'  for help"
     exit 3
 fi
 
 ##### check segment file
 if [ ! -e ${workdir}/segments.txt ] ; then
-    echo "The segment file '${workdir}/segments.txt' cannot be found"
+    echo "`basename $0`: The segment file '${workdir}/segments.txt' cannot be found"
     echo "type  'GetOmicronDAG -h'  for help"
     exit 3
 fi
@@ -108,7 +98,7 @@ fi
 ##### check livetime
 livetime=`segsum ${workdir}/segments.txt | awk '{print  int($1)}'`
 if [ $livetime -eq 0 ] ; then
-    echo "There is no livetime in your segment file '${workdir}/segments.txt'"
+    echo "`basename $0`: There is no livetime in your segment file '${workdir}/segments.txt'"
     echo "type  'GetOmicronDAG -h'  for help"
     exit 3
 fi
@@ -138,7 +128,7 @@ for file in ${workdir}/parameters_*.txt; do
 done
 
 if [ $nproc -eq 0 ] ; then
-    echo "There is no parameter files in '${workdir}/'"
+    echo "`basename $0`: There is no parameter files in '${workdir}/'"
     echo "type  'GetOmicronDAG -h'  for help"
     exit 3
 fi
@@ -149,7 +139,7 @@ for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
     channels=`grep DATA $file | grep -m 1 CHANNELS`
     nchannels=`echo $channels | wc -w`
     if [ $nchannels -le 2 ]; then 
-	echo "There is no channel to process in $file"
+	echo "`basename $0`: There is no channel to process in $file"
 	exit 3
     fi
     let "nchannels-=2"
@@ -164,10 +154,6 @@ for file in ${workdir}/parameters/parameters${usertag}_*.txt; do
     fi
 
 done
-
-##### check merging
-fileformat=`grep OUTPUT ${workdir}/parameters/parameters${usertag}_0.txt | grep -m1 FORMAT | awk '{print $3}'`
-if [ ! "$fileformat" = "root" ]; then merging=0; fi
 
 ##### preparing .sub
 sed -e "s|\[OMICRON_PATH\]|${OMICRONROOT}/${OMICRONCONFIG}|g" \
@@ -190,8 +176,8 @@ while [ $p -lt $nproc ]; do # loop over parameters
     dur=$(( $chunkduration - $overlapduration ))
     ndur=$(( $OMICRON_TRIGGERS_BASE / $dur ))
     duration=$(( $ndur * $dur + $overlapduration ))
-    seg_start=`head -1 ${workdir}/segments.txt | awk '{print $1}'`
-    seg_stop=`awk '/./{line=$0} END{print line}' ${workdir}/segments.txt | awk '{print $2}'`
+    seg_start=`head -1 ${workdir}/segments.txt | awk '{print int($1)}'`
+    seg_stop=`awk '/./{line=$0} END{print line}' ${workdir}/segments.txt | awk '{print int($2)}'`
     seg_start_base=$(( $seg_start / $OMICRON_TRIGGERS_BASE ))
     seg_stop_base=$(( $seg_stop / $OMICRON_TRIGGERS_BASE ))
 
@@ -235,11 +221,5 @@ while [ $p -lt $nproc ]; do # loop over parameters
 
     let "p+=1"
 done
-
-##### make merging jobs
-# TO BE DONE
-
-
-
 
 exit 0

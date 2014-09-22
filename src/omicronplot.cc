@@ -14,11 +14,10 @@ using namespace std;
 int main (int argc, char* argv[]){
 
   // check the argument
-  if(argc!=6){
+  if(argc!=5){
     cerr<<argv[0]<<" usage:"<<endl; 
-    cerr<<argv[0]<<" [title] [outdir] [list of root files] [GPS start] [GPS stop]"<<endl; 
+    cerr<<argv[0]<<" [outdir] [list of root files] [GPS start] [GPS stop]"<<endl; 
     cerr<<endl; 
-    cerr<<" [title]: plot title prefix"<<endl; 
     cerr<<" [outdir]: output directory where to save the plots"<<endl; 
     cerr<<" [list of root files]: list of trigger ROOT files separated by spaces."<<endl; 
     cerr<<" This list can be composed of file path and/or file patterns"<<endl; 
@@ -29,23 +28,20 @@ int main (int argc, char* argv[]){
   }
 
   // outdir
-  string title = (string)argv[1];
-  
-  // outdir
-  string outdir = (string)argv[2];
+  string outdir = (string)argv[1];
   system(("mkdir -p "+outdir).c_str());
 
   // input files
-  string infiles = (string)argv[3];
+  string infiles = (string)argv[2];
    
   // timing
-  int start = atoi(argv[4]);
-  int stop = atoi(argv[5]);
-  string sstart = (string)argv[4];
-  string sstop = (string)argv[5];
+  int start = atoi(argv[3]);
+  int stop = atoi(argv[4]);
+  string sstart = (string)argv[3];
+  string sstop = (string)argv[4];
  
   // input segments
-  ReadTriggerSegments *insegments = new ReadTriggerSegments(infiles,"",0);
+  ReadTriggerMetaData *insegments = new ReadTriggerMetaData(infiles,"",0);
   if(!insegments->GetNFiles()){
     cerr<<"No trigger files for this time segment"<<endl;
     delete insegments;
@@ -59,6 +55,7 @@ int main (int argc, char* argv[]){
     delete insegments;
     return 1;
   }
+  string streamname = insegments->GetStreamName();
   delete insegments;
   
   // input triggers
@@ -76,7 +73,7 @@ int main (int argc, char* argv[]){
   double live = triggers->GetSegments()->GetLiveTime(start,stop);
 
   // make plots
-  triggers->SetTitlePrefix(title+": ");
+  triggers->SetTitlePrefix(streamname+": ");
   triggers->OmicronPlot("MAP",start,stop,outdir+"/map_"+sstart+"_"+sstop+".gif");
   triggers->OmicronPlot("FREQ",start,stop,outdir+"/freq_"+sstart+"_"+sstop+".gif");
   triggers->OmicronPlot("SNR",start,stop,outdir+"/snr_"+sstart+"_"+sstop+".gif");

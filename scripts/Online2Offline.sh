@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Online2Offline.sh
 #
@@ -10,29 +10,27 @@
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "Online2Offline -c[CHANNEL_NAME]"
+    echo "Online2Offline"
+    echo " |__ merge and archive all the online triggers files"
     echo ""
-    echo "Example: Online2Offline -c V1:h_4096Hz"
+    echo "Online2Offline -c [CHANNEL_NAME]"
+    echo " |__ merge and archive all online triggers files for a given channel"
     echo ""
-    echo "TRIGGER SELECTION"
-    echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME] only"
-    echo "                      a pattern can be used"
-    echo "                      all channels if not provided"
     echo ""
-    echo "TIMING"
-    echo "  -d  [DELAY]         time delay to mark files as old [s]"
-    echo "                      Default = '100000'"
+    echo "OPTIONS:"
+    echo "  -c  [CHANNEL_NAME]    channel name (a pattern can be used)"
+    echo "  -d  [DELAY]           time delay to mark files as old [s]"
+    echo "                          Default = '100000'"
+    echo "  -a                    only perform archiving (no online merging)"
+    echo "  -h                    print this help"
     echo ""
-    echo "OUTPUT CONTROL"
-    echo "  -a                  only perform archiving (no online merging)"
-    echo ""
-    echo "  -h                  print this help"
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
     echo ""
 } 
 
 ##### Check the environment
 if [ -z "$OMICRON_ONLINE_TRIGGERS" ]; then
-    echo "Error: The Omicron environment is not set"
+    echo "`basename $0`: The Omicron online environment is not set"
     exit 1
 fi
 
@@ -58,12 +56,13 @@ while getopts ":c:d:ah" opt; do
 	    exit 0
 	    ;;
 	\?)
-	    echo "Invalid option: -$OPTARG"
+	    echo "`basename $0`: Invalid option: -$OPTARG"
 	    echo "type  'Online2Offline -h'  for help"
 	    exit 1
 	    ;;
     esac
 done
+OPTIND=0
 
 ##### timing
 now=`tconvert now`
@@ -71,23 +70,18 @@ oldtime=$(( $now - $delay ))
 now_base=$(( $now / $OMICRON_TRIGGERS_BASE ))
 oldtime_base=$(( $oldtime / $OMICRON_TRIGGERS_BASE ))
 now_base1000=$(( $now / 1000 ))
-echo "Online2Offline: now=$now"
+echo ""
+echo "***************************************************************"
+echo "Online2Offline: now=$now (`tconvert $now`)"
 echo "Online2Offline: archive triggers before $(( $oldtime_base * $OMICRON_TRIGGERS_BASE ))"
+echo "***************************************************************"
 
 ##### select run (based on now!)
-run="NONE"
-for r in $RUN_NAMES; do
-    r_s=${r}_START
-    r_e=${r}_END
-    if [[ $now -ge ${!r_s} && $now -lt ${!r_e} ]]; then
-	run=$r
-	break;
-    fi
-done
+. ${GWOLLUM_SCRIPTS}/getrun.sh -g $now;
 
-if [ $run = "NONE" ]; then
-    echo "Invalid time: not configured for this time"
-    echo "Possible runs = $RUN_NAMES"
+if [ $RUN = "NONE" ]; then
+    echo "`basename $0`: Invalid time: not configured for this time"
+    echo "               Possible runs = $RUN_NAMES"
     exit 1 
 fi
 
@@ -132,9 +126,9 @@ for chandir in ${channel}; do
     echo "                archiving online triggers..."
     b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
     channel_name=${chandir##*/}
-    mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel_name}
+    mkdir -p ${OMICRON_TRIGGERS}/${RUN}/${channel_name}
     while [ $b -lt $oldtime_base ]; do
-	triggermerge.exe ${OMICRON_TRIGGERS}/${run}/${channel_name} "${chandir}/*_${b}*_*.root"
+	triggermerge.exe ${OMICRON_TRIGGERS}/${RUN}/${channel_name} "${chandir}/*_${b}*_*.root"
 	rm -f ${chandir}/*_${b}*_*.root
 	b=$(( $b + 1 ))
     done

@@ -9,9 +9,56 @@
 
 here=`pwd`
 
+echo "This tool is not available for now."
+exit 0
+
+printhelp(){
+    echo ""
+    echo "Usage:"
+    echo "GetOmicronWeb -c [CHANNEL_NAME] -s [GPS_START] -e [GPS_END]"
+    echo " |__ web report for 'standard' Omicron triggers of a given channel and between 2 GPS times"
+    echo ""
+    echo "GetOmicronWeb -t \"[FILE_PATTERN]\" -s [GPS_START] -e [GPS_END]"
+    echo " |__ web report for triggers saved in a list of root files"
+    echo "     designated by a file pattern and between 2 GPS times"
+    echo ""
+    echo "For standard triggers, [GPS_START] and [GPS_END] should belong to the same run"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -c  [CHANNEL_NAME]    channel name. Default = V1:h_4096Hz"
+    echo "  -t  \"[FILE_PATTERN]\"  the user provides his own trigger files"
+    echo "                        The file pattern is [TRIGGER_PATTERN]"
+    echo "  -s  [GPS_START]       starting GPS time. Required!"
+    echo "  -e  [GPS_END]         stopping GPS time. Required!"
+    echo ""
+    echo "OUTPUT OPTIONS"
+    echo "  -d  [OUTDIR]          output directory where to save plots"
+    echo "                        Default = current directory"
+    echo "  -n  [HTMLPATH]        add -next- button pointing to [HTMLPATH]"
+    echo "  -p  [HTMLPATH]        add -previous- button pointing to [HTMLPATH]"
+    echo "  -u  [HTMLPATH]        add -up- button pointing to [HTMLPATH]"
+    echo "  -o  [DAYPATH]/        add hour links found in [DAYPATH]/"
+    echo "  -w                    full web architecture flag"
+    echo ""
+    echo "  -l                    list available channels"
+    echo "  -h                    print this help"
+    echo ""
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
+    echo ""
+} 
+
+##### Check the environment
+if [ -z "$OMICRONROOT" ]; then
+    echo "Error: The Omicron environment is not set"
+    exit 1
+fi
+
 ##### default options
-channel="required" # channel name
-outdir=`pwd` # output directory
+channel="V1:h_4096Hz"  # channel name
+outdir=`pwd`        # output directory
+triggerfiles="NONE" # user trigger files
+tmin=0
+tmax=0
 next=""
 previous=""
 up=""
@@ -19,55 +66,23 @@ hlinks=""
 fullweb="no"
 triggerfiles="NONE" # user trigger files
 
-printhelp(){
-    echo ""
-    echo "Usage:"
-    echo "GetOmicronWeb -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
-    echo ""
-    echo "Example: GetOmicronWeb -ch_4096Hz 934228815 934232415"
-    echo ""
-    echo "TRIGGER SELECTION OPTIONS"
-    echo "  -c  [CHANNEL_NAME]  triggers from channel [CHANNEL_NAME]"
-    echo "                      this option is required"
-    echo "  -t  [TRIGGER_FILES] the user provides his own trigger files"
-    echo "                      The file pattern is [TRIGGER_FILES]"
-    echo ""
-    echo "OUTPUT CONTROL"
-    echo "  -d  [OUTDIR]        _full_ path to output directory"
-    echo "                      Default = current directory"
-    echo "  -n  [HTMLPATH]      add -next- button pointing to [HTMLPATH]"
-    echo "  -p  [HTMLPATH]      add -previous- button pointing to [HTMLPATH]"
-    echo "  -u  [HTMLPATH]      add -up- button pointing to [HTMLPATH]"
-    echo "  -o  [DAYPATH]/      add hour links found in [DAYPATH]/"
-    echo "  -w                  full web architecture flag"
-    echo ""
-    echo "  -h                  print this help"
-    echo ""
-} 
-
-##### Check the environment
-if [[ -z "$OMICRONROOT" ]]; then
-    echo "Error: The Omicron environment is not set"
-    exit 1
-fi
-
-##### needs argument
-if [ $# -lt 1 ]; then
-    printhelp
-    exit 1
-fi
-
 ##### read options
-while getopts ":c:d:n:t:p:u:o:wh" opt; do
+while getopts ":c:t:s:e:d:n:p:u:o:wlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
 	    ;;
-	d)
-	    outdir="$OPTARG"
-	    ;;
 	t)
 	    triggerfiles="$OPTARG"
+	    ;;
+	s)
+	    tmin=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
+	e)
+	    tmax=`echo $OPTARG | awk '{print int($1)}'`
+	    ;;
+	d)
+	    outdir="$OPTARG"
 	    ;;
 	n)
 	    next="$OPTARG"
@@ -84,86 +99,48 @@ while getopts ":c:d:n:t:p:u:o:wh" opt; do
 	w)
 	    fullweb="yes"
 	    ;;
+	l)
+	    for run in $RUN_NAMES; do
+		echo ""
+		GetOmicronChannels.sh -v -r $run
+	    done
+	    exit 0
+	    ;;
 	h)
 	    printhelp
 	    exit 0
 	    ;;
 	\?)
-	    echo "Invalid option: -$OPTARG"
-	    echo "type  'GetOmicronWeb.sh -h'  for help"
+	    echo "`basename $0`: Invalid option: -$OPTARG"
+	    echo "type  'GetOmicronWeb -h'  for help"
 	    exit 1
 	    ;;
     esac
 done
+OPTIND=1
 
-##### gps interval
-shift $(($OPTIND - 1))
-tmin=`echo $1 | awk '{print int($1)}'`
-tmax=`echo $2 | awk '{print int($1)}'`
-OPTIND=0
+##### check outdir
+if [ ! -d $outdir ] ; then
+    echo "`basename $0`: the output directory $outdir cannot be found"
+    echo "type  'GetOmicronWeb -h'  for help"
+    exit 1
+fi
 
 ##### check timing
-if [ $tmin -lt 700000000 ]; then
-    echo "Invalid option: '$tmin' is not a reasonable starting time"
+if [ $tmin -eq 0 ]; then
+    echo "`basename $0`: A starting time is required"
+    echo "type  'GetOmicronWeb -h'  for help"
+    exit 1
+fi
+if [ $tmax -eq 0 ]; then
+    echo "`basename $0`: A stopping time is required"
     echo "type  'GetOmicronWeb -h'  for help"
     exit 1
 fi
 if [ $tmax -le $tmin ]; then
-    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
+    echo "`basename $0`: the time interval '$tmin-$tmax' is not reasonable"
     echo "type  'GetOmicronWeb -h'  for help"
     exit 1
-fi
-
-##### channel is required
-if [ "$channel" = "required" ]; then
-    echo "GetOmicronWeb: the channel name is required with the -c option"
-    echo "type  'GetOmicronWeb -h'  for help"
-    exit 1
-fi
-
-##### check outdir
-if [ ! -d $outdir ] ; then
-    echo "Invalid option: the output directory $outdir cannot be found"
-    echo "type  'GetOmicronWeb.sh'  for help"
-    exit 1
-fi
-
-##### Standard triggers
-if [ "$triggerfiles" = "NONE" ]; then
-
-    # Check the trigger environment
-    if [[ -z "$OMICRON_TRIGGERS" ]]; then
-	echo "Error: The Omicron trigger environment is not set"
-	exit 1
-    fi
-    
-    # select run
-    run="NONE"
-    for r in $RUN_NAMES; do
-	r_s=${r}_START
-	r_e=${r}_END
-	if [[ $tmin -ge ${!r_s} && $tmin -lt ${!r_e} ]]; then
-	    if [[ $tmax -gt ${!r_s} && $tmax -le ${!r_e} ]]; then
-		run=$r
-		break;
-	    fi
-	fi
-    done
-    if [ $run = "NONE" ]; then
-	echo "Invalid GPS times: the time interval must be entirely contained in a single run:"
-	echo "Possible runs = $RUN_NAMES"
-	exit 1 
-    fi
-
-    # get available channels
-    . GetOmicronChannels.sh -r $run > /dev/null 2>&1
-
-    # check channel is available
-    if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
-	echo "Invalid option: channel '${channel}' is not available"
-	echo "type  'GetOmicronWeb -h'  for help"
-	exit 1
-    fi
 fi
 
 ##### build directory
@@ -181,9 +158,9 @@ date -u > ${outdir}/${channel}/plot.log.txt 2>&1
 
 ##### make plots
 if [ "$triggerfiles" = "NONE" ]; then
-    GetOmicronPlots.sh -c${channel} -d${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
+    GetOmicronPlots.sh -c ${channel} -d ${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
 else
-    GetOmicronPlots.sh -c${channel} -t "$triggerfiles" -d${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
+    GetOmicronPlots.sh -t "$triggerfiles" -d ${outdir}/${channel} -s $tmin -e $tmax >> ${outdir}/${channel}/plot.log.txt 2>&1
 fi
 
 ##### ending date

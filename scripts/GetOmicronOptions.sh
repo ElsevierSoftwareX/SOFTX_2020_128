@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # GetOmicronOptions.sh
 #
@@ -8,31 +8,42 @@
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetOmicronOptions -c [CHANNEL_FILE]"
+    echo "GetOmicronOptions -c [CHANNEL_FILE] -f [FFL_FILE]"
+    echo " |__ generates Omicron parameter files for an offline search."
     echo ""
-    echo "This script generates Omicron parameter files."
+    echo "GetOmicronOptions -c [CHANNEL_FILE] -o"
+    echo " |__ generates Omicron parameter files for an online search."
     echo ""
-    echo "  -c  [CHANNEL_FILE]  path to a text file listing all the channels to process"
-    echo "                      Different settings are available and are specified by"    
-    echo "                      a keyword given after the channel name:"
-    echo "                         STD:  8    to 2048Hz, SNR>8 (default)"
-    echo "                         STD2: 8    to 1024Hz, SNR>8"
-    echo "                         LOW:  0.1  to 64Hz,   SNR>8"
-    echo "                         HIGH: 1024 to 8192Hz, SNR>8"
-    echo "                         FINE: 8    to 4096Hz, SNR>6, fine tiling"
-    echo "                         GW:   32   to 4096Hz, SNR>5, fine tiling"
+    echo "The input channel file should contain a list of channels to process, one channel per line."
+    echo "A keyword following the channel name can be used to select a pre-defined parameter set"
+    echo "listed below. By default, the STD parameter set is used."
     echo ""
-    echo "  -o                  flag for online analyses"
-    echo "                      chunks are forced ro 16s and overlaps to 2s"
-    echo "                      (except for LOW)"
+    echo "KEYWORD  FMIN[Hz]  FMAX[Hz]  SNR_THRESHOLD        OTHER"
+    echo "-----------------------------------------------------------"
+    echo " STD         8      2048             8"
+    echo " STD2        8      1024             8"
+    echo " LOW       0.1        64             8"
+    echo " HIGH     1024      8192             8"
+    echo " FINE        8      4096             6         fine tiling"
+    echo " GW         32      4096             5         fine tiling"
     echo ""
-
-    echo "  -d  [TRIG_OUTDIR]   trigger output directory"
-    echo "  -f  [FFL_FILE]      path to a FFL/LCF file to consider"
+    echo "The '-o' flag should be used for online analyses:"
+    echo "Chunks are forced to 16s and overlaps to 2s (except for LOW)"
     echo ""
-    echo "  -X                  add XML output format with time clustering"
+    echo "OPTIONS:"
+    echo "  -c  [CHANNEL_FILE]    Channel file. Required option"
+    echo "  -o                    Flag for online analyses"
     echo ""
-    echo "  -h                  prints this help message"
+    echo "PARAMETER OPTIONS:"
+    echo "  -d  [TRIG_OUTDIR]     Trigger output directory"
+    echo "                        Default: current directory"
+    echo "  -f  [FFL_FILE]        Path to a FFL/LCF file to consider"
+    echo "                        This option is required without the '-o' flag"
+    echo "  -X                    Add XML output format with time clustering"
+    echo ""
+    echo "  -h                    Print this help"
+    echo ""
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
     echo ""
 } 
 
@@ -179,7 +190,7 @@ fi
 online=0
 chanfile="./no.chance.this.file.exists"
 fflfile="./no.chance.this.file.exists"
-outdir="."
+outdir=`pwd`
 outxml=0
 
 ##### read options
@@ -191,21 +202,21 @@ while getopts ":oc:f:d:Xh" opt; do
 	c)
 	    chanfile="$OPTARG"
 	    if [ ! -e $chanfile ]; then
-		echo "GetOmicronOptions: the channel file $chanfile cannot be found"
+		echo "`basename $0`: the channel file $chanfile cannot be found"
 		exit 2
 	    fi
 	    ;;
 	f)
 	    fflfile="$OPTARG"
 	    if [ ! -e $fflfile ]; then
-		echo "GetOmicronOptions: the FFL file $fflfile cannot be found"
+		echo "`basename $0`: the FFL file $fflfile cannot be found"
 		exit 2
 	    fi
 	    ;;
 	d)
 	    outdir="$OPTARG"
 	    if [ ! -d $outdir ]; then
-		echo "GetOmicronOptions: the output directory $outdir cannot be found"
+		echo "`basename $0`: the output directory $outdir cannot be found"
 		exit 2
 	    fi
 	    ;;
@@ -223,12 +234,12 @@ while getopts ":oc:f:d:Xh" opt; do
 	    ;;
     esac
 done
-OPTIND=0
+OPTIND=1
 
 
 ##### check option file
 if [ ! -e $chanfile ]; then
-    echo "GetOmicronOptions: you must provide a channel file"
+    echo "`basename $0`: you must provide a channel file"
     echo "type  'GetOmicronOptions.sh -h'  for help"
     exit 3
 fi
@@ -236,157 +247,56 @@ fi
 ##### ffl file is required for offline analysis
 if [ $online -eq 0 ]; then # offline
     if [ ! -e $fflfile ]; then
-	echo "GetOmicronOptions: a FFL file is required"
+	echo "`basename $0`: a FFL file is required"
 	exit 2
     fi
 fi
 
 ##### user channel lists
-awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.getomicronoptions.std
-awk '$2=="STD2" {print $1}' $chanfile | sort | uniq          > ./channel.getomicronoptions.std2
-awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.getomicronoptions.low
-awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.getomicronoptions.high
-awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.getomicronoptions.gw
-awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.getomicronoptions.fine
+awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.goo.STD
+awk '$2=="STD2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD2
+awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.goo.LOW
+awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.goo.HIGH
+awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.goo.GW
+awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.goo.FINE
 
 rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_FINE_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
 
 ############## STD SETTING
-if [ -s ./channel.getomicronoptions.std ]; then
+for conf in "STD STD2 LOW HIGH GW FINE"; do
+    if [ ! -s ./channel.goo.$conf ]; then continue; fi
     n=0
     p=0
     channel_list=""
-    nchanmax=6 # maximum number of channels per option file
+    
+    # maximum number of channels per option file
+    if [ "$conf" = "STD" ];    then nchanmax=6
+    elif [ "$conf" = "STD2" ]; then nchanmax=15
+    elif [ "$conf" = "LOW" ]; then nchanmax=20
+    elif [ "$conf" = "HIGH" ]; then nchanmax=4
+    elif [ "$conf" = "FINE" ]; then nchanmax=5
+    else nchanmax=5 #GW
+    fi
+    
     while read channel; do
 	channel_list="$channel $channel_list"
 	n=$(($n+1))
 	# this is one option file
 	if [ $n -eq $nchanmax ]; then
-	    echo "STD_${p} = $channel_list"
-	    printoption "STD" $p "$channel_list" $online $fflfile $outdir $outxml
+	    echo "${conf}_${p} = $channel_list"
+	    printoption "${conf}" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
 	    n=0
 	fi
 	
-    done < ./channel.getomicronoptions.std;
-    echo "STD_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "STD" $p "$channel_list" $online $fflfile $outdir $outxml; fi
-fi
+    done < ./channel.goo.${conf};
+    echo "${conf}_${p} = $channel_list"
+    if [ $n -gt 0 ]; then printoption "${conf}" $p "$channel_list" $online $fflfile $outdir $outxml; fi
+done
 
-############## STD2 SETTING
-if [ -s ./channel.getomicronoptions.std2 ]; then
-    n=0
-    p=0
-    channel_list=""
-    nchanmax=15 # maximum number of channels per option file
-    while read channel; do
-	channel_list="$channel $channel_list"
-	n=$(($n+1))
-	# this is one option file
-	if [ $n -eq $nchanmax ]; then
-	    echo "STD2_${p} = $channel_list"
-	    printoption "STD2" $p "$channel_list" $online $fflfile $outdir $outxml
-	    channel_list=""
-	    p=$(($p+1))
-	    n=0
-	fi
-	
-    done < ./channel.getomicronoptions.std2;
-    echo "STD2_${p} = $channel_list"
-    printoption "STD2" $p"$channel_list" $online $fflfile $outdir $outxml
-fi
-
-############## LOW SETTING
-if [ -s ./channel.getomicronoptions.low ]; then
-    n=0
-    p=0
-    channel_list=""
-    nchanmax=20 # maximum number of channels per option file
-    while read channel; do
-	channel_list="$channel $channel_list"
-	n=$(($n+1))
-	# this is one option file
-	if [ $n -eq $nchanmax ]; then
-	    echo "LOW_${p} = $channel_list"
-	    printoption "LOW" $p "$channel_list" $online $fflfile $outdir $outxml
-	    channel_list=""
-	    p=$(($p+1))
-	    n=0
-	fi
-	
-    done < ./channel.getomicronoptions.low;
-    echo "LOW_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "LOW" $p "$channel_list" $online $fflfile $outdir $outxml; fi
-fi
-############## HIGH SETTING
-if [ -s ./channel.getomicronoptions.high ]; then
-    n=0
-    p=0
-    channel_list=""
-    nchanmax=4 # maximum number of channels per option file
-    while read channel; do
-	channel_list="$channel $channel_list"
-	n=$(($n+1))
-	# this is one option file
-	if [ $n -eq $nchanmax ]; then
-	    echo "HIGH_${p} = $channel_list"
-	    printoption "HIGH" $p "$channel_list" $online $fflfile $outdir $outxml
-	    channel_list=""
-	    p=$(($p+1))
-	    n=0
-	fi
-	
-    done < ./channel.getomicronoptions.high;
-    echo "HIGH_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "HIGH" $p "$channel_list" $online $fflfile $outdir $outxml; fi
-fi
-############## FINE SETTING
-if [ -s ./channel.getomicronoptions.fine ]; then
-    n=0
-    p=0
-    channel_list=""
-    nchanmax=5 # maximum number of channels per option file
-    while read channel; do
-	channel_list="$channel $channel_list"
-	n=$(($n+1))
-	# this is one option file
-	if [ $n -eq $nchanmax ]; then
-	    echo "FINE_${p} = $channel_list"
-	    printoption "FINE" $p "$channel_list" $online $fflfile $outdir $outxml
-	    channel_list=""
-	    p=$(($p+1))
-	    n=0
-	fi
-	
-    done < ./channel.getomicronoptions.fine;
-    echo "FINE_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "FINE" $p "$channel_list" $online $fflfile $outdir $outxml; fi
-fi
-############## GW SETTING
-if [ -s ./channel.getomicronoptions.gw ]; then
-    n=0
-    p=0
-    channel_list=""
-    nchanmax=5 # maximum number of channels per option file
-    while read channel; do
-	channel_list="$channel $channel_list"
-	n=$(($n+1))
-	# this is one option file
-	if [ $n -eq $nchanmax ]; then
-	    echo "GW_${p} = $channel_list"
-	    printoption "GW" $p "$channel_list" $online $fflfile $outdir $outxml
-	    channel_list=""
-	    p=$(($p+1))
-	    n=0
-	fi
-	
-    done < ./channel.getomicronoptions.gw;
-    echo "GW_${p} = $channel_list"
-    if [ $n -gt 0 ]; then printoption "GW" $p "$channel_list" $online $fflfile $outdir $outxml; fi
-fi
 
 # cleaning
-rm -f ./channel.getomicronoptions.*
+rm -f ./channel.goo.*
 
 exit 0

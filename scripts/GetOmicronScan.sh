@@ -2,82 +2,82 @@
 #
 # GetOmicronScan.sh
 #
-# generate omicron scan
+# generate an omicron scan
 #
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-##### default options
-here=`pwd`
-main="h_4096Hz" # channel name
-outdir=`pwd` # output directory
-snrmin=8
-parameterfile=""
-tagname="NONE"
-chandir="NONE"
-tcenter=0
-
 printhelp(){
     echo ""
     echo "Usage:"
+    echo "GetOmicronScan -g [GPS_CENTER]"
+    echo " |__ scans 'standard' Omicron triggers around a given GPS time."
+    echo ""
     echo "GetOmicronScan -m [MAIN_CHANNEL] -g [GPS_CENTER]"
+    echo " |__ scans 'standard' Omicron triggers around a given GPS time."
+    echo "     A main channel is designated to be plotted first"
     echo ""
-    echo "TRIGGER SELECTION OPTIONS"
-    echo "  -g  [GPS_CENTER]     GPS to scan"
-    echo "  -s  [SNRMIN]         print aux. scan only if SNR > [SNRMIN]"
-    echo "                       Default = 8"
-    echo "  -t  [TAGNAME]        Predefined channel selection (Virgo only):"
-    echo "                       [TAGNAME] = std  -->  standard setting"
-    echo "                       [TAGNAME] = min  -->  minimal setting with only the GW channels"
-    echo "                       [TAGNAME] = sel  -->  only a \"happy few\" channels are selected"
-    echo "  -p  [PARAMETER_FILE] if given, this option allows you to scan a user-defined selection"
-    echo "                       of channels"
-    echo "                       [PARAMETER_FILE] is the path to a user parameter file"
-    echo "                       This file should contain a single column with the list"
-    echo "                       of channels to scan"
-    echo "                       When this option is given the option '-t' is ignored"
+    echo "GetOmicronScan -r [TRIGGER_DIR] -m [MAIN_CHANNEL] -g [GPS_CENTER]"
+    echo " |__ scans Omicron triggers around a given GPS time."
+    echo "     The trigger files are stored in [TRIGGER_DIR]."
+    echo "     A main channel is designated to be plotted first. "
     echo ""
-    echo "  -r  [TRIGGER_DIR]    The user can provide his own directory where the triggers are located"
-    echo "                       [TRIGGER_DIR] must contain subdirectories for each channels:"
-    echo "                       [TRIGGER_DIR]/channel_1/"
-    echo "                       [TRIGGER_DIR]/channel_2/"
-    echo "                       ..."
-    echo "                       [TRIGGER_DIR]/channel_N/"
+    echo "Warning: When a trigger directory is specified,"
+    echo "         it must contain subdirectories for each channel. For example:"
+    echo "         [TRIGGER_DIR]/channel_1/"
+    echo "         [TRIGGER_DIR]/channel_2/"
+    echo "         ..."
+    echo "         [TRIGGER_DIR]/channel_N/"
     echo ""
-    echo "OUTPUT CONTROL"
-    echo "  -m  [MAIN_CHANNEL]   main channel: always plotted"
-    echo "                       Default = h_4096Hz"
-    echo "  -d  [OUTDIR]         path to output directory"
-    echo "                       Default = current directory"
+    echo "OPTIONS:"
+    echo "  -g  [GPS_CENTER]      Central GPS time. required"
+    echo "  -r  [TRIGGER_DIR]     The user can provide his own directory where the triggers are located"
+    echo "  -m  [MAIN_CHANNEL]    Main channel: always plotted and plotted first"
+    echo "                        Default = V1:h_4096Hz"
+    echo "  -d  [OUTDIR]          Path to output directory"
+    echo "                        Default = current directory"
+    echo "  -x  [SNRMIN]          Print a channel scan only if SNR > [SNRMIN]"
+    echo "  -p  [PARAMETER_FILE]  If given, this option allows you to scan a selection of channels"
+    echo "                        [PARAMETER_FILE] is the path to a user parameter file"
+    echo "                        This file should contain a single column with the list"
+    echo "                        of channels to scan"
+    echo "                        When this option is given the option '-t' is ignored"
+
+    echo "  -h                    print this help"
     echo ""
-    echo "  -h                   print this help"
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
     echo ""
 } 
 
-
 ##### Check the environment
-if [[ -z "$OMICRONROOT" ]]; then
+if [ -z "$OMICRONROOT" ]; then
     echo "Error: The Omicron environment is not set"
     exit 1
 fi
 
+##### default options
+here=`pwd`
+main="V1:h_4096Hz" # channel name
+outdir=`pwd` # output directory
+snrmin=8
+parameterfile="NONE"
+chandir="NONE"
+tcenter=0
+
 ##### read options
-while getopts ":g:m:s:p:d:t:r:h" opt; do
+while getopts ":g:m:x:p:d:r:h" opt; do
     case $opt in
 	g)
-	    tcenter="$OPTARG"
+	    tcenter=`echo "$OPTARG" | awk '{printf "%.3f", $1}'`
 	    ;;
 	m)
 	    main="$OPTARG"
 	    ;;
-	s)
+	x)
 	    snrmin=`echo $OPTARG | awk '{print int($1)}'`
 	    ;;
 	p)
 	    parameterfile="$OPTARG"
-	    ;;
-	t)
-	    tagname="$OPTARG"
 	    ;;
 	r)
 	    chandir="$OPTARG"
@@ -96,14 +96,24 @@ while getopts ":g:m:s:p:d:t:r:h" opt; do
 	    ;;
     esac
 done
+OPTIND=0
 
-##### format gps
-tcenter=`echo $tcenter | awk '{printf "%.3f", $1}'`
+##### timing
 tcenter_=`echo $tcenter | awk '{print int($1)}'`
+dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_}`
+tstart=$(( $tcenter_ - 100 ))
+tstop=$(( $tcenter_ + 100 ))
 
 ##### check timing
 if [ $tcenter_ -lt 700000000 ]; then
-    echo "Invalid option: '$tcenter' is not a reasonable central time"
+    echo "`basename $0`: '$tcenter' is not a reasonable central time"
+    echo "type  'GetOmicronScan -h'  for help"
+    exit 1
+fi
+
+##### check outdir
+if [ ! -d $outdir ] ; then
+    echo "`basename $0`: the output directory $outdir cannot be found"
     echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
@@ -111,112 +121,45 @@ fi
 ##### scan user channel directory
 if [ ! "$chandir" = "NONE" ]; then
     if [ ! -d $chandir ] ; then
-	echo "Invalid option: the channel directory $chandir cannot be found"
+	echo "`basename $0`: the channel directory $chandir cannot be found"
 	echo "type  'GetOmicronScan -h'  for help"
 	exit 1
     fi
     cd $chandir
     for dir in *; do
 	if [ ! -d ${dir} ]; then continue; fi
+	if [ ! "$(ls -A $dir)" ]; then continue; fi
 	OMICRON_CHANNELS="${OMICRON_CHANNELS} ${dir}"
     done
     echo "channel candidates: $OMICRON_CHANNELS"
     cd $here
-
 else
-    ##### select run
-    run="NONE"
-    for r in $RUN_NAMES; do
-	r_s=${r}_START
-	r_e=${r}_END
-	if [[ $tcenter_ -ge ${!r_s} && $tcenter_ -lt ${!r_e} ]]; then
-	    run=$r
-	    break;
-	fi
-    done
-    
-    if [ $run = "NONE" ]; then
-	echo "Invalid GPS time"
-	exit 1 
-    fi
-
-    ##### get available channels
-    . GetOmicronChannels.sh -r $run > /dev/null 2>&1
+    # get standard channels
+    . ${OMICRON_SCRIPTS}/GetOmicronChannels.sh -r $tcenter_
 fi
+
 ##### check main channel is available
 if ! echo "$OMICRON_CHANNELS" | grep -q "$main"; then
-    echo "Invalid option: channel '${main}' is not available"
-    echo "type  'GetOmicronScan -h'  for help"
-    exit 1
-fi
-
-##### elaborate timing
-dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_}`
-tstart=$(( $tcenter_ - 100 ))
-tstop=$(( $tcenter_ + 100 ))
-
-##### check outdir
-if [ ! -d $outdir ] ; then
-    echo "Invalid option: the output directory $outdir cannot be found"
+    echo "`basename $0`: the main channel '${main}' is not available"
     echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
 
 ##### check parameter file if given
-if [ ! $parameterfile = "" ] ; then
+if [ ! "$parameterfile" = "NONE" ] ; then
     if [ ! -e $parameterfile ] ; then
-	echo "Invalid option: the parameter file $parameterfile cannot be found"
+	echo "`basename $0`: the parameter file $parameterfile cannot be found"
 	echo "type  'GetOmicronScan -h'  for help"
 	exit 1
     fi
     if [ ! -s $parameterfile ] ; then
-	echo "Invalid option: the parameter file $parameterfile is empty"
+	echo "`basename $0`: the parameter file $parameterfile is empty"
 	echo "type  'GetOmicronScan -h'  for help"
 	exit 1
     fi
-fi
 
-##### get parameter file from tag
-if [ "$parameterfile" = "" ]; then
-    if [ "$tagname" = "std" ]; then
-	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.std.txt ]; then
-	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.std.txt
-	else
-	    echo "Invalid option: no 'std' parameter file for ${run}"
-	    echo "type  'GetOmicronScan -h'  for help"
-	    exit 1
-	fi
-
-    elif [ "$tagname" = "min" ]; then
-	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.min.txt ]; then
-	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.min.txt
-	else
-	    echo "Invalid option: no 'min' parameter file for ${run}"
-	    echo "type  'GetOmicronScan -h'  for help"
-	    exit 1
-	fi
-
-    elif [ "$tagname" = "sel" ]; then
-	if [ -e ${OMICRON_PARAMETERS}/scan.parameters.${run}.sel.txt ]; then
-	    parameterfile=${OMICRON_PARAMETERS}/scan.parameters.${run}.sel.txt
-	else
-	    echo "Invalid option: no 'sel' parameter file for ${run}"
-	    echo "type  'GetOmicronScan -h'  for help"
-	    exit 1
-	fi
-	
-    else # scan everything
-	tagname=$tagname
-    fi
-fi
-
-##### update channel list if parameter file is given
-if [ ! $parameterfile = "" ] ; then
-    OMICRON_CHANNELS_NEW=""
-    while read line; do
-	OMICRON_CHANNELS_NEW="$OMICRON_CHANNELS_NEW $line"
-    done < $parameterfile
-    OMICRON_CHANNELS=$OMICRON_CHANNELS_NEW
+    # update channel list if parameter file is given
+    OMICRON_CHANNELS=`cat $parameterfile | awk '{printf "%s ", $1}'`
 fi
 
 ##### build directory

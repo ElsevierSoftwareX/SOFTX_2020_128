@@ -2,179 +2,171 @@
 #
 # GetTriggerFileList.sh
 #
-# list an optimized list of trigger files
+# returns optimized list of trigger files
 #
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-##### default options
-channel="h_4096Hz" # channel name
-outdir=`pwd` # output directory
-
 printhelp(){
     echo ""
     echo "Usage:"
-    echo "GetTriggerFileList -c[CHANNEL_NAME] [GPS_START] [GPS_STOP]"
+    echo "GetTriggerFileList -v -c [CHANNEL_NAME] -s [GPS_START] -e [GPS_END]"
+    echo " |__ prints the list of files containing Omicron triggers"
+    echo "     of a given channel and between 2 GPS times"
     echo ""
-    echo "Example: GetTriggerFileList -ch_4096Hz 934228815 934232415"
+    echo "When sourcing this script, the file list is stored in the bash variable \$OMICRON_FILELIST"
     echo ""
-    echo "TRIGGER SELECTION OPTIONS"
-    echo "  -c  [CHANNEL_NAME]  trigger files for channel [CHANNEL_NAME]"
-    echo "                      Default = 'h_4096Hz'"
+    echo "When online trigger files are concerned, they are copied in a temporary directory."
     echo ""
-    echo "OUTPUT CONTROL"
-    echo "  -h                  print this help"
+    echo "[GPS_START] and [GPS_END] should belong to the same run"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -c  [CHANNEL_NAME]    channel name. Default = V1:h_4096Hz"
+    echo "  -s  [GPS_START]       starting GPS time"
+    echo "  -e  [GPS_END]         stopping GPS time"
+    echo "  -v                    be verbose"
+    echo "  -h                    print this help"
+    echo ""
+    echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
     echo ""
 } 
 
 ##### Check the Omicron environment
-if [[ -z "$OMICRONROOT" ]]; then
-    echo "Error: The Omicron environment is not set"
+if [ -z "$OMICRONROOT" ]; then
+    echo "`basename $0`: The Omicron environment is not set"
     exit 1
 fi
 
-##### needs argument
-if [ $# -lt 1 ]; then
-    printhelp
-    exit 1
-fi
+##### default options
+gtf_channel="V1:h_4096Hz"
+gtf_tmin=0
+gtf_tmax=0
+gtf_verbose=0
+OMICRON_FILELIST=""
+export OMICRON_FILELIST
 
 ##### read options
-while getopts ":c:h" opt; do
-    case $opt in
+while getopts ":c:s:e:vh" gtf_opt; do
+    case $gtf_opt in
 	c)
-	    channel="$OPTARG"
+	    gtf_channel="$OPTARG"
 	    ;;
+        s)
+	    gtf_tmin=`echo $OPTARG | awk '{print int($1)}'`
+            ;;
+        e)
+	    gtf_tmax=`echo $OPTARG | awk '{print int($1)}'`
+            ;;
+        v)
+	    gtf_verbose=1
+            ;;
 	h)
 	    printhelp
 	    exit 0
 	    ;;
 	\?)
-	    echo "Invalid option: -$OPTARG"
-	    echo "type  'GetTriggerFileList.sh -h'  for help"
+	    echo "`basename $0`: Invalid option: -$OPTARG"
 	    exit 1
 	    ;;
     esac
 done
-
-##### gps interval
-shift $(($OPTIND - 1))
-tmin=`echo $1 | awk '{print int($1)}'`
-tmax=`echo $2 | awk '{print int($1)}'`
-OPTIND=0
-
-##### check timing
-if [ $tmin -lt 700000000 ]; then
-    echo "Invalid option: '$tmin' is not a reasonable starting time"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-if [ $tmax -le $tmin ]; then
-    echo "Invalid option: the time interval '$tmin-$tmax' is not reasonable"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-
-##### Check the trigger environment
-if [[ -z "$OMICRON_TRIGGERS" ]]; then
-    echo "Error: The Omicron trigger environment is not set"
-    exit 1
-fi
-
-##### select run
-run="NONE"
-for r in $RUN_NAMES; do
-    r_s=${r}_START
-    r_e=${r}_END
-    if [[ $tmin -ge ${!r_s} && $tmin -lt ${!r_e} ]]; then
-	if [[ $tmax -gt ${!r_s} && $tmax -le ${!r_e} ]]; then
-	  run=$r
-	  break;
-	fi
-    fi
-done
-
-if [ $run = "NONE" ]; then
-    echo "Invalid GPS times: the time interval must be entirely contained in a single run:"
-    echo "Possible runs = $RUN_NAMES"
-    exit 1 
-fi
-if [ ! -d ${OMICRON_TRIGGERS}/${run} ]; then
-    echo "`basename $0`: the triggers for the run $run do not exist"
-    exit 1
-fi
-
-
-##### get available channels
-. GetOmicronChannels.sh -r $run > /dev/null 2>&1
-
-##### check channel is available
-if ! echo "$OMICRON_CHANNELS" | grep -q "$channel"; then
-    echo "Invalid option: channel '${channel}' is not available"
-    echo "type  'GetTriggerFileList -h'  for help"
-    exit 1
-fi
-
-##### optimize timing
-tmin_base=$(( $tmin / $OMICRON_TRIGGERS_BASE - 1 ))
-tmax_base=$(( $tmax / $OMICRON_TRIGGERS_BASE + 1 ))
+OPTIND=1
 
 #### clean tmp dir with old trigger directories
-now=`tconvert now`
-for dir in ${TMP}/triggers.*.*; do
-    if [ -d $dir ]; then
-	g=`echo $dir | awk -F. '{print $((NF -1))}'`
-	tdiff=$(( $now - $g ))
-	if [ $tdiff -gt 5000 ]; then rm -fr $dir > /dev/null 2>&1; fi
+gtf_now=`tconvert now`
+for gtf_dir in ${TMP}/triggers.*.*; do
+    if [ -d $gtf_dir ]; then
+	gtf_g=`echo $gtf_dir | awk -F. '{print $((NF -1))}'`
+	gtf_tdiff=$(( $gtf_now - $gtf_g ))
+	if [ $gtf_tdiff -gt 10000 ]; then rm -fr $gtf_dir > /dev/null 2>&1; fi
     fi
 done
 
-#### tmp dir for online files
-tmpdir=${TMP}/triggers.${now}.${RANDOM}
-mkdir -p ${tmpdir}; rm -f ${tmpdir}/*.root > /dev/null 2>&1
+##### get run
+if [ $gtf_tmin -eq "0" ]; then
+    gtf_tmin=$gtf_tmax
+fi
+if [ $gtf_tmax -eq "0" ]; then
+    gtf_tmax=$gtf_tmin
+fi
+. ${GWOLLUM_SCRIPTS}/getrun.sh -g $gtf_tmax;
 
-##### map the trigger directory
-triggers=""
-first=1
-while [ $tmin_base -le $tmax_base ]; do
+##### optimize timing
+gtf_tmin_base=$(( $gtf_tmin / $OMICRON_TRIGGERS_BASE - 1 ))
+gtf_tmax_base=$(( $gtf_tmax / $OMICRON_TRIGGERS_BASE + 1 ))
+
+#### tmp dir for online files
+gtf_tmpdir=${TMP}/triggers.${gtf_now}.${RANDOM}
+mkdir -p ${gtf_tmpdir}; rm -f ${gtf_tmpdir}/*.root > /dev/null 2>&1
+
+#### scan trigger directories
+gtf_first=1
+if [ $gtf_verbose -eq 1 ]; then 
+    echo ""
+    echo "List of triggers files for $gtf_channel between $gtf_tmin and ${gtf_tmax}:"; 
+    echo ""
+fi
+
+while [ $gtf_tmin_base -le $gtf_tmax_base ]; do
 
     # start with offline triggers
-    for file in ${OMICRON_TRIGGERS}/${run}/${channel}/${channel}_${tmin_base}*.root; do 
-	if [ -e $file ]; then 
-	    s=`echo $file | awk -F_ '{print $((NF -1))}'`
-	    if [ $s -gt $tmax ]; then break; fi
-	    d=`echo $file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
-	    e=$(($s+$d))
-	    if [ $e -lt $tmin ]; then continue; fi
+    for gtf_file in ${OMICRON_TRIGGERS}/${RUN}/${gtf_channel}/${gtf_channel}_${gtf_tmin_base}*.root; do 
+	if [ -e $gtf_file ]; then 
+	    gtf_s=`echo $gtf_file | awk -F_ '{print $((NF -1))}'`
+	    if [ $gtf_s -ge $gtf_tmax ]; then break; fi
+	    gtf_d=`echo $gtf_file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
+	    gtf_e=$(($gtf_s+$gtf_d))
+	    if [ $gtf_e -lt $gtf_tmin ]; then continue; fi
 
 	    # keep this file
-	    triggers="$triggers $file"
-	    
+	    OMICRON_FILELIST="$OMICRON_FILELIST $gtf_file"
+	    if [ $gtf_verbose -eq 1 ]; then echo "$gtf_file"; fi
 	fi 
     done
 
     # then online triggers
-    for file in ${OMICRON_ONLINE_TRIGGERS}/${channel}/${channel}_${tmin_base}*.root; do 
-	if [ -e $file ]; then 
-	    s=`echo $file | awk -F_ '{print $((NF -1))}'`
-	    if [ $s -gt $tmax ]; then break; fi
-	    d=`echo $file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
-	    e=$(($s+$d))
-	    if [ $e -lt $tmin ]; then continue; fi
+    for gtf_file in ${OMICRON_ONLINE_TRIGGERS}/${gtf_channel}/${gtf_channel}_${gtf_tmin_base}*.root; do 
+	if [ -e $gtf_file ]; then 
+	    gtf_s=`echo $gtf_file | awk -F_ '{print $((NF -1))}'`
+	    if [ $gtf_s -ge $gtf_tmax ]; then break; fi
+	    gtf_d=`echo $gtf_file | awk -F_ '{print $NF}' | awk 'BEGIN{FS=".root"} {print $1}'`
+	    gtf_e=$(($gtf_s+$gtf_d))
+	    if [ $gtf_e -lt $gtf_tmin ]; then continue; fi
 
 	    # keep this file
-	    cp $file ${tmpdir}/
-	    if [ $first -eq 1 ]; then triggers="$triggers ${tmpdir}/*.root"; first=0; fi
-	    
+	    cp $gtf_file ${gtf_tmpdir}/
+	    if [ $gtf_first -eq 1 ]; then 
+		OMICRON_FILELIST="$OMICRON_FILELIST ${gtf_tmpdir}/*.root"; 
+		if [ $gtf_verbose -eq 1 ]; then echo "${gtf_tmpdir}/*.root"; fi
+		gtf_first=0; 
+	    fi
 	fi 
     done
 
-    let "tmin_base+=1"
+    let "gtf_tmin_base+=1"
 
-    newtmin=$(( $tmin_base * $OMICRON_TRIGGERS_BASE ))
-    if [ $newtmin -gt $tmax ]; then break; fi
+    gtf_newtmin=$(( $gtf_tmin_base * $OMICRON_TRIGGERS_BASE ))
+    if [ $gtf_newtmin -gt $gtf_tmax ]; then break; fi
 done
 
-echo "FILELIST $triggers"
+export OMICRON_FILELIST
 
-exit 0
+#### clean up
+unset gtf_channel
+unset gtf_tmin
+unset gtf_tmax
+unset gtf_verbose
+unset gtf_now
+unset gtf_dir
+unset gtf_g
+unset gtf_tdiff
+unset gtf_tmin_base
+unset gtf_tmax_base
+unset gtf_tmpdir
+unset gtf_first
+unset gtf_file
+unset gtf_s
+unset gtf_d
+unset gtf_e
+
+#### no exit
