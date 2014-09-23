@@ -263,7 +263,7 @@ awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.goo.FIN
 rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_FINE_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
 
 ############## STD SETTING
-for conf in "STD STD2 LOW HIGH GW FINE"; do
+for conf in STD STD2 LOW HIGH GW FINE; do
     if [ ! -s ./channel.goo.$conf ]; then continue; fi
     n=0
     p=0
