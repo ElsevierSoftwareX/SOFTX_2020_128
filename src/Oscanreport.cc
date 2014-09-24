@@ -114,7 +114,7 @@ bool Omicron::ScanReport(const string aScanDir){
   ofstream report((reportdir+"/index.html").c_str());
   report<<"<html>"<<endl;
   report<<"<head>"<<endl;
-  report<<"<title>OmiScan of "<<setprecision(12)<<map_gpsref<<"</title>"<<endl;
+  report<<"<title>OmiScan of "<<setprecision(3)<<fixed<<map_gpsref<<"</title>"<<endl;
   report<<"<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"<<endl;
   report<<"<link rel=\"icon\" type=\"image/x-icon\" href=\"icon.gif\" />"<<endl;
   report<<"<link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"icon.gif\" />"<<endl;
@@ -153,10 +153,10 @@ bool Omicron::ScanReport(const string aScanDir){
   
   // index summary
   report<<"<table><tr><td>"<<endl;
-  report<<"<h1>OmiScan of "<<setprecision(12)<<map_gpsref<<"</h1>"<<endl;
+  report<<"<h1>OmiScan of "<<setprecision(3)<<fixed<<map_gpsref<<"</h1>"<<endl;
   report<<"<a href=\"./comparison_mode.html\">Switch to comparison mode</a>"<<endl;
   report<<"<pre>"<<endl;
-  report<<"Central GPS time:    "<<setprecision(12)<<map_gpsref<<endl;
+  report<<"Central GPS time:    "<<setprecision(3)<<fixed<<map_gpsref<<endl;
   report<<"Central Date (UTC):  "<<asctime(&utc);
   report<<"Scan run Date (UTC): "<<asctime(ptm);
   report<<"</pre>"<<endl;
@@ -215,7 +215,7 @@ bool Omicron::ScanReport(const string aScanDir){
     // print loudest tile
     report<<"<table class=\"omiscan\">"<<endl;
     report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\"><a name=\""<<chan[c]<<"\"></a><h2>"<<chan[c]<<"</h2>"<<endl;
-    report<<"      Loudest tile in &plusmn;"<<wintest/2.0<<"s: GPS="<<setprecision(12)<<map_gpsmax<<setprecision(5)<<", f="<<map_freqmax<<"Hz, Q="<<map_q<<", <b>SNR="<<map_snrmax<<"</b></td></tr>"<<endl;
+    report<<"      Loudest tile in &plusmn;"<<wintest/2.0<<"s: GPS="<<setprecision(3)<<fixed<<map_gpsmax<<", f="<<map_freqmax<<"Hz, Q="<<map_q<<", <b>SNR="<<map_snrmax<<"</b></td></tr>"<<endl;
     
     // print time series menu    
     report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\">Time series: <a href=\"javascript:showImage('"<<chan[c]<<"', 'ts', "<<winset_full<<", "<<formatset_full<<");\">raw</a></td></tr>"<<endl;
@@ -223,7 +223,7 @@ bool Omicron::ScanReport(const string aScanDir){
     // print map menu    
     report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\">Maps: ";
     for(int q=0; q<(int)qset.size(); q++)
-      report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'mapQ"<<q<<"', "<<winset_full<<", "<<formatset_full<<");\">Q="<<setprecision(5)<<qset[q]<<"</a> / ";
+      report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'mapQ"<<q<<"', "<<winset_full<<", "<<formatset_full<<");\">Q="<<setprecision(3)<<fixed<<qset[q]<<"</a> / ";
     report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'map', "<<winset_full<<", "<<formatset_full<<");\">full</a></td></tr>"<<endl;
   
     // print other menu    

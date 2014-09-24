@@ -8,7 +8,7 @@ cd `dirname $0`
 
 ###### user parameters
 
-delay=300 # do not look at data after now-delay
+delay=400 # do not look at data after now-delay
 hn=`hostname -d`
 if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
 else  IFO="L1"; fi
@@ -153,7 +153,7 @@ mv ./segments.tmp ./segments.txt
 # raw data
 echo "`date -u`: get LCF file for raw data" >> $logfile
 for type in $data_type; do
-    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./frames.lcf 2>> $logfile
+    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./frames.lcf 2>> $logfile
     if [ -s ./frames.lcf ]; then break; fi
 done
 if [ ! -s ./frames.lcf ]; then
@@ -184,7 +184,7 @@ awk '$2=="FINE" {print}' ./channels.${IFO} > ./fine/channels.list
 awk '{print $1-3,$2+3}' ./segments.txt > ./std/segments.txt
 awk '{print $1-3,$2+3}' ./segments.txt > ./std2/segments.txt
 awk '{print $1-7,$2+7}' ./segments.txt > ./gw/segments.txt
-awk '{print $1-24,$2+24}' ./segments.txt > ./low/segments.txt
+awk '{print $1-56,$2+56}' ./segments.txt > ./low/segments.txt
 awk '{print $1-7,$2+7}' ./segments.txt > ./fine/segments.txt
 
 # LCF

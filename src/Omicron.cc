@@ -69,7 +69,7 @@ Omicron::Omicron(const string aOptionFile){
   FFL=NULL;
   if(fFflFile.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: init FFL..."<<endl;
-    FFL = new ffl(fFflFile, fVerbosity);
+    FFL = new ffl(fFflFile, fStyle, fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
     
@@ -120,7 +120,7 @@ Omicron::Omicron(const string aOptionFile){
   int psdsize;
   if(fFreqRange[0]>=1.0) psdsize = fSampleFrequency; // 0.5Hz binning
   else{
-    psdsize = (int)floor((double)fSampleFrequency/fFreqRange[0]);// over-binning (factor 2)
+    psdsize = 10*(int)floor((double)fSampleFrequency/fFreqRange[0]);// over-binning (factor 20)
     int nextpowerof2=(int)floor(log(psdsize)/log(2));
     psdsize=(int)pow(2.0,(double)nextpowerof2);
   }
@@ -206,7 +206,7 @@ Omicron::Omicron(const string aOptionFile){
     tmpstream.str(""); tmpstream.clear();
     Qmap_full[w]->GetXaxis()->SetTitle("Time [s]");
     Qmap_full[w]->GetYaxis()->SetTitle("Frequency [Hz]");
-    Qmap_full[w]->GetZaxis()->SetTitle("SNR [-]");
+    Qmap_full[w]->GetZaxis()->SetTitle("SNR");
     Qmap_full[w]->GetXaxis()->SetTitleOffset(1.1);
     Qmap_full[w]->GetXaxis()->SetLabelSize(0.045);
     Qmap_full[w]->GetYaxis()->SetLabelSize(0.045);
@@ -399,7 +399,6 @@ bool Omicron::Scan(const double aTimeCenter){
     cerr<<"Omicron::Scan: this function can only be called if the chunk and segment durations are identical"<<endl;
     return false;
   }
-
   if(fVerbosity){
     time ( &timer );
     ptm = gmtime ( &timer );
@@ -494,7 +493,9 @@ bool Omicron::Scan(const double aTimeCenter){
       cout<<"#### Omicron::Scan timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
     }
   }
-    
+        
+  delete ScanSeg;
+
   return true;
 }
 
@@ -818,14 +819,14 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
     }
 
     // map title
-    tmpstream<<fChannels[aChNumber]<<": GPS="<<setprecision(12)<<Qmap_center<<", Q="<<setprecision(5)<<tile->GetQ(q);
+    tmpstream<<fChannels[aChNumber]<<": GPS="<<fixed<<setprecision(3)<<Qmap_center<<", Q="<<tile->GetQ(q);
     Qmap[q]->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     
     // cosmetics
-    Qmap[q]->GetXaxis()->SetTitle("Time [s]");
-    Qmap[q]->GetYaxis()->SetTitle("Frequency [Hz]");
-    Qmap[q]->GetZaxis()->SetTitle("SNR [-]");
+    //Qmap[q]->GetXaxis()->SetTitle("Time [s]");
+    //Qmap[q]->GetYaxis()->SetTitle("Frequency [Hz]");
+    //Qmap[q]->GetZaxis()->SetTitle("SNR [-]");
     Qmap[q]->GetXaxis()->SetTitleOffset(1.1);
     Qmap[q]->GetXaxis()->SetLabelSize(0.045);
     Qmap[q]->GetYaxis()->SetLabelSize(0.045);
@@ -841,7 +842,7 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
   // create overall maps
   if(fVerbosity>1) cout<<"Omicron::MakeMaps: make overall maps..."<<endl;
   for(int w=0; w<(int)fWindows.size(); w++){
-    tmpstream<<fChannels[aChNumber]<<": GPS="<<setprecision(12)<<Qmap_center;
+    tmpstream<<fChannels[aChNumber]<<": GPS="<<fixed<<setprecision(3)<<Qmap_center;
     Qmap_full[w]->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
   }
@@ -854,10 +855,10 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
       for(int bf=1; bf<=Qmap[q]->GetNbinsY(); bf++){
       	content=Qmap[q]->GetBinContent(bt,bf);
 	for(int w=0; w<(int)fWindows.size(); w++){
-	  if(Qmap[q]->GetXaxis()->GetBinLowEdge(bt)<-(double)fWindows[w]/2.0) continue;
-	  if(Qmap[q]->GetXaxis()->GetBinUpEdge(bt)>(double)fWindows[w]/2.0) continue;
-	  if(Qmap[q]->GetYaxis()->GetBinLowEdge(bf)<Qmap_full[w]->GetYaxis()->GetBinLowEdge(1)) continue;
-	  if(Qmap[q]->GetYaxis()->GetBinUpEdge(bf)>Qmap_full[w]->GetYaxis()->GetBinUpEdge(Qmap_full[w]->GetNbinsY())) continue;
+	  if(Qmap[q]->GetXaxis()->GetBinUpEdge(bt)<-(double)fWindows[w]/2.0) continue;
+	  if(Qmap[q]->GetXaxis()->GetBinLowEdge(bt)>(double)fWindows[w]/2.0) continue;
+	  if(Qmap[q]->GetYaxis()->GetBinUpEdge(bf)<Qmap_full[w]->GetYaxis()->GetBinLowEdge(1)) continue;
+	  if(Qmap[q]->GetYaxis()->GetBinLowEdge(bf)>Qmap_full[w]->GetYaxis()->GetBinUpEdge(Qmap_full[w]->GetNbinsY())) continue;
 	  bin_start = Qmap_full[w]->FindBin(Qmap[q]->GetXaxis()->GetBinLowEdge(bt),Qmap[q]->GetYaxis()->GetBinLowEdge(bf));
 	  bin_stop = Qmap_full[w]->FindBin(Qmap[q]->GetXaxis()->GetBinUpEdge(bt),Qmap[q]->GetYaxis()->GetBinUpEdge(bf));
 	  Qmap_full[w]->GetBinXYZ(bin_start,bin_start_t,bin_start_f,dummy);
@@ -921,6 +922,8 @@ bool Omicron::WriteMaps(void){
   if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
   if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
   if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(!form.size()) return true;
 
   // summary tree
@@ -979,7 +982,7 @@ bool Omicron::WriteMaps(void){
       Qmap[q]->GetMaximumBin(xmax, ymax, zmax);
          
       // loudest tile
-      tmpstream<<"Loudest tile: GPS="<<setprecision(12)<<Qmap_center+Qmap[q]->GetXaxis()->GetBinCenter(xmax)<<setprecision(5)<<", f="<<Qmap[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap[q]->GetBinContent(xmax,ymax);
+      tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<Qmap_center+Qmap[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<Qmap[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap[q]->GetBinContent(xmax,ymax);
       GPlot->AddText(tmpstream.str(), 0.01,0.01,0.03);
       tmpstream.str(""); tmpstream.clear();
       map_gpsmax=Qmap_center+Qmap[q]->GetXaxis()->GetBinCenter(xmax);
@@ -1017,7 +1020,7 @@ bool Omicron::WriteMaps(void){
     Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
          
     // loudest tile
-    tmpstream<<"Loudest tile: GPS="<<setprecision(12)<<Qmap_center+Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)<<setprecision(5)<<", f="<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap_full[w]->GetBinContent(xmax,ymax);
+    tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<Qmap_center+Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)<<", f="<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap_full[w]->GetBinContent(xmax,ymax);
     GPlot->AddText(tmpstream.str(), 0.01,0.01,0.03);
     tmpstream.str(""); tmpstream.clear();
 
@@ -1045,7 +1048,7 @@ bool Omicron::WriteMaps(void){
   for(int w=0; w<(int)fWindows.size(); w++){
     Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
     proj=Qmap_full[w]->ProjectionX("_pfx",ymax,ymax);
-    tmpstream<<"SNR vs time at f = "<<setprecision(5)<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<"Hz";
+    tmpstream<<"SNR vs time at f = "<<fixed<<setprecision(3)<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<"Hz";
     proj->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     proj->GetXaxis()->SetTitle("Time [s]");
@@ -1068,7 +1071,7 @@ bool Omicron::WriteMaps(void){
     delete proj;
 
     proj=Qmap_full[w]->ProjectionY("_pfy",xmax,xmax);
-    tmpstream<<"SNR vs frequency at GPS = "<<setprecision(12)<<Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)+Qmap_center;
+    tmpstream<<"SNR vs frequency at GPS = "<<fixed<<setprecision(3)<<Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)+Qmap_center;
     proj->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     proj->GetXaxis()->SetTitle("Frequency [Hz]");
@@ -1181,6 +1184,8 @@ void Omicron::SaveAPSD(const int c, const string type){
   if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
   if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
   if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
       if(!type.compare("ASD")) ss<<fOutdir[c]<<"/"<<fChannels[c]<<"_asd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
@@ -1253,11 +1258,13 @@ void Omicron::SaveTS(const int c, double tcenter){
   if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
   if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
   if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     
     if(!tcenter) tcenter=(double)(dataseq->GetChunkTimeStart()+dataseq->GetChunkTimeEnd())/2.0;
     else{
-      ss<<fChannels[c]+": amplitude time series centred at "<<setprecision(15)<<tcenter;
+      ss<<fChannels[c]+": amplitude time series centred at "<<fixed<<setprecision(3)<<tcenter;
       tcenter=0;
       GDATA->SetTitle(ss.str().c_str());
       ss.str(""); ss.clear();

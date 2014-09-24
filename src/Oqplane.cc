@@ -148,6 +148,7 @@ TH2D* Oqplane::GetMap(double *aDataRe, double *aDataIm, const double time_offset
 
   // get frequency row snrs
   double *snrs;
+  int tfirst, tlast, ffirst, flast;
   for(int f=0; f<fNumberOfRows; f++){
     snrs=freqrow[f]->GetSNRs(aDataRe,aDataIm);
     if(snrs==NULL){
@@ -155,7 +156,9 @@ TH2D* Oqplane::GetMap(double *aDataRe, double *aDataIm, const double time_offset
       return NULL;
     }
 
-    int tfirst, tlast, ffirst, flast;
+    // first and last frequency bin
+    ffirst=hplane->GetYaxis()->FindFixBin(freqrow[f]->fF-freqrow[f]->fBandWidth/2.0);
+    flast=hplane->GetYaxis()->FindFixBin(freqrow[f]->fF+freqrow[f]->fBandWidth/2.0);
 
     // loop over tiles
     for(int t=0; t<freqrow[f]->fNumberOfTiles; t++){
@@ -166,16 +169,11 @@ TH2D* Oqplane::GetMap(double *aDataRe, double *aDataIm, const double time_offset
       tfirst=hplane->GetXaxis()->FindFixBin(freqrow[f]->fTime[t]-freqrow[f]->fDuration/2.0-(double)fTimeRange/2.0+time_offset);
       tlast=hplane->GetXaxis()->FindFixBin(freqrow[f]->fTime[t]+freqrow[f]->fDuration/2.0-(double)fTimeRange/2.0+time_offset);
 
-      // first and last frequency bin
-      ffirst=hplane->GetYaxis()->FindFixBin(freqrow[f]->fF-freqrow[f]->fBandWidth/2.0);
-      flast=hplane->GetYaxis()->FindFixBin(freqrow[f]->fF+freqrow[f]->fBandWidth/2.0);
-      
       // fill map
       for(int bt=tfirst; bt<=tlast; bt++)
 	for(int bf=ffirst; bf<=flast; bf++)
-	  if(snrs[t]>=hplane->GetBinContent(bt,bf)) hplane->SetBinContent(bt,bf,snrs[t]);
+	  if(snrs[t]>hplane->GetBinContent(bt,bf)) hplane->SetBinContent(bt,bf,snrs[t]);
     }
-
     delete snrs;
   }
 

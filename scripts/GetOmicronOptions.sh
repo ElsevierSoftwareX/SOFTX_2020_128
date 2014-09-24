@@ -53,14 +53,12 @@ printoption(){
 	sampling=128
 	freqmin=0.1
 	freqmax=64
-	chunk=2048
-	block=2048
-	overlap=48
-	chunk=2048
-	block=2048
-	overlap=48
+	chunk=512
+	block=512
+	overlap=112
 	mmmax=0.35
 	snrthr=8
+	ratemax=300
     elif [ $1 = "HIGH" ]; then
 	sampling=16384
 	freqmin=1024
@@ -69,10 +67,12 @@ printoption(){
 	    chunk=506
 	    block=256
 	    overlap=6
+	    ratemax=300
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
+	    ratemax=500
 	fi
 	mmmax=0.35
 	snrthr=8	
@@ -91,6 +91,7 @@ printoption(){
 	fi
 	mmmax=0.2
 	snrthr=5	
+	ratemax=2000
     elif [ $1 = "FINE" ]; then # this was optimized for ligo scripts
 	sampling=8192
 	freqmin=8
@@ -106,6 +107,7 @@ printoption(){
 	fi
 	mmmax=0.2
 	snrthr=6	
+	ratemax=1000
     elif [ $1 = "STD2" ]; then
 	sampling=2048
 	freqmin=8
@@ -114,10 +116,12 @@ printoption(){
 	    chunk=506
 	    block=256
 	    overlap=6
+	    ratemax=300
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
+	    ratemax=500
 	fi
 	mmmax=0.35
 	snrthr=8
@@ -129,10 +133,12 @@ printoption(){
 	    chunk=506
 	    block=256
 	    overlap=6
+	    ratemax=300
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
+	    ratemax=500
 	fi
 	mmmax=0.35
 	snrthr=8
@@ -145,7 +151,6 @@ printoption(){
     echo "// ------------------------------------------------------------------" >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  QRANGE           3.3166  100.0"                             >> ./parameters_${1}_${2}.txt
-    echo "TRIGGER    RATEMAX          1000"                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     WRITEPSD         0"                                         >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     WRITETIMESERIES  0"                                         >> ./parameters_${1}_${2}.txt
@@ -160,6 +165,7 @@ printoption(){
     echo "PARAMETER  FREQUENCYRANGE   ${freqmin}  ${freqmax}"                    >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  MISMATCHMAX      ${mmmax}"                                  >> ./parameters_${1}_${2}.txt
     echo "TRIGGER    SNRTHRESHOLD     ${snrthr}"                                 >> ./parameters_${1}_${2}.txt
+    echo "TRIGGER    RATEMAX          ${ratemax}"                                >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
 
     # ffl
