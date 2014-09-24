@@ -276,7 +276,7 @@ for conf in STD STD2 LOW HIGH GW FINE; do
     channel_list=""
     
     # maximum number of channels per option file
-    if [ "$conf" = "STD" ];    then nchanmax=6
+    if [ "$conf" = "STD" ];    then nchanmax=8
     elif [ "$conf" = "STD2" ]; then nchanmax=15
     elif [ "$conf" = "LOW" ]; then nchanmax=20
     elif [ "$conf" = "HIGH" ]; then nchanmax=4
