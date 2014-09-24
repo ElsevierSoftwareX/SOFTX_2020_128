@@ -843,6 +843,7 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
   if(fVerbosity>1) cout<<"Omicron::MakeMaps: make overall maps..."<<endl;
   for(int w=0; w<(int)fWindows.size(); w++){
     tmpstream<<fChannels[aChNumber]<<": GPS="<<fixed<<setprecision(3)<<Qmap_center;
+    Qmap_full[w]->Reset();
     Qmap_full[w]->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
   }

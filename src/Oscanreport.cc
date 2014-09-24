@@ -32,7 +32,7 @@ bool Omicron::ScanReport(const string aScanDir){
 
   // remove incomplete directories
   for(int c=0; c<(int)chanfull.size(); c++){
-    if(!IsFile(reportdir+"/"+chanfull[c]+"/"+chanfull[c]+"_mapsummary.root")){
+    if(!IsBinaryFile(reportdir+"/"+chanfull[c]+"/"+chanfull[c]+"_mapsummary.root")){
       chanOK.push_back(false);
     }
     else{
@@ -231,6 +231,7 @@ bool Omicron::ScanReport(const string aScanDir){
     report<<"<a href=\"javascript:showSingleImage('"<<chan[c]<<"', 'asd_"<<map_wstart<<"_"<<map_wstop<<"', '"<<winset[0]<<"', "<<formatset_full<<");\">ASD</a> / ";
     report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'projt', "<<winset_full<<", "<<formatset_full<<");\">SNR(time)</a> / "<<endl;
     report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'projf', "<<winset_full<<", "<<formatset_full<<");\">SNR(frequency)</a> / "<<endl;
+    if(IsBinaryFile(chan[c]+"/"+chan[c]+"_data.root")) report<<"<a href=\"./"<<chan[c]<<"/"<<chan[c]<<"_data.root\">Scan data</a>"<<endl;
     report<<"</td></tr>"<<endl;
 
     // print images
