@@ -11,6 +11,7 @@
 #include "Spectrum.h"
 #include "Sample.h"
 #include "Triggers.h"
+#include "EventMap.h"
 #include "TMath.h"
 #include "Otile.h"
 #include "Odata.h"
@@ -83,6 +84,12 @@ class Omicron {
    * @param aTimeCenter central time of the maps
    */
   bool Scan(const double aTimeCenter);
+
+  /**
+   * To be documented.
+   * @param aTimeCenter central time of the maps
+   */
+  bool ScanTriggers(const double aTimeCenter);
 
   /**
    * Initialize the segments to process.
@@ -230,6 +237,7 @@ class Omicron {
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   string fFflFile;              ///< path to FFL file
+  string fTrigDir;              ///< path to trigger directory
   int fSampleFrequency;         ///< sampling frequency of input data
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range

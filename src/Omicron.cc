@@ -67,6 +67,7 @@ Omicron::Omicron(const string aOptionFile){
   
   // init FFL
   FFL=NULL;
+  fSampleFrequency=2048;
   if(fFflFile.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: init FFL..."<<endl;
     FFL = new ffl(fFflFile, fStyle, fVerbosity);
@@ -75,7 +76,6 @@ Omicron::Omicron(const string aOptionFile){
     
     // guess best sampling if not provided
     if(!fSampleFrequency){
-      fSampleFrequency=2048;
       int sampling;
       for(int c=0; c<(int)fChannels.size(); c++){
 	sampling=FFL->GetChannelSampling(fChannels[c]);
@@ -156,8 +156,10 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fMaindir);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
+    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],"none");
+    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],0.0);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fFflFile);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fSampleFrequency);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFreqRange[0]);
@@ -306,8 +308,10 @@ bool Omicron::Process(Segments *aSeg){
   }
 
   // locals
-  int dsize;         // native data size
-  double *dvector;   // data vector before resampling
+  int dsize;          // native data size
+  double *dvector;    // data vector before resampling
+  int dsize_inj;      // native data size (inj)
+  double *dvector_inj;// data vector before resampling (inj)
   int res;
 
   // create trigger directories
@@ -329,18 +333,37 @@ bool Omicron::Process(Segments *aSeg){
 
       // get data vector
       dvector=FFL->GetData(dsize, fChannels[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
-
       if(dsize<=0){
 	cor_chunk_ctr[c]++;
 	cerr<<"Omicron::Process: cannot retrieve data ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
 	continue;
       }
 
+      // get injection vector and inject it
+      if(fInjChan.size()){
+	dvector_inj=FFL->GetData(dsize_inj, fInjChan[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
+	if(dsize_inj<=0){
+	  cor_chunk_ctr[c]++;
+	  cerr<<"Omicron::Process: cannot retrieve injection data ("<<fInjChan[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
+	  delete dvector;
+	  continue;
+	}
+	if(dsize_inj!=dsize){
+	  cor_chunk_ctr[c]++;
+	  cerr<<"Omicron::Process: the sampling of the injection channel ("<<fInjChan[c]<<") is not the same as the sampling of the main channel --> skip chunk"<<endl;
+	  delete dvector;
+	  delete dvector_inj;
+	  continue;
+	}
+	for(int d=0; d<dsize; d++) dvector[d]+=(fInjFact[c]*dvector_inj[d]);
+	delete dvector_inj;
+      }
+
       // condition data vector
       res=ConditionVector(c, dsize, dvector);
       if(res<0){
 	cerr<<"Omicron::Process: conditioning failed ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-	delete dvector;// not needed anymore
+	delete dvector;
 	cor_data_ctr[c]++;
 	return false;// fatal
       }
@@ -430,7 +453,7 @@ bool Omicron::Scan(const double aTimeCenter){
 
   // loop over channels
   for(int c=0; c<(int)fChannels.size(); c++){
-    cout<<"Omicron::Process: **** channel "<<fChannels[c]<<"..."<<endl;
+    cout<<"Omicron::Scan: **** channel "<<fChannels[c]<<"..."<<endl;
           
     // get data vector
     dvector=FFL->GetData(dsize, fChannels[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
@@ -492,6 +515,107 @@ bool Omicron::Scan(const double aTimeCenter){
       ptm = gmtime ( &timer );
       cout<<"#### Omicron::Scan timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
     }
+  }
+        
+  delete ScanSeg;
+
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::ScanTriggers(const double aTimeCenter){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::ScanTriggers: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+  if(aTimeCenter<700000000){
+    cerr<<"Omicron::ScanTriggers: the input time is not reasonable"<<endl;
+    return false;
+  }
+  if(!IsDirectory(fTrigDir)){
+    cerr<<"Omicron::ScanTriggers: the trigger directory is required"<<endl;
+    return false;
+  }
+  if(fVerbosity){
+    time ( &timer );
+    ptm = gmtime ( &timer );
+    cout<<"#### Omicron::ScanTriggers timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
+  }
+
+  // Segment to process
+  if(fVerbosity) cout<<"Omicron::ScanTriggers: initiate data segments..."<<endl;
+  int start= (int)aTimeCenter-fWindowMax/2-1;
+  int stop= (int)aTimeCenter+fWindowMax/2+1;
+  Segments *ScanSeg = new Segments(start,stop);
+
+  // data structure
+  if(!InitSegments(ScanSeg)){
+    cerr<<"Omicron::ScanTriggers: cannot initiate data segments."<<endl;
+    delete ScanSeg;
+    return false;
+  }
+
+  // create map directories
+  if(!MakeDirectories(aTimeCenter)){
+    cerr<<"Omicron::ScanTriggers: the directory structure cannot be created"<<endl;
+    delete ScanSeg;
+    return false;
+  }
+
+  // locals
+  EventMap *E;
+  ReadTriggerSegments *ES;
+  string trigfiles;
+
+  // loop over channels
+  for(int c=0; c<(int)fChannels.size(); c++){
+    cout<<"Omicron::ScanTriggers: **** channel "<<fChannels[c]<<"..."<<endl;
+
+    // check trigger files
+    ES = new ReadTriggerSegments(fTrigDir+"/"+fChannels[c]+"/"+fChannels[c]+"_*.root","",0);
+    if(!ES->GetNFiles()){
+      cerr<<"Omicron::ScanTriggers: no trigger files --> skip channel"<<endl;
+      delete ES;
+      continue;
+    }
+  
+    // select files of interest
+    trigfiles = ES->GetTriggerFiles(start,stop);
+    if(!trigfiles.compare("none")){
+      cerr<<"Omicron::ScanTriggers: no trigger files for this time window --> skip channel"<<endl;
+      delete E;
+      continue;
+    }
+    delete ES;
+
+    // Map object
+    E = new EventMap(trigfiles);
+
+    // get Qs
+
+    /*
+    E->SetMapFrequencyRange(0,fFreqRange[0],fFreqRange[1]);
+    E->SetMapQRange(0,fQRange[0],fQRange[1]);
+    for(int w=0; w<(int)fWindows.size(); w++){
+      E->SetMapTimeRange(0,aTimeCenter-fWindows[w],aTimeCenter+fWindows[w]);
+      E->BuildMap(0,aTimeCenter);
+      E->PrintMap(0,)
+    */
+
+    // apply SNR threshold (except the first channel)
+
+    // save maps on disk
+
+    // time for this channel
+    if(fVerbosity>1){ 
+      time ( &timer );
+      ptm = gmtime ( &timer );
+      cout<<"#### Omicron::ScanTriggers timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
+    }
+      
+    delete E;
+
   }
         
   delete ScanSeg;

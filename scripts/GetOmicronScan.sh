@@ -13,36 +13,42 @@ printhelp(){
     echo "GetOmicronScan -g [GPS_CENTER]"
     echo " |__ scans 'standard' Omicron triggers around a given GPS time."
     echo ""
-    echo "GetOmicronScan -m [MAIN_CHANNEL] -g [GPS_CENTER]"
-    echo " |__ scans 'standard' Omicron triggers around a given GPS time."
-    echo "     A main channel is designated to be plotted first"
-    echo ""
-    echo "GetOmicronScan -r [TRIGGER_DIR] -m [MAIN_CHANNEL] -g [GPS_CENTER]"
-    echo " |__ scans Omicron triggers around a given GPS time."
-    echo "     The trigger files are stored in [TRIGGER_DIR]."
-    echo "     A main channel is designated to be plotted first. "
-    echo ""
-    echo "Warning: When a trigger directory is specified,"
-    echo "         it must contain subdirectories for each channel. For example:"
-    echo "         [TRIGGER_DIR]/channel_1/"
-    echo "         [TRIGGER_DIR]/channel_2/"
-    echo "         ..."
-    echo "         [TRIGGER_DIR]/channel_N/"
     echo ""
     echo "OPTIONS:"
     echo "  -g  [GPS_CENTER]      Central GPS time. required"
-    echo "  -r  [TRIGGER_DIR]     The user can provide his own directory where the triggers are located"
+    echo "                        The GPS should be included in the input data"
+    echo ""
+    echo "SOURCE OPTIONS:"
+    echo "  -i  [DATA_SOURCE]     Input data to use for the scan. Several inputs are possible:"
+    echo "                        = \"triggers\"  : standard triggers are used as input"
+    echo "                        = \"frames\"    : standard raw frames are used as input"
+    echo "                        = a file      : path to a ffl/lcf file"
+    echo "                        = a directory : path a directory which contain sub-directories"
+    echo "                                        where trigger files are located. The sub-directory"
+    echo "                                        names should be the channel names."
+    echo ""
+    echo "CHANNEL OPTIONS:"
+    echo "  -c  [CHANNEL_SEL]     A channel selection is used."
+    echo "                        This option can be used in different ways:"
+    echo "                        = \"all\"       : every possible channels will be scanned given"
+    echo "                                        the source."
+    echo "                        = \"std\"       : a pre-defined standard selection will be used."
+    echo "                        = a file      : this file should contain a single column with"
+    echo "                                        the list of channels to scan"
+    echo "                        = \"list\"      : where list is a list of channel to scan"
+    echo "                                        separated by spaces"
+
     echo "  -m  [MAIN_CHANNEL]    Main channel: always plotted and plotted first"
-    echo "                        Default = V1:h_4096Hz"
+
+    echo ""
+    echo "CONTROL OPTIONS:"
     echo "  -d  [OUTDIR]          Path to output directory"
     echo "                        Default = current directory"
     echo "  -x  [SNRMIN]          Print a channel scan only if SNR > [SNRMIN]"
-    echo "  -p  [PARAMETER_FILE]  If given, this option allows you to scan a selection of channels"
-    echo "                        [PARAMETER_FILE] is the path to a user parameter file"
-    echo "                        This file should contain a single column with the list"
-    echo "                        of channels to scan"
-    echo "                        When this option is given the option '-t' is ignored"
-
+    echo "  -w  [WINDOWS]         List of time windows for the plots (between \"\")"
+    
+   
+    echo ""
     echo "  -h                    print this help"
     echo ""
     echo "Author: Florent Robinet (LAL - Orsay): robinet@lal.in2p3.fr"
@@ -51,39 +57,46 @@ printhelp(){
 
 ##### Check the environment
 if [ -z "$OMICRONROOT" ]; then
-    echo "Error: The Omicron environment is not set"
+    echo "`basename $0`: The Omicron environment is not set"
     exit 1
 fi
 
 ##### default options
-here=`pwd`
-main="V1:h_4096Hz" # channel name
-outdir=`pwd` # output directory
-snrmin=8
-parameterfile="NONE"
-chandir="NONE"
 tcenter=0
+input="triggers"
+chansel="std"
+mainchan="none"
+outdir=`pwd`
+snrmin=8
+windows="2 8 32"
+
+here=`pwd`
+triggerdir="none"
+fflfile="none"
 
 ##### read options
-while getopts ":g:m:x:p:d:r:h" opt; do
+while getopts ":g:i:c:m:d:x:w:h" opt; do
     case $opt in
 	g)
 	    tcenter=`echo "$OPTARG" | awk '{printf "%.3f", $1}'`
 	    ;;
+	i)
+	    input="$OPTARG"
+	    ;;
+	c)
+	    chansel="$OPTARG"
+	    ;;
 	m)
-	    main="$OPTARG"
+	    mainchan="$OPTARG"
+	    ;;
+	d)
+	    outdir="$OPTARG"
 	    ;;
 	x)
 	    snrmin=`echo $OPTARG | awk '{print int($1)}'`
 	    ;;
-	p)
-	    parameterfile="$OPTARG"
-	    ;;
-	r)
-	    chandir="$OPTARG"
-	    ;;
-	d)
-	    outdir="$OPTARG"
+	w)
+	    windows="$OPTARG"
 	    ;;
 	h)
 	    printhelp
@@ -96,16 +109,14 @@ while getopts ":g:m:x:p:d:r:h" opt; do
 	    ;;
     esac
 done
-OPTIND=0
+OPTIND=1
 
 ##### timing
-tcenter_=`echo $tcenter | awk '{print int($1)}'`
-dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_}`
-tstart=$(( $tcenter_ - 100 ))
-tstop=$(( $tcenter_ + 100 ))
+tcenter_int=`echo $tcenter | awk '{print int($1)}'`
+dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_int}`
 
 ##### check timing
-if [ $tcenter_ -lt 700000000 ]; then
+if [ $tcenter_int -lt 700000000 ]; then
     echo "`basename $0`: '$tcenter' is not a reasonable central time"
     echo "type  'GetOmicronScan -h'  for help"
     exit 1
@@ -118,228 +129,87 @@ if [ ! -d $outdir ] ; then
     exit 1
 fi
 
-##### scan user channel directory
-if [ ! "$chandir" = "NONE" ]; then
-    if [ ! -d $chandir ] ; then
-	echo "`basename $0`: the channel directory $chandir cannot be found"
+##### check windows
+nwin=0
+winmax=0
+for w in $windows; do
+    if [ $w -lt 1 ]; then
+	echo "`basename $0`: The time window must be an integer"
 	echo "type  'GetOmicronScan -h'  for help"
 	exit 1
     fi
-    cd $chandir
-    for dir in *; do
-	if [ ! -d ${dir} ]; then continue; fi
-	if [ ! "$(ls -A $dir)" ]; then continue; fi
-	OMICRON_CHANNELS="${OMICRON_CHANNELS} ${dir}"
-    done
-    echo "channel candidates: $OMICRON_CHANNELS"
-    cd $here
-else
-    # get standard channels
-    . ${OMICRON_SCRIPTS}/GetOmicronChannels.sh -r $tcenter_
-fi
-
-##### check main channel is available
-if ! echo "$OMICRON_CHANNELS" | grep -q "$main"; then
-    echo "`basename $0`: the main channel '${main}' is not available"
+    nwin=$(( nwin + 1 ))
+    if [ $w -gt $winmax ]; then winmax=$w; fi
+done
+if [ $nwin -eq 0 ]; then
+    echo "`basename $0`: There must be at least one time window"
     echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
 
-##### check parameter file if given
-if [ ! "$parameterfile" = "NONE" ] ; then
-    if [ ! -e $parameterfile ] ; then
-	echo "`basename $0`: the parameter file $parameterfile cannot be found"
-	echo "type  'GetOmicronScan -h'  for help"
+##### standard triggers input
+if [ "$input" = "triggers" ]; then
+
+    if [ -z "$OMICRON_TRIGGERS" ]; then
+	echo "`basename $0`: The Omicron trigger environment is not set"
 	exit 1
     fi
-    if [ ! -s $parameterfile ] ; then
-	echo "`basename $0`: the parameter file $parameterfile is empty"
-	echo "type  'GetOmicronScan -h'  for help"
-	exit 1
-    fi
+    triggerdir="std"
 
-    # update channel list if parameter file is given
-    OMICRON_CHANNELS=`cat $parameterfile | awk '{printf "%s ", $1}'`
-fi
+##### user triggers input
+elif [ -d $input ]; then
+    triggerdir=$input
+    input="triggers"
+    
+##### std frames
+elif [ "$input" = "frames" ]; then
+    fflfile="/virgoData/ffl/raw.ffl"
 
-##### build directory
-outdir="${outdir}/${tcenter}"
-mkdir -p ${outdir}; rm -fr ${outdir}/*
+##### user frames
+elif [ -e $input ]; then
+    fflfile=$input
+    input="frames"
 
-##### html template and web material
-template=${outdir}/index.template
-cp -f ${OMICRON_HTML}/template/template.omicronscan.html $template
-cp -f ${OMICRON_HTML}/template/comparison_mode.html ${outdir}/
-cp -f ${GWOLLUM_DOC}/style.css ${outdir}/style.css
-cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif ${outdir}/icon.gif
-cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif ${outdir}/omicronlogo_xxl.gif
-if [ ! $parameterfile = "" ] ; then cp -f $parameterfile ${outdir}/parameters.txt; fi
-currentdate=`date -u`
-
-##### waiting index
-title="Omiscan of $tcenter"
-message="Your Omiscan is currently running. The web report will appear here when it's done.<br>In the meantime you can check the <a href=\"./log.txt\">log file</a> to monitor the progress of the scan.<br>If you're in a hurry, you can check <a href=\"./index.template\">your page</a> being built<br>-- <i>$USER - $currentdate</i> --"
-sed -e "s|\[TITLE\]|${title}|g" \
-    -e "s|\[MESSAGE\]|${message}|g" \
-    $GWOLLUM_HTML/template/template.waiting.html > ${outdir}/index.html
-
-##### start log
-echo "**********************************" > ${outdir}/log.txt
-echo "**  Start Omiscan of $tcenter" >> ${outdir}/log.txt
-echo "**********************************" >> ${outdir}/log.txt
-echo "" >> ${outdir}/log.txt
-echo "Current date: $currentdate" >> ${outdir}/log.txt
-echo "" >> ${outdir}/log.txt
-
-
-##########################################################################
-##########################     MAIN CHANNEL     ##########################
-##########################################################################
-echo "Scanning ${main}..." >> ${outdir}/log.txt
-# map the main channel triggers
-if [ $chandir = "NONE" ]; then triggers=`GetTriggerFileList.sh -c${main} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
-else triggers="${chandir}/${main}/*.root"
-fi
-
-if [ "$triggers" = "" ]; then
-    echo "triggers are not available for $main at $tcenter"
+##### WTF?
+else
+    echo "`basename $0`: the input data source option is not understood"
+    echo "type  'GetOmicronScan -h'  for help"
     exit 1
 fi
-echo $main > ${outdir}/channels.list
-eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
 
-# generic names for plots and thumbnails
-mv ${outdir}/map_${tcenter}_dt4.gif ${outdir}/${main}_${tcenter}_dt4.gif
-mv ${outdir}/map_${tcenter}_dt16.gif ${outdir}/${main}_${tcenter}_dt16.gif
-mv ${outdir}/map_${tcenter}_dt64.gif ${outdir}/${main}_${tcenter}_dt64.gif
-mv ${outdir}/info_${tcenter}.txt ${outdir}/${main}_${tcenter}.txt 
-convert -density 100 -thumbnail 320  ${outdir}/${main}_${tcenter}_dt4.gif ${outdir}/${main}_${tcenter}_dt4_th.gif
-convert -density 100 -thumbnail 320  ${outdir}/${main}_${tcenter}_dt16.gif ${outdir}/${main}_${tcenter}_dt16_th.gif
-convert -density 100 -thumbnail 320  ${outdir}/${main}_${tcenter}_dt64.gif ${outdir}/${main}_${tcenter}_dt64_th.gif
-    
-# get plot info
-loudgps=`grep -m 1 -w LOUDESTGPS_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1 | awk '{printf "%.3f", $2}'`
-loudf=`grep -m 1 -w LOUDESTFREQ_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1 | awk '{printf "%.1f", $2}'`
-loudsnr=`grep -m 1 -w LOUDESTSNR_dt4 ${outdir}/${main}_${tcenter}.txt  | head -1 | awk '{printf "%.2f", $2}'`
-
-# get channel description
-if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
-
-    chan_des=` grep -w ${main} ${OMICRON_PARAMETERS}/channels.txt`
-    if [ "$chan_des" = "" ]; then
-	description="No description for this channel"
-    else
-	description=`echo $chan_des | awk '{$1="";print}'`
+##### standard triggers selection
+if [ "$chansel" = "std" ]; then
+    . ${GWOLLUM_SCRIPTS}/getrun.sh -g $tcenter_int;
+    chanfile=${OMICRON_PARAMETERS}/scan.${RUN}.txt
+    if [ ! -e $chanfile ]; then
+	echo "`basename $0`: there is no standard channel selection for run=$RUN"
+	echo "type  'GetOmicronScan -h'  for help"
+	exit 1
     fi
+
+##### all channels
+elif [ "$chansel" = "all" ]; then
+    echo "scan all"
+
+##### user selection
+elif [ -e $chansel ]; then
+    chanfile=$chansel
+
+##### WTF?
 else
-    description="No description for this channel"
+    echo "`basename $0`: the channel selection option is not understood"
+    echo "type  'GetOmicronScan -h'  for help"
+    exit 1
 fi
 
-# fill html report
-sed -i "/<\!-- channels -->/i\<tr><td><table><tr><td colspan=\"3\"><h2>${main}</h2><h3>${description}</h3>Loudest tile: GPS=${loudgps}, f=${loudf}Hz, SNR=${loudsnr}</td></tr>" $template
-sed -i "/<\!-- channels -->/i\<tr><td><a href=\"./${main}_${tcenter}_dt4.gif\"><img src=\"./${main}_${tcenter}_dt4_th.gif\"></a></td><td><a href=\"./${main}_${tcenter}_dt16.gif\"><img src=\"./${main}_${tcenter}_dt16_th.gif\"></a></td><td><a href=\"./${main}_${tcenter}_dt64.gif\"><img src=\"./${main}_${tcenter}_dt64_th.gif\"></a></td></tr></table></td></tr>" $template
-
-##########################################################################
-##########################     AUX. CHANNEL     ##########################
-##########################################################################
-
-naux=0
-naux_with_triggers=0
-naux_above_thr=0
-for channel in $OMICRON_CHANNELS; do
-
-    # exclude main channel
-    if [ "$channel" = "$main" ]; then continue; fi
-    echo "Scanning ${channel}..." >> ${outdir}/log.txt
-    let "naux+=1"
-
-    # map the channel triggers
-    if [ $chandir = "NONE" ]; then triggers=`GetTriggerFileList.sh -c${channel} $tstart $tstop | grep "FILELIST" | sed 's|FILELIST ||g'`
-    else triggers="${chandir}/${channel}/*.root"
-    fi
-
-    if [ "$triggers" = "" ]; then 
-	echo "  no trigger ---> Do not plot" >> ${outdir}/log.txt
-	continue
-    fi
-
-    let "naux_with_triggers+=1"
-    echo $channel >> ${outdir}/channels.list
-    eventmap.exe ${outdir} "${triggers}" $tcenter >> ${outdir}/log.txt 2>&1
-
-    if [ ! -e ${outdir}/map_${tcenter}_dt4.gif ]; then
-	echo "  no trigger files ---> Do not plot" >> ${outdir}/log.txt
-	continue
-    fi
-
-    # generic names for plots
-    mv ${outdir}/map_${tcenter}_dt4.gif ${outdir}/${channel}_${tcenter}_dt4.gif
-    mv ${outdir}/map_${tcenter}_dt16.gif ${outdir}/${channel}_${tcenter}_dt16.gif
-    mv ${outdir}/map_${tcenter}_dt64.gif ${outdir}/${channel}_${tcenter}_dt64.gif
-    mv ${outdir}/info_${tcenter}.txt ${outdir}/${channel}_${tcenter}.txt 
-
-    #get loudest SNR within 16s
-    loudsnr=`grep -m 1 -w LOUDESTSNR_dt4 ${outdir}/${channel}_${tcenter}.txt  | head -1 | awk '{printf "%.2f", $2}'`
-    loudsnr_=`echo $loudsnr | awk '{print int($1)}'`
-
-    # apply snr threshold
-    if [ $loudsnr_ -lt $snrmin ]; then
-	rm -f ${outdir}/${channel}_${tcenter}*
-	echo "  SNR = ${loudsnr} < $snrmin ---> Do not plot" >> ${outdir}/log.txt
-	continue;
-    fi
-    let "naux_above_thr+=1"
-
-    # get plot info
-    loudgps=`grep -m 1 -w LOUDESTGPS_dt4 ${outdir}/${channel}_${tcenter}.txt  | head -1 | awk '{printf "%.3f", $2}'`
-    loudf=`grep -m 1 -w LOUDESTFREQ_dt4 ${outdir}/${channel}_${tcenter}.txt  | head -1 | awk '{printf "%.1f", $2}'`
-
-    # get channel description
-    if [ -e ${OMICRON_PARAMETERS}/channels.txt ]; then
-	
-	chan_des=` grep -w ${channel} ${OMICRON_PARAMETERS}/channels.txt`
-	if [ "$chan_des" = "" ]; then
-	    description="No description for this channel"
-	else
-	    description=`echo $chan_des | sed -e 's/^\w*\ *//'`
-	fi
-    else
-	description="No description for this channel"
-    fi
-
-    # thumbnails
-    convert -density 100 -thumbnail 320  ${outdir}/${channel}_${tcenter}_dt4.gif ${outdir}/${channel}_${tcenter}_dt4_th.gif
-    convert -density 100 -thumbnail 320  ${outdir}/${channel}_${tcenter}_dt16.gif ${outdir}/${channel}_${tcenter}_dt16_th.gif
-    convert -density 100 -thumbnail 320  ${outdir}/${channel}_${tcenter}_dt64.gif ${outdir}/${channel}_${tcenter}_dt64_th.gif
-
-    # fill html report
-    sed -i "/<\!-- channels -->/i\<tr><td><table><tr><td colspan=\"3\"><h2>${channel}</h2><h3>${description}</h3>Loudest tile: GPS=${loudgps}, f=${loudf}Hz, SNR=${loudsnr}</td></tr>" $template
-    sed -i "/<\!-- channels -->/i\<tr><td><a href=\"./${channel}_${tcenter}_dt4.gif\"><img src=\"./${channel}_${tcenter}_dt4_th.gif\"></a></td><td><a href=\"./${channel}_${tcenter}_dt16.gif\"><img src=\"./${channel}_${tcenter}_dt16_th.gif\"></a></td><td><a href=\"./${channel}_${tcenter}_dt64.gif\"><img src=\"./${channel}_${tcenter}_dt64_th.gif\"></a></td></tr></table></td></tr>" $template
-
-done
+#####################################################################################
+##################                  PLOT TRIGGERS                  ##################
+#####################################################################################
+if [ "$input" = "triggers" ]; then
 
 
-##### fill static variables
-sed -e "s|\[GPS_CENTER\]|${tcenter}|g" \
-    -e "s|\[DATEUTC\]|${dateUTC}|g" \
-    -e "s|\[USERNAME\]|${user}|g" \
-    $template > ${outdir}/index.html
+fi
 
-##### cleaning
-rm -f $template
-
-##### finish log
-currentdate=`date -u`
-
-##### start log
-echo "" >> ${outdir}/log.txt
-echo "Number of scanned channels:                               $naux" >> ${outdir}/log.txt
-echo "Number of scanned channels with triggers:                 $naux_with_triggers" >> ${outdir}/log.txt
-echo "Number of scanned channels with triggers above threshold: $naux_above_thr" >> ${outdir}/log.txt
-echo "Current date: $currentdate" >> ${outdir}/log.txt
-echo "**********************************" >> ${outdir}/log.txt
-echo "**  End Omiscan of $tcenter" >> ${outdir}/log.txt
-echo "**********************************" >> ${outdir}/log.txt
 
 
 exit 0

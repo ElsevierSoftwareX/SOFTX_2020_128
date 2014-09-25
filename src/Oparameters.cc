@@ -38,28 +38,27 @@ bool Omicron::ReadOptions(void){
   if(io->GetOpt("INJECTION","CHANNELS", fInjChan)){
     if(fInjChan.size()!=fChannels.size()){
       cerr<<"Omicron::ReadOptions: INJECTION/CHANNELS is inconsistent with the number of channels"<<endl;
-      return false;
+      fInjChan.clear();
     }
     if(io->GetOpt("INJECTION","FACTORS", fInjFact)){
       if(fInjFact.size()!=fInjChan.size()){
 	cerr<<"Omicron::ReadOptions: INJECTION/FACTORS is inconsistent with the number of channels"<<endl;
-	return false;
+	fInjChan.clear();
+	fInjFact.clear();
       }
     }
     else{
       for(int i=0; i<(int)fChannels.size(); i++) fInjFact.push_back(1.0);
     }
   }
-  else{
-    for(int i=0; i<(int)fChannels.size(); i++){
-      fInjChan.push_back("none");
-      fInjFact.push_back(0.0);
-    }
-  }
   //*****************************
 
   //***** ffl file *****
   if(!io->GetOpt("DATA","FFL", fFflFile)&&!io->GetOpt("DATA","LCF", fFflFile)) fFflFile="none";
+  //*****************************
+
+  //***** Trigger directory *****
+  if(!io->GetOpt("DATA","TRIGGERS", fTrigDir)) fTrigDir="none";
   //*****************************
 
   //***** Sampling frequency *****
@@ -156,7 +155,7 @@ bool Omicron::ReadOptions(void){
   else{
     if(!io->GetOpt("TRIGGER","NMAX", fNtriggerMax)){
       cout<<"Omicron::ReadOptions: No trigger limit (TRIGGER/NMAX)                      --> set default: 100 Hz"<<endl;
-      fNtriggerMax=fChunkDuration*100;
+      fNtriggerMax=fChunkDuration*1000;
     }
   }
   //*****************************
