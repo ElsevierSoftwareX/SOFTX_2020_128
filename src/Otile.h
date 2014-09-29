@@ -127,7 +127,16 @@ class Otile {
   /**
    * Returns the number of Q planes
    */
-  inline int GetNQPlanes(void){ return fNumberOfPlanes; };
+  inline int GetNQPlanes(void){ return (int)fQs.size(); };
+
+  /**
+   * Computes a set of Q values.
+   * This function returns a vector of Q values corresponding to a set of parameters:
+   * @param aQMin minimal Q value
+   * @param aQMax maximal Q value
+   * @param aMaximumMismatch maximum mismatch between Q planes
+   */
+  static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
   /**
    * Prints detailed parameters of tiling structure.
@@ -153,16 +162,13 @@ class Otile {
 
   // DERIVED PARAMETERS
   double fMismatchStep;        ///< maximum mismatch between neighboring tiles
-  double fQMismatchStep;       ///< mismatch between neighboring planes
 
   // Q-PLANES
   Oqplane *qplanes[NQPLANEMAX];///< q-plane objects
-  int fNumberOfPlanes;         ///< number of Q planes
   vector <double> fQs;         ///< vector of Qs
   int fNumberOfTiles;          ///< total number of tiles (all Q-planes)
   
   bool CheckParameters(void);  ///< check the validity of the parameters
-  void CreatePlanes(void);     ///< Create q-planes
   
   ClassDef(Otile,0)  
 };

@@ -28,33 +28,31 @@ Otile::Otile(const int aTimeRange, const int aTimePad,
   // init
   status_OK=true;
   fNumberOfTiles=0;
-  
+  for(int p=0; p<NQPLANEMAX; p++) qplanes[p]=NULL;
+
   // adjust Q range
   if(fQMin<sqrt(11.0)) fQMin=sqrt(11.0);
 
-  // number of planes
-  double QCumulativeMismatch = log(fQMax/fQMin)/sqrt(2.0);// cumulative mismatch across Q range
-  fMismatchStep = 2.0*sqrt(fMaximumMismatch/3.0);
-  fNumberOfPlanes = (int)ceil(QCumulativeMismatch / fMismatchStep);
-  if(fNumberOfPlanes<=0) fNumberOfPlanes=1;
-  fQMismatchStep = QCumulativeMismatch / fNumberOfPlanes;
-  
-  // nulling
-  for(int p=0; p<NQPLANEMAX; p++) qplanes[p]=NULL;
-
   // check parameters
   status_OK*=CheckParameters();
+  fMismatchStep=2.0*sqrt(aMaximumMismatch/3.0);
 
-  // build Q-planes
-  if(status_OK){
+  // compute Q values
+  fQs = ComputeQs(fQMin,fQMax,fMaximumMismatch);
+
+  if(fQs.size() > NQPLANEMAX){
+    cerr<<"Otile::Otile: the number of Q-planes is too large: "<<fQs.size()<<">"<<NQPLANEMAX<<endl;
+    status_OK=false;
     fQs.clear();
-    for(int i=0; i<fNumberOfPlanes; i++)
-      fQs.push_back(fQMin * exp(sqrt(2.0) * (0.5+i) * fQMismatchStep));
-    
-    // create Q planes
-    CreatePlanes();
   }
-  
+
+  // loop over planes
+  for(int p=0; p<(int)fQs.size(); p++){
+    qplanes[p]=new Oqplane(fQs[p],fSampleFrequency,fTimeRange,fTimePad,fFrequencyMin,fFrequencyMax,fMismatchStep,fSNRThreshold);
+    status_OK*=qplanes[p]->status_OK;
+    fNumberOfTiles+=qplanes[p]->fNumberOfTiles;
+  }
+    
   if(!status_OK) cerr<<"Otile::Otile: initialization failed!"<<endl;
   if(fVerbosity>1) PrintInfo();
 }
@@ -64,7 +62,7 @@ Otile::~Otile(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
   fQs.clear();
-  for(int p=0; p<fNumberOfPlanes; p++) if(qplanes[p]!=NULL) delete qplanes[p];
+  for(int p=0; p<(int)fQs.size(); p++) delete qplanes[p];
 }
   
 ////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +74,7 @@ bool Otile::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, c
   }
 
   // get triggers for each Q plane
-  for(int p=0; p<fNumberOfPlanes; p++){
+  for(int p=0; p<(int)fQs.size(); p++){
     if(!qplanes[p]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart)){
       cerr<<"Otile::GetTriggers: the q-plane "<<p<<" has failed to produce triggers"<<endl;
       return false;
@@ -93,7 +91,7 @@ TH2D* Otile::GetMap(const int qindex, double *aDataRe, double *aDataIm, const do
     cerr<<"Otile::GetMap: the Otile object is corrupted"<<endl;
     return NULL;
   }
-  if(qindex<0||qindex>=fNumberOfPlanes){
+  if(qindex<0||qindex>=(int)fQs.size()){
     cerr<<"Otile::GetMap: this q index is not allowed"<<endl;
     return NULL;
   }
@@ -114,7 +112,7 @@ bool Otile::SetPowerSpectrum(Spectrum *aSpec){
   }
 
   // set power for each Q plane
-  for(int p=0; p<fNumberOfPlanes; p++){
+  for(int p=0; p<(int)fQs.size(); p++){
     if(!qplanes[p]->SetPowerSpectrum(aSpec)){
       cerr<<"Otile::SetPowerSpectrum: the q-plane "<<p<<" has failed"<<endl;
       return false;
@@ -123,20 +121,6 @@ bool Otile::SetPowerSpectrum(Spectrum *aSpec){
   
   return true;
 }
-
-////////////////////////////////////////////////////////////////////////////////////
-void Otile::CreatePlanes(void){
-////////////////////////////////////////////////////////////////////////////////////
-
-  // loop over planes
-  for(int p=0; p<fNumberOfPlanes; p++){
-    qplanes[p]=new Oqplane(fQs[p],fSampleFrequency,fTimeRange,fTimePad,fFrequencyMin,fFrequencyMax,fMismatchStep,fSNRThreshold);
-    status_OK*=qplanes[p]->status_OK;
-    fNumberOfTiles+=qplanes[p]->fNumberOfTiles;
-  }
-  return;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Otile::CheckParameters(void){
@@ -163,10 +147,6 @@ bool Otile::CheckParameters(void){
     cerr<<"Otile::CheckParameters: maximum mismatch is not reasonable (has to be <=0.5)"<<endl;
     return false;
   }
-  if(fNumberOfPlanes > NQPLANEMAX){
-    cerr<<"Otile::CheckParameters: the number of Q-planes is too large: "<<fNumberOfPlanes<<">"<<NQPLANEMAX<<endl;
-    return false;
-  }
   return true;
 }
 
@@ -177,7 +157,7 @@ double Otile::GetQ(const int qindex){
     cerr<<"Otile::GetQ: the Otile object is corrupted"<<endl;
     return -1.0;
   }
-  if(qindex<0||qindex>=fNumberOfPlanes){
+  if(qindex<0||qindex>=(int)fQs.size()){
     cerr<<"Otile::GetQ: this q index is not allowed"<<endl;
     return -1.0;
   }
@@ -186,9 +166,29 @@ double Otile::GetQ(const int qindex){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+vector <double> Otile::ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch){
+////////////////////////////////////////////////////////////////////////////////////  
+  
+  // number of planes
+  double QCumulativeMismatch = log(aQMax/aQMin)/sqrt(2.0);// cumulative mismatch across Q range
+  double mismatchstep = 2.0*sqrt(aMaximumMismatch/3.0);
+  int n = (int)ceil(QCumulativeMismatch/mismatchstep);
+  if(n<=0) n=1;
+  double Qmismatchstep = QCumulativeMismatch/(double)n;
+  
+  // compute Q values
+  vector <double> qs;
+  for(int i=0; i<n; i++) qs.push_back(aQMin * exp(sqrt(2.0) * (0.5+i) * Qmismatchstep));
+  return qs;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 void Otile::PrintInfo(void){
 ////////////////////////////////////////////////////////////////////////////////////  
-
+  if(!status_OK){
+    cerr<<"Otile::PrintInfo: the Otile object is corrupted"<<endl;
+    return;
+  }
   cout<<"\n--- Otile::PrintInfo ---"<<endl;
   cout<<" Time Range: "<<fTimeRange<<endl;
   cout<<" Q range: "<<fQMin<<" - "<<fQMax<<endl;
@@ -196,20 +196,19 @@ void Otile::PrintInfo(void){
   cout<<" Sampling frequency: "<<fSampleFrequency<<endl;
   cout<<" Fractional energy loss due to mismatch: "<<fMaximumMismatch<<endl;
   cout<<" Mismatch step between tiles: "<<fMismatchStep<<endl;
-  cout<<" Number of Q planes: "<<fNumberOfPlanes<<endl;
-  cout<<" Mismatch step between neighboring planes: "<<fQMismatchStep<<endl;
+  cout<<" Number of Q planes: "<<fQs.size()<<endl;
   cout<<" First Q: "<<fQs[0]<<endl;
-  cout<<" Last Q: "<<fQs[fNumberOfPlanes-1]<<endl;
+  cout<<" Last Q: "<<fQs[(int)fQs.size()-1]<<endl;
   cout<<" Total number of tiles: "<<fNumberOfTiles<<endl<<endl;
   
   cout<<" List of Qs: "<<endl;
-  for(int p=0; p<fNumberOfPlanes; p++) cout<<"   "<<p<<":"<<fQs[p]<<endl;
+  for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<fQs[p]<<endl;
   cout<<" Effective frequency range: "<<endl;
-  for(int p=0; p<fNumberOfPlanes; p++) cout<<"   "<<p<<":"<<qplanes[p]->fFrequencyMin<<"-"<<qplanes[p]->fFrequencyMax<<endl;
+  for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<qplanes[p]->fFrequencyMin<<"-"<<qplanes[p]->fFrequencyMax<<endl;
   cout<<" Number of frequency rows: "<<endl;
-  for(int p=0; p<fNumberOfPlanes; p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfRows<<endl;
+  for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfRows<<endl;
   cout<<" Number of tiles: "<<endl;
-  for(int p=0; p<fNumberOfPlanes; p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfTiles<<endl;
+  for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfTiles<<endl;
 
   return;
   

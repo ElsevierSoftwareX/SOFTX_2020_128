@@ -171,8 +171,14 @@ class Omicron {
    * In addition to maps, some complementary plots are also saved (graphical formats only):
    * - SNR vs. time for the frequency where the SNR is maximal
    * - SNR vs. frequency for the time where the SNR is maximal
+   * 
+   * This function can also be used with an external set of Q-maps. In this case, additional information must be given in arguments:
+   * @param aChNumber channel number of the current Q-maps (always required)
+   * @param aTimeCenter GPS time where to set the time origin
+   * @param aQ vector of Q values corresponding to each map
+   * @param aQmap pointer to an array of Q-maps vor each Q values
    */
-  bool WriteMaps(void);
+  bool WriteMaps(const int aChNumber, const double aTimeCenter=0, const vector <double>& aQ = vector<double>(), TH2D **aQmap=NULL);
 
   /**
    * Create a html report for a scan.
@@ -217,6 +223,7 @@ class Omicron {
    * Returns class status.
    */
   inline bool GetStatus(void){ return status_OK; };
+
 
  private:
 
@@ -299,6 +306,7 @@ class Omicron {
   int *loudest_qmap;            ///< Q-map conatining the loudest tile
   GwollumPlot *GPlot;           ///< Gwollum plots
   string fScandir;              ///< latest scan directory
+  void MakeFullMaps(const int aChNumber, const double aTimeCenter, const int aNq, TH2D **aQmap);
 
   // MISC
   void SaveAPSD(const int c, const string type="PSD");    ///< Save current PSD
