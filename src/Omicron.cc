@@ -68,7 +68,6 @@ Omicron::Omicron(const string aOptionFile){
   // init FFL
   FFL=NULL;
   if(fFflFile.compare("none")){
-    fSampleFrequency=2048;
     if(fVerbosity) cout<<"Omicron::Omicron: init FFL..."<<endl;
     FFL = new ffl(fFflFile, fStyle, fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
@@ -76,6 +75,7 @@ Omicron::Omicron(const string aOptionFile){
     
     // guess best sampling if not provided
     if(!fSampleFrequency){
+      fSampleFrequency=2048;
       int sampling;
       for(int c=0; c<(int)fChannels.size(); c++){
 	sampling=FFL->GetChannelSampling(fChannels[c]);
