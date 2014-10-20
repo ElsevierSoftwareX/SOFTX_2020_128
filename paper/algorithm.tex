@@ -1,8 +1,7 @@
 \section{The algorithm} \label{sec:algorithm}
 
-\subsection{The data segmentation} \label{sec:algorithm:segmentation}
-
 \subsection{The data access} \label{sec:algorithm:data}
+The input data time series are read using the frame library. The Omicron algorithm
 
 \begin{figure}
   \center
@@ -12,6 +11,16 @@
 \end{figure}
 
 \subsection{The power spectral density} \label{sec:algorithm:psd}
+- PSD definition - PSD implementation (size, FT...).
+
+To obtain a reliable PSD estimation, we use the procedure defined in~\cite{psd}.
+The data chunk is divided into N segments overlapping by half, as represented in Fig.~\ref{fig:mmm}. The PSD of each segment is computed. This set of PSDs is divided into two groups corresponding to non-overlapping segments: the 'odd' (resp. 'even') group is defined with segments with an odd (resp. even) index.
+\begin{figure}
+  \center
+  \epsfig{width=15cm, file=./figures/mmm.eps}
+  \caption{Power spectral density estimation. The data chunk is divided into.}
+  \label{fig:mmm}
+\end{figure}
 
 \subsection{The data conditioning} \label{sec:algorithm:conditioning}
 
