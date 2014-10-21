@@ -138,7 +138,7 @@ while getopts ":c:t:s:e:x:X:f:F:C:T:ruanojmpvqlh" opt; do
 	o)
 	    print_ts=1
 	    ;;
-	e)
+	j)
 	    print_te=1
 	    ;;
 	p)
