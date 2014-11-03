@@ -11,9 +11,9 @@ Odata::Odata(const int aChunkDuration, const int aSegmentDuration,
 ////////////////////////////////////////////////////////////////////////////////////
  
   // save parameters
-  ChunkDuration      = fabs(aChunkDuration);
-  SegmentDuration    = fabs(aSegmentDuration);
-  OverlapDuration    = fabs(aOverlapDuration);
+  ChunkDuration      = (int)fabs(aChunkDuration);
+  SegmentDuration    = (int)fabs(aSegmentDuration);
+  OverlapDuration    = (int)fabs(aOverlapDuration);
   fVerbosity         = aVerbosity;
   status_OK=true;
 
