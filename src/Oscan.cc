@@ -10,6 +10,7 @@ bool Omicron::Scan(const double aTimeCenter){
     cerr<<"Omicron::Scan: the Omicron object is corrupted"<<endl;
     return false;
   }
+  if(fTrigDir.compare("none")) return ScanTriggers(aTimeCenter);
   if(aTimeCenter<700000000){
     cerr<<"Omicron::Scan: the input time is not reasonable"<<endl;
     return false;
@@ -225,7 +226,7 @@ bool Omicron::ScanTriggers(const double aTimeCenter){
     qmap = new TH2D * [(int)qs.size()];
     
     // Map object
-    E = new EventMap(trigfiles,"",2);
+    E = new EventMap(1,trigfiles,"",2);
     E->SetMapTimeRange(0,stop-start);
     
     // get Q maps

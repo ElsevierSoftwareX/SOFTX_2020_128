@@ -5,7 +5,7 @@
 #define __Oqplane__
 
 #include "CUtils.h"
-#include "Triggers.h"
+#include "MakeTriggers.h"
 #include "Spectrum.h"
 #include "FFT.h"
 #include "TFile.h"
@@ -41,7 +41,7 @@ class FreqRow {
   virtual ~FreqRow(void);
 
   double* GetSNRs(double *aDataRe, double *aDataIm);// Get SNRs in FD
-  bool GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime);
+  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime);
   inline void SetPower(const double aPower){ fPower=aPower; };
   
   // PARAMETERS
@@ -95,7 +95,7 @@ class Oqplane {
 	  const double aSNRThreshold);
   virtual ~Oqplane(void);
     
-  bool GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
+  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
   bool SetPowerSpectrum(Spectrum *aSpec);
   TH2D* GetMap(double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
   

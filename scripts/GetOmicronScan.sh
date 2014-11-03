@@ -20,8 +20,8 @@ printhelp(){
     echo ""
     echo "SOURCE OPTIONS:"
     echo "  -i  [DATA_SOURCE]     Input data to use for the scan. Several inputs are possible:"
-    echo "                        = \"triggers\"  : standard triggers are used as input"
-    echo "                        = \"frames\"    : standard raw frames are used as input"
+    echo "                        = \"TRIGGERS\"  : standard triggers are used as input"
+    echo "                        = \"FRAMES\"    : standard raw frames are used as input"
     echo "                        = a file      : path to a ffl/lcf file"
     echo "                        = a directory : path a directory which contain sub-directories"
     echo "                                        where trigger files are located. The sub-directory"
@@ -30,9 +30,9 @@ printhelp(){
     echo "CHANNEL OPTIONS:"
     echo "  -c  [CHANNEL_SEL]     A channel selection is used."
     echo "                        This option can be used in different ways:"
-    echo "                        = \"all\"       : every possible channels will be scanned given"
+    echo "                        = \"ALL\"       : every possible channels will be scanned given"
     echo "                                        the source."
-    echo "                        = \"std\"       : a pre-defined standard selection will be used."
+    echo "                        = \"STD\"       : a pre-defined standard selection will be used."
     echo "                        = a file      : this file should contain a single column with"
     echo "                                        the list of channels to scan"
     echo "                        = \"list\"      : where list is a list of channel to scan"
@@ -73,6 +73,7 @@ windows="2 8 32"
 here=`pwd`
 triggerdir="none"
 fflfile="none"
+chanfile="none"
 
 ##### read options
 while getopts ":g:i:c:m:d:x:w:h" opt; do
@@ -114,6 +115,9 @@ OPTIND=1
 ##### timing
 tcenter_int=`echo $tcenter | awk '{print int($1)}'`
 dateUTC=`tconvert -f "%A the %dth, %B %Y %H:%M:%S" ${tcenter_int}`
+. ${GWOLLUM_SCRIPTS}/getrun.sh -g $tcenter_int;
+tmin=$(( $tcenter_int - 1000 )) # to adjust
+tmax=$(( $tcenter_int + 1000 )) # to adjust
 
 ##### check timing
 if [ $tcenter_int -lt 700000000 ]; then
@@ -148,27 +152,34 @@ if [ $nwin -eq 0 ]; then
 fi
 
 ##### standard triggers input
-if [ "$input" = "triggers" ]; then
+if [ "$input" = "TRIGGERS" ]; then
 
     if [ -z "$OMICRON_TRIGGERS" ]; then
 	echo "`basename $0`: The Omicron trigger environment is not set"
 	exit 1
     fi
-    triggerdir="std"
+    if [ ! -d  "${OMICRON_TRIGGERS}/${RUN}/${mainchan}" ]; then
+	echo "`basename $0`: The main channel $mainchan does not exist in standard triggers"
+	exit 1
+    fi
+    archive_stop=`printlivetime.exe "${OMICRON_TRIGGERS}/${RUN}/${mainchan}/*.root" | tail -n 1 | awk '{print int($2)}'`
+    triggerdir="STD"
+    if [ $tcenter_int -lt $archive_stop ]; then triggerdir=${OMICRON_TRIGGERS}/${RUN}
+    else triggerdir=$OMICRON_ONLINE_TRIGGERS; fi
 
 ##### user triggers input
 elif [ -d $input ]; then
     triggerdir=$input
-    input="triggers"
+    input="TRIGGERS"
     
 ##### std frames
-elif [ "$input" = "frames" ]; then
-    fflfile="/virgoData/ffl/raw.ffl"
+elif [ "$input" = "FRAMES" ]; then
+    fflfile="/virgoData/ffl/raw.ffl" # HARDCODED
 
 ##### user frames
 elif [ -e $input ]; then
     fflfile=$input
-    input="frames"
+    input="FRAMES"
 
 ##### WTF?
 else
@@ -178,8 +189,7 @@ else
 fi
 
 ##### standard triggers selection
-if [ "$chansel" = "std" ]; then
-    . ${GWOLLUM_SCRIPTS}/getrun.sh -g $tcenter_int;
+if [ "$chansel" = "STD" ]; then
     chanfile=${OMICRON_PARAMETERS}/scan.${RUN}.txt
     if [ ! -e $chanfile ]; then
 	echo "`basename $0`: there is no standard channel selection for run=$RUN"
@@ -188,27 +198,70 @@ if [ "$chansel" = "std" ]; then
     fi
 
 ##### all channels
-elif [ "$chansel" = "all" ]; then
+elif [ "$chansel" = "ALL" ]; then
     echo "scan all"
 
 ##### user selection
 elif [ -e $chansel ]; then
     chanfile=$chansel
 
-##### WTF?
+##### list of channels
 else
-    echo "`basename $0`: the channel selection option is not understood"
-    echo "type  'GetOmicronScan -h'  for help"
-    exit 1
+    chanfile=${TMP}/scan.${tcenter}.${RANDOM}
+    rm -f $chanfile
+    for chan in $chansel; do
+	echo "$chan" >> $chanfile
+    done
 fi
 
 #####################################################################################
 ##################                  PLOT TRIGGERS                  ##################
 #####################################################################################
-if [ "$input" = "triggers" ]; then
+if [ "$input" = "TRIGGERS" ]; then
 
+    # make parameter file
+    parameterfile=${TMP}/parameters.${tcenter}.${RANDOM}
+    echo "// Omiscan parameter file generated on `date`" > $parameterfile
+    echo "DATA      TRIGGERS     $triggerdir" >> $parameterfile
+    echo "PARAMETER WINDOWS      $windows"    >> $parameterfile
+    echo "TRIGGER   SNRTHRESHOLD $snrmin"     >> $parameterfile
+    echo "OUTPUT    FORMAT       gif"         >> $parameterfile
+    echo "OUTPUT    VERBOSITY    2"           >> $parameterfile
+    echo "OUTPUT    DIRECTORY    ${outdir}"   >> $parameterfile
+    if [ -s $chanfile ]; then
+	awk '{print "DATA      CHANNELS    ",$1}' $chanfile >> $parameterfile
+    fi
+
+    omiscan.exe $tcenter $parameterfile
+    exit 0
 
 fi
+
+
+if [ "$input" = "FRAMES" ]; then
+
+    # make parameter file
+    parameterfile=${TMP}/parameters.${tcenter}.${RANDOM}
+    echo "// Omiscan parameter file generated on `date`" > $parameterfile
+    echo "DATA      FFL          $fflfile"    >> $parameterfile
+    echo "PARAMETER WINDOWS      $windows"    >> $parameterfile
+    echo "TRIGGER   SNRTHRESHOLD $snrmin"     >> $parameterfile
+    echo "PARAMETER MISMATCHMAX  0.2"         >> $parameterfile
+    echo "PARAMETER QRANGE       3.3166 141"  >> $parameterfile
+    echo "OUTPUT    FORMAT       gif"         >> $parameterfile
+    echo "OUTPUT    VERBOSITY    2"           >> $parameterfile
+    echo "OUTPUT    DIRECTORY    ${outdir}"   >> $parameterfile
+    if [ -s $chanfile ]; then
+	scantype=
+	awk '{print "DATA      CHANNELS    ",$1}' $chanfile >> $parameterfile
+    fi
+
+    omiscan.exe $tcenter $parameterfile
+    exit 0
+
+fi
+
+
 
 
 

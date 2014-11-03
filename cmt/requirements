@@ -1,7 +1,5 @@
 package Omicron
 
-use VirgoPolicy v2r6
-use root v5r34p050
 use GWOLLUM v1r3
 
 #### LOCALS
@@ -37,11 +35,11 @@ alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
-document rootcint OmicronDict Omicron.h Odata.h Oqplane.h Otile.h LinkDef.h
+document rootcint OmicronDict Omicron.h Odata.h Oqplane.h Otile.h Oplot.h LinkDef.h
 
 #### libraries generation
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTriggers" 
-library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Oparameters.cc Oscan.cc Oscanreport.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTime -lTriggers" 
+library Omicron -no_prototypes -no_static Oqplane.cc Otile.cc Odata.cc Oparameters.cc Oscan.cc Oscanreport.cc Omicron.cc Oplot.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
@@ -49,7 +47,8 @@ macro_append Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
 
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
-application omicronplot omicronplot.cc
-alias omicronplot         "$(OMICRONROOT)/$(Omicron_tag)/omicronplot.exe"
 application omiscan omiscan.cc
 alias omiscan             "$(OMICRONROOT)/$(Omicron_tag)/omiscan.exe"
+application omiplot omiplot.cc
+alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
+

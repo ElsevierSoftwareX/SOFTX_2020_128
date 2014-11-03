@@ -18,7 +18,7 @@ bool Omicron::ReadOptions(void){
   
   //***** output directory *****
   if(!io->GetOpt("OUTPUT","DIRECTORY", fMaindir)){
-    cout<<"Omicron::ReadOptions: No output directory (DATA/CHANNELS)                  --> set default: current"<<endl;
+    cout<<"Omicron::ReadOptions: No output directory (OUTPUT/DIRECTORY)                  --> set default: current"<<endl;
     fMaindir=".";
   }
   if(!IsDirectory(fMaindir)){
@@ -27,10 +27,21 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** Trigger directory *****
+  if(!io->GetOpt("DATA","TRIGGERS", fTrigDir)) fTrigDir="none";
+  //*****************************
+
+  //***** ffl file *****
+  if(!io->GetOpt("DATA","FFL", fFflFile)&&!io->GetOpt("DATA","LCF", fFflFile)) fFflFile="none";
+  //*****************************
+
   //***** List of channels *****
   if(!io->GetAllOpt("DATA","CHANNELS", fChannels)){
-    cout<<"Omicron::ReadOptions: No channel (DATA/CHANNELS)                           --> set default: V1:Pr_B1_ACp"<<endl;
-    fChannels.push_back("V1:Pr_B1_ACp");
+    if(fTrigDir.compare("none")) ListDirectories(fTrigDir,fChannels);
+    if(!fChannels.size()){
+      cout<<"Omicron::ReadOptions: No channel (DATA/CHANNELS)                           --> set default: V1:Pr_B1_ACp"<<endl;
+      fChannels.push_back("V1:Pr_B1_ACp");
+    }
   }
   //*****************************
   
@@ -53,14 +64,6 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
-  //***** ffl file *****
-  if(!io->GetOpt("DATA","FFL", fFflFile)&&!io->GetOpt("DATA","LCF", fFflFile)) fFflFile="none";
-  //*****************************
-
-  //***** Trigger directory *****
-  if(!io->GetOpt("DATA","TRIGGERS", fTrigDir)) fTrigDir="none";
-  //*****************************
-
   //***** Sampling frequency *****
   if(!io->GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency)){
     cout<<"Omicron::ReadOptions: No working sampling frequency (PARAMETER/SAMPLEFREQUENCY) --> set default: 2048 Hz"<<endl;
@@ -76,7 +79,9 @@ bool Omicron::ReadOptions(void){
   fFreqRange.clear();
   if(!io->GetOpt("PARAMETER","FREQUENCYRANGE", fFreqRange)){
     cout<<"Omicron::ReadOptions: No search frequency range (PARAMETER/FREQUENCYRANGE) --> set default: 2-"<<fSampleFrequency/2<<"Hz"<<endl;
-    fFreqRange.push_back(2);  fFreqRange.push_back(fSampleFrequency/2);
+    fFreqRange.push_back(2);  
+    if(fSampleFrequency) fFreqRange.push_back(fSampleFrequency/2);
+    else fFreqRange.push_back(1024);
   }
   if(fFreqRange.size()!=2){
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct"<<endl;
@@ -201,3 +206,23 @@ bool Omicron::ReadOptions(void){
   return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+void Omicron::AdjustParameters(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // guess best sampling if not provided
+  if(!fSampleFrequency){
+    fSampleFrequency=2048;
+    int sampling;
+    for(int c=0; c<(int)fChannels.size(); c++){
+      sampling=FFL->GetChannelSampling(fChannels[c]);
+      if(sampling<=0) continue;
+      if(sampling<fSampleFrequency) fSampleFrequency=sampling;
+    }
+  }
+  // still no sampling at this point -> we need one not to crash!
+  if(!fSampleFrequency) fSampleFrequency=2048;
+  
+
+  return;
+}

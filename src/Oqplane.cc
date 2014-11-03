@@ -87,7 +87,7 @@ Oqplane::~Oqplane(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
+bool Oqplane::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Oqplane::GetTriggers: the Oqplane object is corrupted"<<endl;
@@ -320,7 +320,7 @@ FreqRow::~FreqRow(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool FreqRow::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime){
+bool FreqRow::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime){
 ////////////////////////////////////////////////////////////////////////////////////
   
   // get SNRs
@@ -461,7 +461,7 @@ double* FreqRow::GetSNRs(double *aDataRe, double *aDataIm){
   //MeanEnergy/=(numberofvalidtiles*1.00270710469359381);//correct gaussian bias 3sigma
   MeanEnergy/=((double)numberofvalidtiles/0.954499736104);//correct gaussian bias 2sigma
   
-  // save triggers
+  // get energies
   for(int t=0; t<fNumberOfTiles; t++){
     if(!ValidIndices[t]) continue;
     energies[t]=sqrt(2.0*energies[t]/MeanEnergy);// energies is now SNRs

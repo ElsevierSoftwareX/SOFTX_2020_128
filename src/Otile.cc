@@ -66,7 +66,7 @@ Otile::~Otile(void){
 }
   
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
+bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Otile::GetTriggers: the Otile object is corrupted"<<endl;

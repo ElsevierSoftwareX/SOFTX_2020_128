@@ -27,6 +27,8 @@ printhelp(){
     echo "  -e  [GPS_END]         stopping GPS time. Required!"
     echo "  -d  [OUTDIR]          output directory where to save plots"
     echo "                        Default = current directory"
+    echo "  -f  [FILENAME]        this parameter forces the output file naming to:"
+    echo "                        [FILENAME]_type.gif"
     echo ""
     echo "  -l                    list available channels"
     echo "  -h                    print this help"
@@ -47,9 +49,10 @@ outdir=`pwd`        # output directory
 triggerfiles="NONE" # user trigger files
 tmin=0
 tmax=0
+ofilename=""
 
 ##### read options
-while getopts ":c:t:s:e:d:lh" opt; do
+while getopts ":c:t:s:e:d:f:lh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -65,6 +68,9 @@ while getopts ":c:t:s:e:d:lh" opt; do
 	    ;;
 	d)
 	    outdir="$OPTARG"
+	    ;;
+	f)
+	    ofilename="$OPTARG"
 	    ;;
 	l)
 	    for run in $RUN_NAMES; do
@@ -112,7 +118,7 @@ fi
 
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    omicronplot.exe $outdir "$triggerfiles" $tmin $tmax
+    omiplot.exe $outdir "$triggerfiles" $tmin $tmax $ofilename
     exit 0
 fi
 
@@ -139,7 +145,7 @@ fi
 
 ##### print triggers
 if [ ! "$OMICRON_FILELIST" = "" ]; then
-    omicronplot.exe $outdir "$OMICRON_FILELIST" $tmin $tmax
+    omiplot.exe $outdir "$OMICRON_FILELIST" $tmin $tmax $ofilename
     exit 0
 else 
     echo "`basename $0`: Omicron triggers are not available"

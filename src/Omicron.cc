@@ -72,20 +72,11 @@ Omicron::Omicron(const string aOptionFile){
     FFL = new ffl(fFflFile, fStyle, fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
-    
-    // guess best sampling if not provided
-    if(!fSampleFrequency){
-      fSampleFrequency=2048;
-      int sampling;
-      for(int c=0; c<(int)fChannels.size(); c++){
-	sampling=FFL->GetChannelSampling(fChannels[c]);
-	if(sampling<=0) continue;
-	if(sampling<fSampleFrequency) fSampleFrequency=sampling;
-      }
-    }
   }
+    
+  // adjust default parameters using input data
+  AdjustParameters();
 
-  
   // init data
   if(fVerbosity) cout<<"Omicron::Omicron: init data container and procedures..."<<endl;
   ChunkSize   = fSampleFrequency * fChunkDuration;
@@ -134,7 +125,7 @@ Omicron::Omicron(const string aOptionFile){
 
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: init Triggers..."<<endl;
-  triggers    = new Triggers* [(int)fChannels.size()];
+  triggers    = new MakeTriggers* [(int)fChannels.size()];
   string form = "";
   if(fOutFormat.find("xml")!=string::npos)  form+="xml";
   if(fOutFormat.find("txt")!=string::npos)  form+="txt";
@@ -143,15 +134,12 @@ Omicron::Omicron(const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++){
     
     // init triggers object
-    triggers[c] = new Triggers(fOutdir[c],fChannels[c],form,fVerbosity);
+    triggers[c] = new MakeTriggers(fOutdir[c],fChannels[c],form,fVerbosity);
     triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
     
-    // set clustering if any
-    if(fClusterAlgo[0].compare("none")){// clustering is requested
-      status_OK*=triggers[c]->SetClustering(fClusterAlgo[0]);// set clustering
-      status_OK*=triggers[c]->SetClusterDeltaT(fcldt);// set dt
-    }
-    
+    // set clustering parameters
+    status_OK*=triggers[c]->SetClusterDeltaT(fcldt);
+        
     // set metadata
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fMaindir);
@@ -381,7 +369,7 @@ bool Omicron::Process(Segments *aSeg){
       if(writepsd)        SaveAPSD(c,"PSD");
 
       // get triggers above SNR threshold
-      if(MakeTriggers(c)<0){
+      if(ExtractTriggers(c)<0){
 	cerr<<"Omicron::Process: cannot make triggers ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
 	cor_data_ctr[c]++;
 	continue;
@@ -624,22 +612,23 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-int Omicron::MakeTriggers(const int aChNumber){
+int Omicron::ExtractTriggers(const int aChNumber){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
-    cerr<<"Omicron::MakeTriggers: the Omicron object is corrupted"<<endl;
+    cerr<<"Omicron::ExtractTriggers: the Omicron object is corrupted"<<endl;
     return -1;
   }
   if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::MakeTriggers: channel number "<<aChNumber<<" does not exist"<<endl;
+    cerr<<"Omicron::ExtractTriggers: channel number "<<aChNumber<<" does not exist"<<endl;
     return -1;
   }
-  if(fVerbosity) cout<<"Omicron::MakeTriggers: make triggers for channel "<<fChannels[aChNumber]<<" starting at "<<dataseq->GetChunkTimeStart()<<endl;
+  if(fVerbosity) cout<<"Omicron::ExtractTriggers: make triggers for channel "<<fChannels[aChNumber]<<" starting at "<<dataseq->GetChunkTimeStart()<<endl;
   
+  // loop over segments
   int s;
   for(s=0; s<dataseq->GetNSegments(); s++){
     if(!tile->GetTriggers(triggers[aChNumber],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s))){
-      cerr<<"Omicron::MakeTriggers: could not make triggers for channel "<<fChannels[aChNumber]<<endl;
+      cerr<<"Omicron::ExtractTriggers: could not make triggers for channel "<<fChannels[aChNumber]<<endl;
       return -1;
     }
     else{
@@ -654,6 +643,12 @@ int Omicron::MakeTriggers(const int aChNumber){
     delete dataIm[ss];
   } 
   
+  // sort triggers
+  triggers[aChNumber]->SortTriggers();
+
+  // clustering if any
+  if(fClusterAlgo[0].compare("none")) triggers[aChNumber]->Clusterize(fClusterAlgo[0]);
+
   return triggers[aChNumber]->GetNTrig();
 }
 
@@ -678,7 +673,7 @@ bool Omicron::WriteTriggers(const int aChNumber){
   }
       
   // save triggers for this chunk
-  if(!triggers[aChNumber]->Write(fWriteMode, "default").compare("none")){
+  if(!triggers[aChNumber]->Write(fWriteMode).compare("none")){
     cerr<<"Omicron::WriteTriggers: writing events failed for channel "<<fChannels[aChNumber]<<endl;
     return false;
   }

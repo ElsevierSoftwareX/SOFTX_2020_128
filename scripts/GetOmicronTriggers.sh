@@ -39,11 +39,10 @@ printhelp(){
     echo ""
     echo ""
     echo "CLUSTER OPTIONS"
-    echo "  -C  [YES/NO]          [YES] = print clustered triggers"
-    echo "                        [NO]  = print unclustered triggers"
-    echo "                        Default = 'YES'"
-    echo "  -T  [CLUSTERING_DT]   Delta_t window for clustering (in s.)"
-    echo "                        Default = '0.1s'"
+    echo "  -C  [TIME/TIMEFREQ]   [TIME] = print time-clustered triggers"
+    echo "           /NONE        [TIMEFREQ]  = print time-frequency-clustered triggers"
+    echo "                        [NONE]  = print unclustered triggers"
+    echo "                        Default = 'TIMEFREQ'"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -r                    do not print frequency column"
@@ -77,7 +76,7 @@ snrmin=1           # minimum SNR
 snrmax=10000       # maximum SNR
 freqmin=1          # minimum frequency
 freqmax=10000      # maximum frequency
-cluster="YES"      # cluster or no
+cluster="TIMEFREQ" # clusters
 print_freq=1       # print frequency column
 print_dur=0        # print duration column
 print_bw=0         # print bandwidth column
@@ -88,13 +87,12 @@ print_fe=0         # print fend column
 print_q=0          # print Q column
 print_amp=0        # print Amplitude column
 print_snr=1        # print SNR column
-dt=0.1             # clustering dt
 triggerfiles="NONE" # user trigger files
 tmin=0             # starting time
 tmax=0             # stopping time
 
 ##### read options
-while getopts ":c:t:s:e:x:X:f:F:C:T:ruanojmpvqlh" opt; do
+while getopts ":c:t:s:e:x:X:f:F:C:ruanojmpvqlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -122,9 +120,6 @@ while getopts ":c:t:s:e:x:X:f:F:C:T:ruanojmpvqlh" opt; do
 	    ;;
 	C)
 	    cluster="$OPTARG"
-	    ;;
-	T)
-	    dt="$OPTARG"
 	    ;;
 	r)
 	    print_freq=0
@@ -222,19 +217,13 @@ if [ $freqmax_int -lt 1 ]; then
 fi
 
 ##### check cluster
-if [ ! "$cluster" = "NO" ] ; then print_c=1; else print_c=0; fi
-
-##### check dt
-dt_int=`echo $dt | awk '{printf "%.4f\n", $1}'`
-if [ "$dt" = "0.0000" ] ; then
-    echo "`basename $0`: the delta_t value '$dt' is not reasonable"
-    echo "type  'GetOmicronTriggers.sh -h'  for help"
-    exit 1
-fi
+if [ "$cluster" = "TIME" ] ; then print_c=1;
+elif [ "$cluster" = "TIMEFREQ" ] ; then print_c=2;
+else print_c=0; fi
 
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    printtriggers.exe "$triggerfiles" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
+    printtriggers.exe "$triggerfiles" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
     exit 0
 fi
 
@@ -249,7 +238,7 @@ fi
 
 ##### print triggers
 if [ ! "$OMICRON_FILELIST" = "" ]; then
-    printtriggers.exe "$OMICRON_FILELIST" $dt $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
+    printtriggers.exe "$OMICRON_FILELIST" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
     exit 0
 else 
     echo "`basename $0`: Omicron triggers are not available"

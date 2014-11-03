@@ -10,7 +10,7 @@
 #include "Streams.h"
 #include "Spectrum.h"
 #include "Sample.h"
-#include "Triggers.h"
+#include "MakeTriggers.h"
 #include "EventMap.h"
 #include "TMath.h"
 #include "Otile.h"
@@ -26,7 +26,7 @@ using namespace std;
  *
  * This class was designed to offer various ways to run Omicron methods; either step-by step or in a all-in-one way. If the algorithm remains the same, Omicron provides two different outputs: triggers or maps. The triggers corresponds to tiles with a SNR value above a given threshold . The maps are a time-frequency decomposition of the input signal. Triggers are produced with the Process() method while maps are obtained with the Scan() method.
  *
- * \author    Florent Robinet
+ * \author Florent Robinet
  */
 class Omicron {
 
@@ -62,7 +62,7 @@ class Omicron {
    * - MakeDirectories(): to create the output directory structure
    * - NewChunk(): to walk through the input segments
    * - ConditionVector(): to load and condition the input data vector
-   * - MakeTriggers(): to project data onto the tiles
+   * - ExtractTriggers(): to project data onto the tiles
    * - WriteTriggers(): to save triggers on disk
    *
    * This function is only available if a FFL structure has been previously declared.
@@ -141,10 +141,11 @@ class Omicron {
   
   /**
    * Projects conditioned data onto the tiles and fills the Triggers structure.
-   * It returns the current number of triggers in memory. -1 is returned if this function fails.
+   * The trigger stucture is then sorted (by tstart) and the clustering algorithm is applied if requested.
+   * This function returns the current number of triggers in memory. -1 is returned if this function fails.
    * @param aChNumber channel number as previously declared (indexing starts at 0)
    */
-  int MakeTriggers(const int aChNumber);
+  int ExtractTriggers(const int aChNumber);
   
   /**
    * Writes triggers to disk.
@@ -235,6 +236,7 @@ class Omicron {
 
   // INPUT OPTIONS
   bool ReadOptions(void);       ///< to parse option card
+  void AdjustParameters(void);  ///< adjust default parameters
   string fOptionFile;           ///< option file name
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
@@ -281,7 +283,7 @@ class Omicron {
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure
-  Triggers **triggers;          ///< output triggers
+  MakeTriggers **triggers;      ///< output triggers
 
   // DATA
   int ChunkSize;                ///< chunk sample size (varies)

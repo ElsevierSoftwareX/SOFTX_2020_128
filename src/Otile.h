@@ -6,7 +6,7 @@
 
 #include "CUtils.h"
 #include "Oqplane.h"
-#include "Triggers.h"
+#include "MakeTriggers.h"
 
 #define NQPLANEMAX 50
 
@@ -86,12 +86,12 @@ class Otile {
    * - amplitude = SNR*sqrt(power) where power is the noise power average in the tile set with SetPowerSpectrum(). 
    *
    * A time offset must be given corresponding to the starting time of the time range.
-   * @param aTriggers Triggers object
+   * @param aTriggers MakeTriggers object
    * @param aDataRe real part of the data vector (frequency domain)
    * @param aDataIm imaginary part of the data vector (frequency domain)
    * @param aTimeStart time offset
    */
-  bool GetTriggers(Triggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
+  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
 
   /**
    * Returns a SNR map of data projected onto a given Q plane. 
