@@ -42,7 +42,7 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
   for(int s=0; s<4; s++) TriggerPlot::GetCollectionSelection(s)->SetSNRRange(snrthr[s],smax);
   
   // Clusterize
-  TriggerPlot::Clusterize("TIMEFREQ");
+  TriggerPlot::Clusterize("TIME");
   for(int s=0; s<4; s++) TriggerPlot::SetCollectionUseClusters(s,true);
 
   // Set plot legends
