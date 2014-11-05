@@ -67,40 +67,53 @@ int main (int argc, char* argv[]){
   triggers->SetTimeRange(start,stop);
   triggers->MakeCollections();
 
+  cout<<"omiplot: print SNR plot"<<endl;
   triggers->PrintPlot("snr");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snr.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snr_"+sstart+"_"+sstop+".gif");
 
+  cout<<"omiplot: print rate plot"<<endl;
   triggers->PrintCollectionPlot("rate");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_rate.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_rate_"+sstart+"_"+sstop+".gif");
 
+  cout<<"omiplot: print frequency plot"<<endl;
   triggers->PrintCollectionPlot("frequency");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_frequency.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_frequency_"+sstart+"_"+sstop+".gif");
 
+  cout<<"omiplot: print frequency vs. time plot"<<endl;
   triggers->PrintCollectionPlot("freqtime");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_freqtime.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_freqtime_"+sstart+"_"+sstop+".gif");
  
+  cout<<"omiplot: print SNR vs. time plot"<<endl;
   triggers->PrintCollectionPlot("snrtime");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snrtime.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snrtime_"+sstart+"_"+sstop+".gif");
 
+  cout<<"omiplot: print SNR vs. frequency plot"<<endl;
   triggers->PrintCollectionPlot("snrfreq");
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snrfreq.gif");
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snrfreq_"+sstart+"_"+sstop+".gif");
    
+  cout<<"omiplot: print plot panel"<<endl;
   triggers->PrintCollectionPanel();
   triggers->DrawLegend();
   if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_panel.gif",2);
   else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_panel_"+sstart+"_"+sstop+".gif",2);
+ 
+  cout<<"omiplot: print loudest event map"<<endl;
+  string fn;
+  if(filename.compare("")) fn=outdir+"/"+filename+"_loudest.gif";
+  else fn=outdir+"/"+triggers->GetStreamName()+"_loudest_"+sstart+"_"+sstop+".gif";
+  triggers->PrintLoudestEventMap(fn);
  
   // cleaning
   delete triggers;

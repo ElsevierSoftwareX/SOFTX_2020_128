@@ -5,6 +5,7 @@
 #define __Oplot__
 
 #include "TriggerPlot.h"
+#include "EventMap.h"
 #include "TGraph.h"
 
 using namespace std;
@@ -41,8 +42,11 @@ class Oplot: public TriggerPlot {
   
   void SetTimeRange(const int aTimeMin, const int aTimeMax);
 
+  void PrintLoudestEventMap(const string aFileName="");
+
  private:
   double snrthr[4];
+  EventMap *Eloud;
 
   ClassDef(Oplot,0)  
 };

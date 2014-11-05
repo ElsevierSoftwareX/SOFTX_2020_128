@@ -57,12 +57,14 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
   TriggerPlot::SetDateFormat(true);
   TriggerPlot::SetCollectionColor(0,9);
   TriggerPlot::SetCollectionColor(1,4);
-  TriggerPlot::SetCollectionColor(2,1);
+  TriggerPlot::SetCollectionColor(2,kGreen+3);
   TriggerPlot::SetCollectionColor(3,2);
   TriggerPlot::SetCollectionMarker(0,1);
   TriggerPlot::SetCollectionMarker(1,7);
   TriggerPlot::SetCollectionMarker(2,4,0.8);
   TriggerPlot::SetCollectionMarker(3,8,0.8);
+
+  Eloud=NULL;
 
 }
 
@@ -70,6 +72,7 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
 Oplot::~Oplot(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(ReadTriggerSegments::Verbose>1) cout<<"Oplot::~Oplot"<<endl;
+  if(Eloud!=NULL) delete Eloud;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -94,6 +97,27 @@ void Oplot::SetTimeRange(const int aTimeMin, const int aTimeMax){
     // adjust time binning
     TriggerPlot::GetCollectionSelection(s)->SetTimeResolution(nbins);
   }
+    
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Oplot::PrintLoudestEventMap(const string aFileName){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!Gfreqtimeloud->GetN()){
+    cerr<<"Oplot::PrintLoudestEventMap: no plot has been built"<<endl;
+    return;
+  }
+
+  double x,y;
+  Gfreqtimeloud->GetPoint(0,x,y);
+
+  if(Eloud!=NULL) delete Eloud;
+  Eloud = new EventMap(1,GetTriggerFiles(x-3,x+3),"",0);
+  Eloud->BuildMap(0,x);
+  Eloud->PrintMap(0);
+  
+  if(aFileName.compare("")) Eloud->Print(aFileName);
     
   return;
 }
