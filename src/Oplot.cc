@@ -10,20 +10,12 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
 ////////////////////////////////////////////////////////////////////////////////////
 
   // SNR thresholds
-  if(Msnrmin_stat<10000) snrthr[0]=Msnrmin_stat;
-  else                   snrthr[0]=5.0;
-  if(snrthr[0]<5)        snrthr[1]=5.0;
-  else if(snrthr[0]<8)   snrthr[1]=8.0;
-  else if(snrthr[0]<10)  snrthr[1]=10.0;
-  else if(snrthr[0]<20)  snrthr[1]=20.0;
-  else                   snrthr[1]=2.0*snrthr[0];
-  if(snrthr[1]<8)        snrthr[2]=8.0;
-  else if(snrthr[1]<10)  snrthr[2]=10.0;
-  else if(snrthr[1]<20)  snrthr[2]=20.0;
-  else                   snrthr[2]=2.0*snrthr[1];
-  if(snrthr[2]<10)       snrthr[3]=10.0;
-  else if(snrthr[2]<20)  snrthr[3]=20.0;
-  else                   snrthr[3]=2.0*snrthr[2];
+  snrthr[0]=5.0;
+  snrthr[1]=8.0;
+  snrthr[2]=10.0;
+  snrthr[3]=20.0;
+  if(Msnrmin_stat<5.0) snrthr[0]=Msnrmin_stat;
+
   if(ReadTriggerSegments::Verbose>1){
     cout<<"Oplot::Oplot: 4 SNR thresholds:"<<endl;
     for(int s=0; s<4; s++) cout<<"              "<<s+1<<"/ SNR > "<<snrthr[s]<<endl;
