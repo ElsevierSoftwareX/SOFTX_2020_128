@@ -22,6 +22,7 @@ printhelp(){
     echo "-----------------------------------------------------------"
     echo " STD         8      2048             8"
     echo " STD2        8      1024             8"
+    echo " STD3        8       512             8"
     echo " LOW       0.1        64             8"
     echo " HIGH     1024      8192             8"
     echo " FINE        8      4096             6         fine tiling"
@@ -125,6 +126,23 @@ printoption(){
 	fi
 	mmmax=0.35
 	snrthr=8
+    elif [ $1 = "STD3" ]; then
+        sampling=1024
+        freqmin=8
+        freqmax=512
+        if [ $4 -eq 0 ]; then # offline
+            chunk=506
+            block=256
+            overlap=6
+            ratemax=300
+        else                  # online
+            chunk=16
+            block=16
+            overlap=2
+            ratemax=500
+        fi
+        mmmax=0.35
+        snrthr=8
     else
 	sampling=4096
 	freqmin=8
@@ -261,15 +279,15 @@ fi
 ##### user channel lists
 awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.goo.STD
 awk '$2=="STD2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD2
+awk '$2=="STD3" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD3
 awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.goo.LOW
 awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.goo.HIGH
 awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.goo.GW
 awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.goo.FINE
 
-rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_FINE_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
+rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_STD3_*.txt ./parameters_FINE_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
 
-############## STD SETTING
-for conf in STD STD2 LOW HIGH GW FINE; do
+for conf in STD STD2 STD3 LOW HIGH GW FINE; do
     if [ ! -s ./channel.goo.$conf ]; then continue; fi
     n=0
     p=0
@@ -278,6 +296,7 @@ for conf in STD STD2 LOW HIGH GW FINE; do
     # maximum number of channels per option file
     if [ "$conf" = "STD" ];    then nchanmax=8
     elif [ "$conf" = "STD2" ]; then nchanmax=15
+    elif [ "$conf" = "STD3" ]; then nchanmax=40
     elif [ "$conf" = "LOW" ]; then nchanmax=20
     elif [ "$conf" = "HIGH" ]; then nchanmax=4
     elif [ "$conf" = "FINE" ]; then nchanmax=5
