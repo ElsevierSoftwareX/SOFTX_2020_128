@@ -42,7 +42,13 @@ printhelp(){
     echo "  -C  [TIME/TIMEFREQ]   [TIME] = print time-clustered triggers"
     echo "           /NONE        [TIMEFREQ]  = print time-frequency-clustered triggers"
     echo "                        [NONE]  = print unclustered triggers"
-    echo "                        Default = 'TIMEFREQ'"
+    echo "                        Default = 'TIME'"
+    echo "  -T  [DELTAT]          clustering delta_t in seconds"
+    echo "                        Default = 0.1s"
+    echo "  -A  [AF]              clustering frequency asymmetry (<1)"
+    echo "                        Default = 0.05"
+    echo "                        [NONE]  = print unclustered triggers"
+    echo "                        Default = 'TIME'"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -r                    do not print frequency column"
@@ -77,6 +83,8 @@ snrmax=10000       # maximum SNR
 freqmin=1          # minimum frequency
 freqmax=10000      # maximum frequency
 cluster="TIME"     # clusters
+cluster_dt=0.1     # cluster deltat
+cluster_af=0.05    # cluster Af
 print_freq=1       # print frequency column
 print_dur=0        # print duration column
 print_bw=0         # print bandwidth column
@@ -92,7 +100,7 @@ tmin=0             # starting time
 tmax=0             # stopping time
 
 ##### read options
-while getopts ":c:t:s:e:x:X:f:F:C:ruanojmpvqlh" opt; do
+while getopts ":c:t:s:e:x:X:f:F:C:T:A:ruanojmpvqlh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -120,6 +128,12 @@ while getopts ":c:t:s:e:x:X:f:F:C:ruanojmpvqlh" opt; do
 	    ;;
 	C)
 	    cluster="$OPTARG"
+	    ;;
+	T)
+	    cluster_dt="$OPTARG"
+	    ;;
+	A)
+	    cluster_af="$OPTARG"
 	    ;;
 	r)
 	    print_freq=0
@@ -216,14 +230,9 @@ if [ $freqmax_int -lt 1 ]; then
     exit 1
 fi
 
-##### check cluster
-if [ "$cluster" = "TIME" ] ; then print_c=1;
-elif [ "$cluster" = "TIMEFREQ" ] ; then print_c=2;
-else print_c=0; fi
-
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    printtriggers.exe "$triggerfiles" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
+    printtriggers.exe "$triggerfiles" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $cluster $cluster_dt $cluster_af
     exit 0
 fi
 
@@ -238,7 +247,7 @@ fi
 
 ##### print triggers
 if [ ! "$OMICRON_FILELIST" = "" ]; then
-    printtriggers.exe "$OMICRON_FILELIST" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_c
+    printtriggers.exe "$OMICRON_FILELIST" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $cluster $cluster_dt $cluster_af
     exit 0
 else 
     echo "`basename $0`: Omicron triggers are not available"
