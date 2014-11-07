@@ -66,7 +66,7 @@ Otile::~Otile(void){
 }
   
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
+bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Otile::GetTriggers: the Otile object is corrupted"<<endl;
@@ -75,7 +75,7 @@ bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataI
 
   // get triggers for each Q plane
   for(int p=0; p<(int)fQs.size(); p++){
-    if(!qplanes[p]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart)){
+    if(!qplanes[p]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart,aExtraTimePadMin)){
       cerr<<"Otile::GetTriggers: the q-plane "<<p<<" has failed to produce triggers"<<endl;
       return false;
     }

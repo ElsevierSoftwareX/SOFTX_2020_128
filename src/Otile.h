@@ -91,7 +91,7 @@ class Otile {
    * @param aDataIm imaginary part of the data vector (frequency domain)
    * @param aTimeStart time offset
    */
-  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart);
+  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
 
   /**
    * Returns a SNR map of data projected onto a given Q plane. 

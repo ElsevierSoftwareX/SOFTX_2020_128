@@ -87,14 +87,14 @@ Oqplane::~Oqplane(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart){
+bool Oqplane::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Oqplane::GetTriggers: the Oqplane object is corrupted"<<endl;
     return false;
   }
   for(int f=0; f<fNumberOfRows; f++){
-    if(!freqrow[f]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart)){
+    if(!freqrow[f]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart,aExtraTimePadMin)){
       cerr<<"Oqplane::GetTriggers: the frequency row "<<f<<" has failed to produce triggers"<<endl;
       return false;
     }
@@ -320,7 +320,7 @@ FreqRow::~FreqRow(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool FreqRow::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime){
+bool FreqRow::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime, const int aExtraTimePadMin){
 ////////////////////////////////////////////////////////////////////////////////////
   
   // get SNRs
@@ -335,6 +335,7 @@ bool FreqRow::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDat
   double peak_time;
   for(int t=0; t<fNumberOfTiles; t++){
     if(!ValidIndices[t]) continue;
+    if(fTime[t]<aExtraTimePadMin+fTimePad) continue;
     if(snrs[t]<fSNRThreshold) continue;
     amplitude=snrs[t]*sqrt(fPower);
     peak_time=aStartTime+fTime[t];

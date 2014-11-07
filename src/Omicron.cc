@@ -19,7 +19,7 @@ Omicron::Omicron(const string aOptionFile){
   // input
   fOptionFile=aOptionFile;
 
-  // metadata
+  // metadata fileds
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_CHANNEL");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_CHANNEL");         fOptionType.push_back("s");
@@ -77,17 +77,16 @@ Omicron::Omicron(const string aOptionFile){
   // adjust default parameters using input data
   AdjustParameters();
 
-  // init data
+  // init data containers
   if(fVerbosity) cout<<"Omicron::Omicron: init data container and procedures..."<<endl;
-  ChunkSize   = fSampleFrequency * fChunkDuration;
-  OverlapSize = fSampleFrequency * fOverlapDuration;
-  SegmentSize = fSampleFrequency * fSegmentDuration;
-  ChunkVect   = new double [ChunkSize];
-  SegVect     = new double [SegmentSize];
-  TukeyWindow = GetTukeyWindow(SegmentSize,OverlapSize);
-  offt = new fft(SegmentSize,"FFTW_"+ffftplan);
   dataseq = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
-  status_OK*=dataseq->GetStatus();
+  fChunkDuration=dataseq->GetChunkDuration();
+  fSegmentDuration=dataseq->GetSegmentDuration();
+  fOverlapDuration=dataseq->GetOverlapDuration();
+  ChunkVect   = new double [fChunkDuration*fSampleFrequency];
+  SegVect     = new double [fSegmentDuration*fSampleFrequency];
+  TukeyWindow = GetTukeyWindow(fSegmentDuration*fSampleFrequency,fOverlapDuration*fSampleFrequency);
+  offt = new fft(fSegmentDuration*fSampleFrequency,"FFTW_"+ffftplan);
   dataRe = new double* [dataseq->GetNSegments()];
   dataIm = new double* [dataseq->GetNSegments()];
   
@@ -115,7 +114,7 @@ Omicron::Omicron(const string aOptionFile){
     int nextpowerof2=(int)floor(log(psdsize)/log(2));
     psdsize=(int)pow(2.0,(double)nextpowerof2);
   }
-  spectrum = new Spectrum(fSampleFrequency,psdsize,fOverlapDuration,fVerbosity);
+  spectrum = new Spectrum(fSampleFrequency,psdsize,0,fVerbosity);
   status_OK*=spectrum->GetStatus();
 
   // output directory
@@ -282,13 +281,6 @@ bool Omicron::Process(Segments *aSeg){
     return false;
   }
 
-  // timer
-  if(fVerbosity){
-    time ( &timer );
-    ptm = gmtime ( &timer );
-    cout<<"#### Omicron::Process timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
-  }
-
   // init segments
   if(!InitSegments(aSeg)){
     cerr<<"Omicron::Process: the requested segments cannot be initialized"<<endl;
@@ -311,7 +303,12 @@ bool Omicron::Process(Segments *aSeg){
   // loop over chunks
   while(NewChunk()){
     cout<<"Omicron::Process: ** chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<endl;
-    
+    if(fVerbosity){
+      time ( &timer );
+      ptm = gmtime ( &timer );
+      cout<<"#### Omicron::Process timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
+    }
+
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
       cout<<"Omicron::Process: *  channel "<<fChannels[c]<<"..."<<endl;
@@ -479,14 +476,9 @@ bool Omicron::NewChunk(void){
   // load new chunk
   if(fVerbosity) cout<<"Omicron::NewChunk: load a new chunk segment..."<<endl;
   if(!dataseq->NewChunk()){
-    cerr<<"Omicron::NewChunk: no more chunk to load"<<endl;
+    cerr<<"Omicron::NewChunk: no more data chunk to load"<<endl;
     return false;
   }
-  
-  // size update
-  // only the chunk size can change
-  fChunkDuration=dataseq->GetChunkTimeEnd()-dataseq->GetChunkTimeStart();
-  ChunkSize=fChunkDuration*fSampleFrequency;
   if(fVerbosity>1) cout<<"Omicron::NewChunk: chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<" is loaded"<<endl;
 
   return true;
@@ -502,10 +494,6 @@ int Omicron::ConditionVector(const int aChNumber, const int aInVectSize, double 
   if(aChNumber<0||aChNumber>=(int)fChannels.size()){
     cerr<<"Omicron::ConditionVector: channel number "<<aChNumber<<" does not exist"<<endl;
     return 1;
-  }
-  if((dataseq->GetChunkTimeEnd()-dataseq->GetChunkTimeStart())*fSampleFrequency!=ChunkSize){
-    cerr<<"Omicron::ConditionVector: the chunk size is not compatible with the chunk duration"<<endl;
-    return 2;
   }
 
   // Input data checks
@@ -523,22 +511,23 @@ int Omicron::ConditionVector(const int aChNumber, const int aInVectSize, double 
   }
   
   // test native sampling (and update if necessary)
-  int nativesampling = aInVectSize/(dataseq->GetChunkTimeEnd()-dataseq->GetChunkTimeStart());
+  int nativesampling = aInVectSize/(dataseq->GetCurrentChunkDuration());
   if(!sample[aChNumber]->SetFrequencies(nativesampling,fSampleFrequency,fFreqRange[0])){
     cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the Sample structure could not be parameterized"<<endl;
+    status_OK=false;
     return -2;
   }
 
   // transform data vector
   if(fVerbosity) cout<<"Omicron::ConditionVector: transform data vector..."<<endl;
-  if(!sample[aChNumber]->Transform(aInVectSize, aInVect, ChunkSize, ChunkVect)){
+  if(!sample[aChNumber]->Transform(aInVectSize, aInVect, dataseq->GetCurrentChunkDuration()*fSampleFrequency, ChunkVect)){
     cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the transform failed"<<endl;
     return 6;
   }
 
   // Make spectrum
   if(fVerbosity) cout<<"Omicron::ConditionVector: make spectrum..."<<endl;
-  if(!spectrum->LoadData(ChunkSize, ChunkVect)){
+  if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*fSampleFrequency, ChunkVect)){
     cerr<<"Omicron::ConditionVector ("<<fChannels[aChNumber]<<"): the spectrum could not be estimated"<<endl;
     return 7;
   }
@@ -552,11 +541,13 @@ int Omicron::ConditionVector(const int aChNumber, const int aInVectSize, double 
 
   //loop over segments
   if(fVerbosity) cout<<"Omicron::ConditionVector: condition data segments..."<<endl;
+  int segsize=dataseq->GetSegmentDuration()*fSampleFrequency;
+  int ovsize=dataseq->GetOverlapDuration()*fSampleFrequency;
   for(int s=0; s<dataseq->GetNSegments(); s++){
     	
     // fill segment vector (time-domain) and apply tukey window
-    for(int i=0; i<SegmentSize; i++)
-      SegVect[i] = ChunkVect[s*(SegmentSize-OverlapSize)+i] * TukeyWindow[i];
+    for(int i=0; i<segsize; i++)
+      SegVect[i] = ChunkVect[s*(segsize-ovsize)+i] * TukeyWindow[i];
     
     // get conditioned data
     if(!Condition(&(dataRe[s]), &(dataIm[s]))){
@@ -586,7 +577,7 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
   }
 
   // zero-out below high-frequency cutoff
-  int icutoff = (int)floor(fFreqRange[0]/(double)fSampleFrequency*(double)SegmentSize);
+  int icutoff = (int)floor(fFreqRange[0]*(double)(dataseq->GetSegmentDuration()));
   for(int i=0; i<icutoff; i++){
     (*aDataRe)[i]=0.0;
     (*aDataIm)[i]=0.0;
@@ -594,8 +585,9 @@ bool Omicron::Condition(double **aDataRe, double **aDataIm){
 
   // normalize data by the ASD
   double asdval;
-  for(int i=icutoff; i<SegmentSize/2; i++){
-    asdval=spectrum->GetPower(i*(double)fSampleFrequency/(double)SegmentSize);
+  int ssize=dataseq->GetSegmentDuration()*fSampleFrequency/2;
+  for(int i=icutoff; i<ssize; i++){
+    asdval=spectrum->GetPower(i*(double)fSampleFrequency/(double)(2*ssize));
     if(asdval<=0){
       cerr<<"Omicron::Condition: could not retrieve power"<<endl;
       delete *aDataRe; delete *aDataIm;
@@ -622,17 +614,17 @@ int Omicron::ExtractTriggers(const int aChNumber){
     cerr<<"Omicron::ExtractTriggers: channel number "<<aChNumber<<" does not exist"<<endl;
     return -1;
   }
-  if(fVerbosity) cout<<"Omicron::ExtractTriggers: make triggers for channel "<<fChannels[aChNumber]<<" starting at "<<dataseq->GetChunkTimeStart()<<endl;
+  if(fVerbosity) cout<<"Omicron::ExtractTriggers: extract triggers for channel "<<fChannels[aChNumber]<<" starting at "<<dataseq->GetChunkTimeStart()<<endl;
   
   // loop over segments
   int s;
   for(s=0; s<dataseq->GetNSegments(); s++){
-    if(!tile->GetTriggers(triggers[aChNumber],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s))){
+    if(!tile->GetTriggers(triggers[aChNumber],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s),dataseq->GetCurrentOverlapDuration()-fOverlapDuration/2)){
       cerr<<"Omicron::ExtractTriggers: could not make triggers for channel "<<fChannels[aChNumber]<<endl;
       return -1;
     }
     else{
-      triggers[aChNumber]->AddSegment(dataseq->GetSegmentTimeStart(s)+fOverlapDuration/2,dataseq->GetSegmentTimeEnd(s)-fOverlapDuration/2);
+      triggers[aChNumber]->AddSegment(dataseq->GetSegmentTimeStart(s)+dataseq->GetCurrentOverlapDuration()-fOverlapDuration/2,dataseq->GetSegmentTimeEnd(s)-fOverlapDuration/2);
       delete dataRe[s];
       delete dataIm[s];
       if(triggers[aChNumber]->GetMaxFlag()) break;
@@ -790,7 +782,7 @@ void Omicron::SaveAPSD(const int c, const string type){
 void Omicron::SaveTS(const int c, double tcenter){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  TGraph *GDATA = new TGraph(ChunkSize);
+  TGraph *GDATA = new TGraph(fSampleFrequency*dataseq->GetCurrentChunkDuration());
   if(GDATA==NULL) return;
 
   stringstream ss;
@@ -798,7 +790,7 @@ void Omicron::SaveTS(const int c, double tcenter){
   GDATA->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
-  for(int i=0; i<ChunkSize; i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i*(double)(dataseq->GetChunkTimeEnd()-dataseq->GetChunkTimeStart())/(double)ChunkSize-tcenter,ChunkVect[i]);
+  for(int i=0; i<fSampleFrequency*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i*(double)(fSampleFrequency)-tcenter,ChunkVect[i]);
      
   // cosmetics
   GPlot->SetLogx(0);

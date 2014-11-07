@@ -13,8 +13,9 @@ using namespace std;
 
 /**
  * Read a segment list sequentially (for Omicron).
- * A Segments object is segmented with several levels to perform an organized analysis of data segments. The input segments are divided into overlapping chunks. The chunks can be represented in the following way:
+ * An input Segments object is segmented into several levels to perform an organized analysis of data segments. The input Segments object (set with SetSegments()) is divided into overlapping chunks. The chunks are loaded sequentially any time the NewChunk() function is called. The chunk sequence can be represented in the following way:
  * \verbatim
+------------------------------------------------------------ input segment
  |------------------| chunk i-1
                 |------------------| chunk i
                                |------------------| chunk i+1
@@ -34,8 +35,31 @@ using namespace std;
                                          |------------------------------------------| chunk i+1
  \endverbatim 
  *
- * The chunk duration is pre-defined. However, if the input segment is not long enough, the chunk size is adjusted to fit the maximum number of subsegments. The segment size cannot be ajusted.
+ * In general, the input Segments object contain multiple time segments. The sequence described above does not necessarily match the size of the input segments. The Odata class is designed to deal with such edge effects. When calling NewChunk(), if the next chunk ends after the end of the current segment, some actions are taken to adjust the chunk size to the left-over (represented below):
+ * \verbatim
+ ------------------------------------| input segment under processing
+
+ -------| chunk i-1
+ 
+ ###### call NextChunk() to cover the left-over
+ 
+     |--------------------------| chunk i
+     |----------| subsegment 0
+             |----------| subsegment 1
+                     |----------| subsegment 2
+
+ ###### call NextChunk() to cover the left-over
+                              
+                          |----------| chunk i+1
+                          |----------| subsegment 0
+ \endverbatim 
  *
+ * - the chunk (i) size is reduced until it is fully contained inside the left-over segment. This reduction is perfomed so that the chunk size is a multiple of at least one sub-segment (in the example, there are 3 subsegments instead of the nominal 5).
+ * - if the left-over is smaller than the size of one sub-segment, the chunk (i+1) size is set to the size of one subsegment and the chunk stop is set to the end of the current segment. The overlap duration value is modified.
+ *
+ * Obviously, the user must be careful about these special cases as the chunck and/or the overlap duration is modified (the subsegment duration is never changed). Some functions are available to monitor the different sizes.
+ *
+ * When moving to a new segment, the chunk and overlap durations are set back to nominal values.
  * \author    Florent Robinet
  */
 class Odata{
@@ -48,10 +72,12 @@ class Odata{
   */
   /**
    * Constructor of the Odata class.
+   * Nominal durations are defined.
    *
-   * @param aChunkDuration chunk duration [s]
-   * @param aSegmentDuration subsegment duration [s]
-   * @param aOverlapDuration overlap duration [s]
+   * IMPORTANT: the nominal durations must verify some conditions. If these conditions are not met, the duration are automatically changed to match the Odata class requirements.
+   * @param aChunkDuration nominal chunk duration [s]
+   * @param aSegmentDuration nominal subsegment duration [s]
+   * @param aOverlapDurationnominal overlap duration [s]
    * @param averbose verbosity level
    */
   Odata(const int aChunkDuration, 
@@ -83,7 +109,8 @@ class Odata{
   bool NewChunk(void);
 
   /**
-   * Returns number of subsegments per chunk.
+   * Returns number of subsegments in the current chunk.
+   * The nominal value is returned if no chunk is loaded.
    */
   inline int GetNSegments(void){ return NSegments; };
   
@@ -110,25 +137,49 @@ class Odata{
    * @param aNseg segment number
    */
   int GetSegmentTimeEnd(const int aNseg);
+  
+  /**
+   * Returns the current chunk duration.
+   * In most cases the chunk duration is nominal unless the special case of the end of an input segment is hit.
+   */
+  inline int GetCurrentChunkDuration(void){ return ChunkStop-ChunkStart; };
 
   /**
-   * Returns current class status.
+   * Returns the nominal chunk duration.
    */
-  inline bool GetStatus(void){ return status_OK; };
+  inline int GetChunkDuration(void){ return ChunkDuration; };
 
-  
+  /**
+   * Returns the segment duration.
+   * This value is never changed.
+   */
+  inline int GetSegmentDuration(void){ return SegmentDuration; };
+
+  /**
+   * Returns the current overlap duration.
+   * In most cases the overlap duration is nominal unless the special case of the end of an input segment is hit.
+   */
+  inline int GetCurrentOverlapDuration(void){ return OverlapDurationCurrent; };
+
+  /**
+   * Returns the nominal overlap duration.
+   * In most cases the overlap duration is nominal unless the special case of the end of an input segment is hit.
+   */
+  inline int GetOverlapDuration(void){ return OverlapDuration; };
+
  private:
   
   bool status_OK;        ///< class status
   int fVerbosity;        ///< verbosity level
 
   Segments *fSegments;   ///< input segments - DO NOT DELETE
-  int ChunkDuration;     ///< chunk duration
-  int SegmentDuration;   ///< segment duration
-  int OverlapDuration;   ///< overlap duration
+  int ChunkDuration;     ///< nominal chunk duration
+  int SegmentDuration;   ///< nominal segment duration
+  int OverlapDuration;   ///< nominal overlap duration
+  int OverlapDurationCurrent;///< current overlap duration
   int ChunkStart;        ///< current chunk start
   int ChunkStop;         ///< current chunk end
-  int NSegments;         ///< number of 50% overlapping segments in one chunk
+  int NSegments;         ///< number of overlapping subsegments in the current chunk
   int seg;               ///< current segment index
   bool TestChunk(void);  ///< test chunk against segments
 

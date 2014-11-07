@@ -41,7 +41,7 @@ class Omicron {
    * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, maps, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
-   * The Omicron class offers a wrapping functions (see Process() and Scan()) where every analysis steps are included. Omicron can also be used piece-by-piece for tailored applications (like a low-latency searches where data are provided sequentially when they are available). In this case, the option file can be minimal.
+   * The Omicron class offers a wrapping functions (see Process() and Scan()) where every analysis steps are included. Omicron can also be used step-by-step for tailored applications (like a low-latency searches where data are provided sequentially when they are available).
    * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
@@ -92,16 +92,16 @@ class Omicron {
   bool ScanTriggers(const double aTimeCenter);
 
   /**
-   * Initialize the segments to process.
+   * Initializes the segments to process.
    * This function should be called before any type of processing.
    * 
-   * WARNING: the input segment object is not copied, only the pointer is saved. This means that the Segments structure pointed by aSeg should not be modified or deleted before the end of the processing.
+   * WARNING: the input Segments object is not copied, only the pointer is saved. This means that the Segments structure pointed by aSeg should not be modified or deleted before the end of the processing.
    * @param *aSeg pointer to the input Segments structure
    */
   bool InitSegments(Segments *aSeg);
 
   /**
-   * Create the output directory structure.
+   * Creates the output directory structure.
    * Two directory structures are possible:
    * - [path_to_outdir]/aGPS/[channel_name] if aGPS is not 0
    * - [path_to_outdir]/[channel_name] if aGPS is 0
@@ -116,9 +116,9 @@ class Omicron {
   bool MakeDirectories(const double aGPS = 0);
 
   /**
-   * Load a new chunk.
-   * The chunks are loaded following the structure defined in the option file and the Segments object defined with InitSegments(). When there is not enough data to fill one chunk (end of a segment), the chunk duration is shortened. This function should be called iteratively to cover the full data set. The segmentation is detailed in Odata. The returned value indicates the status of this operation:
-   * - true : a new chunk has been loaded
+   * Loads a new chunk.
+   * The chunks are loaded following the time structure defined in the option file and the Segments object defined with InitSegments(). When there is not enough data to fill one chunk (end of a segment), the chunk duration is shortened as explained in Odata. This function should be called iteratively to cover the full data set. The segmentation is detailed in Odata. The returned value indicates the status of this operation:
+   * - true : a new chunk has been successfully loaded
    * - false : no more chunk to load
    */
   bool NewChunk(void);
@@ -127,9 +127,9 @@ class Omicron {
    * Conditions a data vector.
    * @param aInVect input data vector (time domain)
    *
-   * Before projecting the data onto the tiles, the data are conditioned with this funtion. The input data chunk is first re-sampled. Then the data is used to estimate the noise (PSD). Finally, the data segments are normalized by the ASD.
+   * Before projecting the data onto the tiles, the data are conditioned with this funtion. The input data chunk is first re-sampled and highpassed. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Fourier-transformed and normalized by the ASD.
    *
-   * IMPORTANT: The input vector MUST MATCH the current chunk segment loaded with NewChunk(). NO check will be performed against that!
+   * IMPORTANT: The input vector MUST MATCH the current chunk time segment loaded with NewChunk(). NO check will be performed against that!
    *
    * The user must provide information about the data vector given in argument:
    * @param aChNumber channel number as previously declared (indexing starts at 0)
@@ -141,7 +141,7 @@ class Omicron {
   
   /**
    * Projects conditioned data onto the tiles and fills the Triggers structure.
-   * The trigger stucture is then sorted (by tstart) and the clustering algorithm is applied if requested.
+   * The Triggers stucture is then sorted (by tstart) and the clustering algorithm is applied if requested.
    * This function returns the current number of triggers in memory. -1 is returned if this function fails.
    * @param aChNumber channel number as previously declared (indexing starts at 0)
    */
@@ -285,20 +285,17 @@ class Omicron {
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
 
-  // DATA
-  int ChunkSize;                ///< chunk sample size (varies)
-  int OverlapSize;              ///< overlap sample size
-  int SegmentSize;              ///< segment sample size
-  double *ChunkVect;            ///< chunk data container (time domain)
-  double *SegVect;              ///< segment data container (time domain)
+  // RAW DATA
+  double *ChunkVect;            ///< chunk raw data (time domain)
+  double *SegVect;              ///< subsegment raw data (time domain)
   
   // CONDITIONING
   bool Condition(double **aDataRe, double **aDataIm); ///< condition data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
-  double **dataRe;              ///< conditioned data container (Re)
-  double **dataIm;              ///< conditioned data container (Im)
+  double **dataRe;              ///< conditioned data (Re)
+  double **dataIm;              ///< conditioned data (Im)
 
   // SCANS
   int MapChNumber;              ///< channel currently mapped

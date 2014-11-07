@@ -15,30 +15,39 @@ Odata::Odata(const int aChunkDuration, const int aSegmentDuration,
   SegmentDuration    = (int)fabs(aSegmentDuration);
   OverlapDuration    = (int)fabs(aOverlapDuration);
   fVerbosity         = aVerbosity;
-  status_OK=true;
 
-  //***************** CHECKS *****************
+  // adjust durations
+  if(!OverlapDuration){
+    cerr<<"Odata::Odata: the nominal overlap duration is incorrect. Change it to: ---> 2s"<<endl;
+    OverlapDuration=2;
+  }
   if(OverlapDuration%2){
-    cerr<<"Odata::Odata: the overlap duration is not even"<<endl;
-    status_OK*=false;
-  }
-  if(SegmentDuration>ChunkDuration){
-    cerr<<"Odata::Odata: the segment duration cannot be larger than the chunk duration"<<endl;
-    status_OK*=false;
-  }
-  if(OverlapDuration>=SegmentDuration){
-    cerr<<"Odata::Odata: the overlap duration cannot be larger than the segment duration"<<endl;
-    status_OK*=false;
-  }
-  if((ChunkDuration-OverlapDuration)%(SegmentDuration-OverlapDuration)){
-    cerr<<"Odata::Odata: the overlap/segment/chunk durations do not macth. You could use:"<<endl;
-    cerr<<"              chunk duration   = "<<((ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration)+1)*(SegmentDuration-OverlapDuration)+OverlapDuration<<" s"<<endl;
-    cerr<<"              segment duration = "<<SegmentDuration<<" s"<<endl;
-    cerr<<"              overlap duration = "<<OverlapDuration<<" s"<<endl;
-    status_OK*=false;
+    cerr<<"Odata::Odata: the nominal overlap duration is not even. Change it to: ---> "<<OverlapDuration+1<<endl;
+    OverlapDuration++;
   }
 
-  //******************************************
+  if(SegmentDuration<2*OverlapDuration){
+    SegmentDuration=NextPowerOfTwo(2*OverlapDuration+1);
+    cerr<<"Odata::Odata: the nominal segment duration is too short. Change it to: ---> "<<SegmentDuration<<endl;
+  }
+  
+  if(ChunkDuration<SegmentDuration){
+    ChunkDuration=SegmentDuration;
+    cerr<<"Odata::Odata: the nominal chunk duration is too short. Change it to: ---> "<<ChunkDuration<<endl;    
+  }
+
+  if((ChunkDuration-OverlapDuration)%(SegmentDuration-OverlapDuration)){
+    ChunkDuration=((ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration)+1)*(SegmentDuration-OverlapDuration)+OverlapDuration;
+    cerr<<"Odata::Odata: the nominal chunk duration does not macth the segment/overlap structure. Change it to: ---> "<<ChunkDuration<<endl;
+  }
+ 
+  // print durations
+  if(fVerbosity>1){
+    cout<<"Odata::Odata: the nominal durations are:"<<endl;
+    cout<<"              Chunk duration   = "<<ChunkDuration<<"s"<<endl;
+    cout<<"              Segment duration = "<<SegmentDuration<<"s"<<endl;
+    cout<<"              Overlap duration = "<<OverlapDuration<<"s"<<endl;
+  }
 
   // no timing yet
   fSegments  = NULL;
@@ -46,6 +55,7 @@ Odata::Odata(const int aChunkDuration, const int aSegmentDuration,
   ChunkStart = -1;
   ChunkStop  = -1;
   NSegments  = (ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration);
+  OverlapDurationCurrent=OverlapDuration;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -57,31 +67,26 @@ Odata::~Odata(void){
 ////////////////////////////////////////////////////////////////////////////////////
 bool Odata::SetSegments(Segments *aSegments){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Odata::SetSegments: the Odata object is corrupted"<<endl;
-    return false;
-  }
-  if(!aSegments->GetLiveTime()){
+  if(aSegments==NULL||!aSegments->GetLiveTime()){
     cerr<<"Odata::SetSegments: no live time in input segments"<<endl;
     return false;
   }
 
   fSegments = aSegments;
 
-  // init timing
+  // reset timing
   seg        = 0; // sets on first segment
   ChunkStart = (int)(fSegments->GetStart(seg));
   ChunkStop  = -1;// flag for the first chunk
+  NSegments  = (ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration);
+  OverlapDurationCurrent=OverlapDuration;
+
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Odata::NewChunk(void){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Odata::NewChunk: the Odata object is corrupted"<<endl;
-    return false;
-  }
   if(ChunkStart<0){
     cerr<<"Odata::NewChunk: no segment to read"<<endl;
     return false;
@@ -95,6 +100,8 @@ bool Odata::NewChunk(void){
     ChunkStart=ChunkStop-OverlapDuration;
     ChunkStop=ChunkStart+ChunkDuration;
   }
+   
+  OverlapDurationCurrent=OverlapDuration;// back to default
   
   // test chunk against segments and update chunk if necessary
   while(!TestChunk());
@@ -114,28 +121,35 @@ bool Odata::NewChunk(void){
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Odata::TestChunk(void){
- 
-  // too short chunk -> move to next segment
-  if(ChunkStop-ChunkStart<SegmentDuration){
-    seg++;// next segment
-    if(seg>=fSegments->GetNsegments()) return true;// end of data segments
+  
+  // TEST1: the segment left-over is too small to be processed --> move to next segment
+  if(ChunkStart>=fSegments->GetEnd(seg)-OverlapDuration){
+    seg++;// move to next segment
+    if(seg>=fSegments->GetNsegments()) return true;// end of data segments: stop the loop
     ChunkStart=(int)(fSegments->GetStart(seg));
     ChunkStop=ChunkStart+ChunkDuration;
     return false;// the validity of this case needs to be tested again
   }
 
-  // ideal case: inside the current segment
+  // TEST2: simple case: inside the current segment --> OK
   if(ChunkStart>=fSegments->GetStart(seg)&&ChunkStop<=fSegments->GetEnd(seg))
-    return true;
+    return true;// stop the loop
 
-  // the chunk stops after the segment end -> shorten chunk     
+  // TEST3: the chunk stops after the segment end (edge effect)
   if(ChunkStart<fSegments->GetEnd(seg)&&ChunkStop>fSegments->GetEnd(seg)){
-    ChunkStop-=(SegmentDuration-OverlapDuration);
+    if(ChunkStop-ChunkStart>SegmentDuration)//  --> shorten chunk
+      ChunkStop-=(SegmentDuration-OverlapDuration);
+    else{//  --> left-over to be processed
+      OverlapDurationCurrent=ChunkStop;
+      ChunkStop=(int)(fSegments->GetEnd(seg));
+      ChunkStart=ChunkStop-SegmentDuration;
+      OverlapDurationCurrent-=ChunkStart;
+    }
     return false;// the validity of this case needs to be tested again
   }
 
-  // the chunk starts after the segment end
-  if(ChunkStart>=fSegments->GetEnd(seg)){
+  // TEST4: the chunk start before current segment (due to TEST3) --> move to next segment
+  if(ChunkStart<fSegments->GetStart(seg)){
     seg++;// move to next segment
     if(seg>=fSegments->GetNsegments()) return true;// end of data segments
     ChunkStart=(int)(fSegments->GetStart(seg));
@@ -149,10 +163,6 @@ bool Odata::TestChunk(void){
 ////////////////////////////////////////////////////////////////////////////////////
 int Odata::GetSegmentTimeStart(const int aNseg){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Odata::GetSegmentTimeStart: the Odata object is corrupted"<<endl;
-    return -1;
-  }
   if(aNseg<0||aNseg>=NSegments){
     cerr<<"Odata::GetSegmentTimeStart: segment "<<aNseg<<" cannot be found in the data chunk"<<endl;
     return -1;
@@ -173,7 +183,7 @@ int Odata::GetSegmentTimeEnd(const int aNseg){
     return -1;
   }
 
-  return ChunkStart+aNseg*(SegmentDuration-OverlapDuration)+SegmentDuration;
+  return ChunkStart+SegmentDuration+aNseg*(SegmentDuration-OverlapDuration);
 }
 
 
