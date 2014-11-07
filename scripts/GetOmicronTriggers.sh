@@ -47,8 +47,6 @@ printhelp(){
     echo "                        Default = 0.1s"
     echo "  -A  [AF]              clustering frequency asymmetry (<1)"
     echo "                        Default = 0.05"
-    echo "                        [NONE]  = print unclustered triggers"
-    echo "                        Default = 'TIME'"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -r                    do not print frequency column"
