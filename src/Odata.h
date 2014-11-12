@@ -169,7 +169,6 @@ class Odata{
 
  private:
   
-  bool status_OK;        ///< class status
   int fVerbosity;        ///< verbosity level
 
   Segments *fSegments;   ///< input segments - DO NOT DELETE

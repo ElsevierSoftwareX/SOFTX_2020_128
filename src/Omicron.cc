@@ -311,7 +311,7 @@ bool Omicron::Process(Segments *aSeg){
 
     // loop over channels
     for(int c=0; c<(int)fChannels.size(); c++){
-      cout<<"Omicron::Process: *  channel "<<fChannels[c]<<"..."<<endl;
+      if(fVerbosity) cout<<"Omicron::Process: *  channel "<<fChannels[c]<<"..."<<endl;
       
       // one more chunk of data
       chunk_ctr[c]++;
@@ -619,7 +619,7 @@ int Omicron::ExtractTriggers(const int aChNumber){
   // loop over segments
   int s;
   for(s=0; s<dataseq->GetNSegments(); s++){
-    if(!tile->GetTriggers(triggers[aChNumber],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s),dataseq->GetCurrentOverlapDuration()-fOverlapDuration/2)){
+    if(!tile->GetTriggers(triggers[aChNumber],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s),dataseq->GetCurrentOverlapDuration()-fOverlapDuration)){
       cerr<<"Omicron::ExtractTriggers: could not make triggers for channel "<<fChannels[aChNumber]<<endl;
       return -1;
     }

@@ -77,7 +77,7 @@ bool Odata::SetSegments(Segments *aSegments){
   // reset timing
   seg        = 0; // sets on first segment
   ChunkStart = (int)(fSegments->GetStart(seg));
-  ChunkStop  = -1;// flag for the first chunk
+  ChunkStop  = -1;// flags the first chunk
   NSegments  = (ChunkDuration-OverlapDuration)/(SegmentDuration-OverlapDuration);
   OverlapDurationCurrent=OverlapDuration;
 
@@ -92,20 +92,23 @@ bool Odata::NewChunk(void){
     return false;
   }
   
-  // First chunk
-  if(ChunkStop<0) ChunkStop=ChunkStart+ChunkDuration;
   
+  // First chunk
+  if(ChunkStop<0){
+    ChunkStop=ChunkStart+ChunkDuration;
+    OverlapDurationCurrent=ChunkStart+OverlapDuration;
+  }
   // New chunk
   else{
+    OverlapDurationCurrent=ChunkStop;
     ChunkStart=ChunkStop-OverlapDuration;
     ChunkStop=ChunkStart+ChunkDuration;
   }
-   
-  OverlapDurationCurrent=OverlapDuration;// back to default
   
   // test chunk against segments and update chunk if necessary
   while(!TestChunk());
-  
+  OverlapDurationCurrent-=ChunkStart;
+
   // end of data segments --> stop
   if(seg>=fSegments->GetNsegments()){
     cout<<"Odata::NewChunk: end of data segments"<<endl;
@@ -140,10 +143,8 @@ bool Odata::TestChunk(void){
     if(ChunkStop-ChunkStart>SegmentDuration)//  --> shorten chunk
       ChunkStop-=(SegmentDuration-OverlapDuration);
     else{//  --> left-over to be processed
-      OverlapDurationCurrent=ChunkStop;
       ChunkStop=(int)(fSegments->GetEnd(seg));
       ChunkStart=ChunkStop-SegmentDuration;
-      OverlapDurationCurrent-=ChunkStart;
     }
     return false;// the validity of this case needs to be tested again
   }
@@ -174,10 +175,6 @@ int Odata::GetSegmentTimeStart(const int aNseg){
 ////////////////////////////////////////////////////////////////////////////////////
 int Odata::GetSegmentTimeEnd(const int aNseg){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Odata::GetSegmentTimeEnd: the Odata object is corrupted"<<endl;
-    return -1;
-  }
   if(aNseg<0||aNseg>=NSegments){
     cerr<<"Odata::GetSegmentTimeEnd: segment "<<aNseg<<" cannot be found in the data chunk"<<endl;
     return -1;

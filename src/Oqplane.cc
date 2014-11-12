@@ -335,7 +335,7 @@ bool FreqRow::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDat
   double peak_time;
   for(int t=0; t<fNumberOfTiles; t++){
     if(!ValidIndices[t]) continue;
-    if(fTime[t]<aExtraTimePadMin+fTimePad) continue;
+    if(fTime[t]-fDuration/2.0<(double)(fTimePad+aExtraTimePadMin)) continue;
     if(snrs[t]<fSNRThreshold) continue;
     amplitude=snrs[t]*sqrt(fPower);
     peak_time=aStartTime+fTime[t];
