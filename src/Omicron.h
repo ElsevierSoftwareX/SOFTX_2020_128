@@ -188,7 +188,18 @@ class Omicron {
   bool ScanReport(const string aScanDir="");
 
 
-  //Segments* GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding=0.0, const double aInfValue=1e20);
+  /**
+   * Returns the segments associated to the trigger time coverage.
+   * For each trigger, the segment [tstart; tend[ is added to a list of segments. The final list is returned as a Segments pointer.
+   *
+   * It is possible to perform a trigger selection where only triggers above threshold are considered. The TH1D threshold object is used as a SNR threshold defined in frequency bins. Additionnaly, if the SNR threshold in a given bin is larger than 'aInfValue', the threshold is considered infinite and no trigger can be selected for this bin.
+   *
+   * NOTE: This function should be called after ExtractTriggers() and before WriteTriggers() so the triggers are in memory.
+   * @param aChNumber channel number as previously declared (indexing starts at 0)
+   * @param aThr threshold object
+   * @param aInfValue value above which the threshold is considered infinite
+   */
+  Segments* GetTriggerSegments(const int aChNumber, TH1D *aThr=NULL, const double aInfValue=1e20);
   
   /**
    * Returns list of channels to process.

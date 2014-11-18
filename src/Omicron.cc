@@ -677,25 +677,22 @@ bool Omicron::WriteTriggers(const int aChNumber){
   return true;
 }
 
-
-/*
 ////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetOnlineSegments(const int aChNumber, TH1D *aThr, const double aPadding, const double aInfValue){
+Segments* Omicron::GetTriggerSegments(const int aChNumber, TH1D *aThr, const double aInfValue){
 ////////////////////////////////////////////////////////////////////////////////////
   Segments* empty = new Segments();
   if(!status_OK){
-    cerr<<"Omicron::GetOnlineSegments: the Omicron object is corrupted"<<endl;
+    cerr<<"Omicron::GetTriggerSegments: the Omicron object is corrupted"<<endl;
     return empty;
   }
   if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::GetOnlineSegments: channel number "<<aChNumber<<" does not exist"<<endl;
+    cerr<<"Omicron::GetTriggerSegments: channel number "<<aChNumber<<" does not exist"<<endl;
     return empty;
   }
   delete empty;
 
-  return triggers[aChNumber]->GetTriggerSegments(aThr,aPadding,aInfValue);
+  return triggers[aChNumber]->GetTriggerSegments(aThr,aInfValue);
 }
-*/
 
 ////////////////////////////////////////////////////////////////////////////////////
 void Omicron::SaveAPSD(const int c, const string type){
