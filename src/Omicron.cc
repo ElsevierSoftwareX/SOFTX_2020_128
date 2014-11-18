@@ -645,6 +645,23 @@ int Omicron::ExtractTriggers(const int aChNumber){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+Segments* Omicron::GetTriggerSegments(const int aChNumber, TH1D *aThr, const double aInfValue){
+////////////////////////////////////////////////////////////////////////////////////
+  Segments* empty = new Segments();
+  if(!status_OK){
+    cerr<<"Omicron::GetTriggerSegments: the Omicron object is corrupted"<<endl;
+    return empty;
+  }
+  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
+    cerr<<"Omicron::GetTriggerSegments: channel number "<<aChNumber<<" does not exist"<<endl;
+    return empty;
+  }
+  delete empty;
+
+  return triggers[aChNumber]->GetTriggerSegments(aThr,aInfValue);
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::WriteTriggers(const int aChNumber){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
@@ -675,23 +692,6 @@ bool Omicron::WriteTriggers(const int aChNumber){
     outSegments[aChNumber]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);
 	
   return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetTriggerSegments(const int aChNumber, TH1D *aThr, const double aInfValue){
-////////////////////////////////////////////////////////////////////////////////////
-  Segments* empty = new Segments();
-  if(!status_OK){
-    cerr<<"Omicron::GetTriggerSegments: the Omicron object is corrupted"<<endl;
-    return empty;
-  }
-  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::GetTriggerSegments: channel number "<<aChNumber<<" does not exist"<<endl;
-    return empty;
-  }
-  delete empty;
-
-  return triggers[aChNumber]->GetTriggerSegments(aThr,aInfValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
