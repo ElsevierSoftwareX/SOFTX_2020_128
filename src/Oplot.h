@@ -41,6 +41,22 @@ class Oplot: public TriggerPlot {
   */
   
   /**
+   * Defines new SNR thrsholds.
+   * 
+   * @param SNR0 first SNR threshold
+   * @param SNR1 second SNR threshold
+   * @param SNR2 third SNR threshold
+   * @param SNR3 fourth SNR threshold
+   */ 
+  void SetSNRThresholds(const double aSNR0, const double aSNR1, const double aSNR2, const double aSNR3);
+
+  /**
+   * Returns the SNR thrshold of given collection.
+   * @param aCollIndex collection index
+   */ 
+  double GetSNRThreshold(const int aCollIndex);
+
+  /**
    * Defines a new time range for the plots.
    * By default, the time range is given by the input trigger files.
    * @param aTimeMin starting time
@@ -57,7 +73,7 @@ class Oplot: public TriggerPlot {
 
  private:
 
-  double snrthr[4];  ///< snr thresholds
+  double snrthr[5];  ///< snr thresholds
   EventMap *Eloud;   ///< loudest event map
 
   ClassDef(Oplot,0)  

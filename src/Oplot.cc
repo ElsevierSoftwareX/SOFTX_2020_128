@@ -6,44 +6,21 @@
 ClassImp(Oplot)
 
 ////////////////////////////////////////////////////////////////////////////////////
-Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose) : TriggerPlot (4, aPattern, aDirectory, aVerbose){ 
+Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose) : TriggerPlot (5, aPattern, aDirectory, aVerbose){ 
 ////////////////////////////////////////////////////////////////////////////////////
 
   // SNR thresholds
-  snrthr[0]=5.0;
+  snrthr[0]=5.0; if(Msnrmin_stat<5.0) snrthr[0]=Msnrmin_stat;
   snrthr[1]=8.0;
   snrthr[2]=10.0;
   snrthr[3]=20.0;
-  if(Msnrmin_stat<5.0) snrthr[0]=Msnrmin_stat;
-
-  if(ReadTriggerSegments::Verbose>1){
-    cout<<"Oplot::Oplot: 4 SNR thresholds:"<<endl;
-    for(int s=0; s<4; s++) cout<<"              "<<s+1<<"/ SNR > "<<snrthr[s]<<endl;
-  }
-
-  // SNR max
-  double smax;
-  if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<50.0) smax=50.0;
-  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<100.0) smax=100.0;
-  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<1000.0) smax=1000.0;
-  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<10000.0) smax=10000.0;
-  else smax=100000.0;
-  if(smax<=TriggerPlot::GetCollectionSelection(0)->GetSNRMin()) smax=2*TriggerPlot::GetCollectionSelection(0)->GetSNRMin();
-
-  // apply SNR selection
-  for(int s=0; s<4; s++) TriggerPlot::GetCollectionSelection(s)->SetSNRRange(snrthr[s],smax);
+  snrthr[4]=snrthr[0];
+  SetSNRThresholds(snrthr[0],snrthr[1],snrthr[2],snrthr[3]);
   
   // Clusterize
-  TriggerPlot::Clusterize("TIME");
-  for(int s=0; s<4; s++) TriggerPlot::SetCollectionUseClusters(s,true);
-
-  // Set plot legends
-  ostringstream tmpstream;
-  for(int s=0; s<4; s++){
-    tmpstream<<"SNR > "<<fixed<<setprecision(2)<<snrthr[s];
-    TriggerPlot::SetCollectionLegend(s,tmpstream.str());
-    tmpstream.str(""); tmpstream.clear();
-  }
+  TriggerPlot::Clusterize("TIME",1);
+  for(int s=0; s<4; s++) TriggerPlot::SetCollectionUseClusters(s,1);// unflagged
+  TriggerPlot::SetCollectionUseClusters(4,2);// flagged
 
   // set plot style
   TriggerPlot::SetDateFormat(true);
@@ -51,10 +28,12 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
   TriggerPlot::SetCollectionColor(1,4);
   TriggerPlot::SetCollectionColor(2,kGreen+3);
   TriggerPlot::SetCollectionColor(3,2);
+  TriggerPlot::SetCollectionColor(4,1);
   TriggerPlot::SetCollectionMarker(0,1);
   TriggerPlot::SetCollectionMarker(1,7);
   TriggerPlot::SetCollectionMarker(2,4,0.8);
   TriggerPlot::SetCollectionMarker(3,8,0.8);
+  TriggerPlot::SetCollectionMarker(4,2,0.5);
 
   Eloud=NULL;
 
@@ -81,7 +60,7 @@ void Oplot::SetTimeRange(const int aTimeMin, const int aTimeMax){
   else if(aTimeMax-aTimeMin<=100000) nbins = (aTimeMax-aTimeMin)/1000+1;
   else                               nbins = (aTimeMax-aTimeMin)/3600+1;
 
-  for(int s=0; s<4; s++){
+  for(int s=0; s<5; s++){
 
     // new time range
     TriggerPlot::GetCollectionSelection(s)->SetTimeRange(aTimeMin,aTimeMax);
@@ -91,6 +70,56 @@ void Oplot::SetTimeRange(const int aTimeMin, const int aTimeMax){
   }
     
   return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Oplot::SetSNRThresholds(const double aSNR0, const double aSNR1, const double aSNR2, const double aSNR3){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // SNR thresholds
+  snrthr[0]=aSNR0;
+  snrthr[1]=aSNR1;
+  snrthr[2]=aSNR2;
+  snrthr[3]=aSNR3;
+  snrthr[4]=aSNR0;
+
+  if(ReadTriggerSegments::Verbose>1){
+    cout<<"Oplot::SetSNRThresholds: 5 SNR thresholds:"<<endl;
+    for(int s=0; s<5; s++) cout<<"              "<<s+1<<"/ SNR > "<<snrthr[s]<<endl;
+  }
+
+  // SNR max
+  double smax;
+  if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<50.0) smax=50.0;
+  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<100.0) smax=100.0;
+  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<1000.0) smax=1000.0;
+  else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<10000.0) smax=10000.0;
+  else smax=100000.0;
+  if(smax<=TriggerPlot::GetCollectionSelection(0)->GetSNRMin()) smax=2*TriggerPlot::GetCollectionSelection(0)->GetSNRMin();
+
+  // apply SNR selection
+  for(int s=0; s<5; s++) TriggerPlot::GetCollectionSelection(s)->SetSNRRange(snrthr[s],smax);
+  
+  // Set plot legends
+  ostringstream tmpstream;
+  for(int s=0; s<5; s++){
+    tmpstream<<"SNR > "<<fixed<<setprecision(2)<<snrthr[s];
+    if(s==4) tmpstream<<", flagged";
+    TriggerPlot::SetCollectionLegend(s,tmpstream.str());
+    tmpstream.str(""); tmpstream.clear();
+  }
+
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+double Oplot::GetSNRThreshold(const int aCollIndex){
+////////////////////////////////////////////////////////////////////////////////////
+  if(aCollIndex<0||aCollIndex>=Ncoll){
+    cerr<<"Oplot::GetSNRThreshold: Collection #"<<aCollIndex<<" does not exist"<<endl;
+    return 0.0;
+  }
+  return snrthr[aCollIndex];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
