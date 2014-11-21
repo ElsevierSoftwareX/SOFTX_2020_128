@@ -106,7 +106,7 @@ bool Omicron::ScanReport(const string aScanDir){
 
   // import material
   system(("cp -f ${GWOLLUM_DOC}/style.css "+reportdir).c_str());
-  system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+reportdir).c_str());
+  system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+reportdir+"/icon.gif").c_str());
   system(("cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif "+reportdir).c_str());
   system(("cp -f ${OMICRON_HTML}/template/comparison_mode.html "+reportdir).c_str());
 
@@ -115,7 +115,7 @@ bool Omicron::ScanReport(const string aScanDir){
   report<<"<html>"<<endl;
   report<<"<head>"<<endl;
   report<<"<title>OmiScan of "<<setprecision(3)<<fixed<<map_gpsref<<"</title>"<<endl;
-  report<<"<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">"<<endl;
+  report<<"<link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\" />"<<endl;
   report<<"<link rel=\"icon\" type=\"image/x-icon\" href=\"icon.gif\" />"<<endl;
   report<<"<link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"icon.gif\" />"<<endl;
   report<<"<script type=\"text/javascript\">"<<endl;

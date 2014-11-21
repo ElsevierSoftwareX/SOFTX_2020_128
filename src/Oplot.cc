@@ -9,13 +9,8 @@ ClassImp(Oplot)
 Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose) : TriggerPlot (5, aPattern, aDirectory, aVerbose){ 
 ////////////////////////////////////////////////////////////////////////////////////
 
-  // SNR thresholds
-  snrthr[0]=5.0; if(Msnrmin_stat<5.0) snrthr[0]=Msnrmin_stat;
-  snrthr[1]=8.0;
-  snrthr[2]=10.0;
-  snrthr[3]=20.0;
-  snrthr[4]=snrthr[0];
-  SetSNRThresholds(snrthr[0],snrthr[1],snrthr[2],snrthr[3]);
+  // Default SNR thresholds
+  SetSNRThresholds(TMath::Min(5.0,Msnrmin_stat),8.0,10.0,20.0);
   
   // Clusterize
   TriggerPlot::Clusterize("TIME",1);
@@ -75,7 +70,19 @@ void Oplot::SetTimeRange(const int aTimeMin, const int aTimeMax){
 ////////////////////////////////////////////////////////////////////////////////////
 void Oplot::SetSNRThresholds(const double aSNR0, const double aSNR1, const double aSNR2, const double aSNR3){
 ////////////////////////////////////////////////////////////////////////////////////
-
+  if(aSNR0>aSNR1){
+    cerr<<"Oplot::SetSNRThresholds: the snr thresholds should be increasingly sorted"<<endl;
+    return;
+  }
+  if(aSNR1>aSNR2){
+    cerr<<"Oplot::SetSNRThresholds: the snr thresholds should be increasingly sorted"<<endl;
+    return;
+  }
+  if(aSNR2>aSNR3){
+    cerr<<"Oplot::SetSNRThresholds: the snr thresholds should be increasingly sorted"<<endl;
+    return;
+  }
+  
   // SNR thresholds
   snrthr[0]=aSNR0;
   snrthr[1]=aSNR1;
@@ -84,7 +91,7 @@ void Oplot::SetSNRThresholds(const double aSNR0, const double aSNR1, const doubl
   snrthr[4]=aSNR0;
 
   if(ReadTriggerSegments::Verbose>1){
-    cout<<"Oplot::SetSNRThresholds: 5 SNR thresholds:"<<endl;
+    cout<<"Oplot::SetSNRThresholds: SNR thresholds:"<<endl;
     for(int s=0; s<5; s++) cout<<"              "<<s+1<<"/ SNR > "<<snrthr[s]<<endl;
   }
 
@@ -95,7 +102,9 @@ void Oplot::SetSNRThresholds(const double aSNR0, const double aSNR1, const doubl
   else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<1000.0) smax=1000.0;
   else if(TriggerPlot::GetCollectionSelection(0)->GetSNRMax()<10000.0) smax=10000.0;
   else smax=100000.0;
-  if(smax<=TriggerPlot::GetCollectionSelection(0)->GetSNRMin()) smax=2*TriggerPlot::GetCollectionSelection(0)->GetSNRMin();
+
+  // at least one decade
+  if(smax/snrthr[3]<10) smax=10*snrthr[3];
 
   // apply SNR selection
   for(int s=0; s<5; s++) TriggerPlot::GetCollectionSelection(s)->SetSNRRange(snrthr[s],smax);

@@ -10,6 +10,7 @@
 printhelp(){
     echo ""
     echo "Usage:"
+    echo ""
     echo "GetOmicronTriggers -c [CHANNEL_NAME] -s [GPS_START] -e [GPS_END]"
     echo " |__ prints the list of 'standard' Omicron triggers"
     echo "     of a given channel and between 2 GPS times"
