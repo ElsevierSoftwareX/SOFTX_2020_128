@@ -23,7 +23,9 @@ printhelp(){
     echo " STD         8      2048             8"
     echo " STD2        8      1024             8"
     echo " STD3        8       512             8"
-    echo " LOW       0.1        64             8"
+    echo " LOW       0.1        64             8         block=512s"
+    echo " LOW2      0.1        64             8         block=8192s"
+    echo " LOW3      0.1        64             8         block=65536s"
     echo " HIGH     1024      8192             8"
     echo " FINE        8      4096             6         fine tiling"
     echo " GW         32      4096             5         fine tiling"
@@ -60,6 +62,28 @@ printoption(){
 	mmmax=0.35
 	snrthr=8
 	ratemax=300
+    elif [ $1 = "LOW2" ]; then
+	# online and offline configs are the same
+	sampling=128
+	freqmin=0.1
+	freqmax=64
+	chunk=8192
+	block=8192
+	overlap=192
+	mmmax=0.35
+	snrthr=8
+	ratemax=250
+    elif [ $1 = "LOW3" ]; then
+	# online and offline configs are the same
+	sampling=128
+	freqmin=0.1
+	freqmax=64
+	chunk=65536
+	block=65536
+	overlap=15536
+	mmmax=0.35
+	snrthr=8
+	ratemax=250
     elif [ $1 = "HIGH" ]; then
 	sampling=16384
 	freqmin=1024
@@ -277,27 +301,40 @@ if [ $online -eq 0 ]; then # offline
 fi
 
 ##### user channel lists
+rm -f ./channel.goo.*
 awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.goo.STD
 awk '$2=="STD2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD2
 awk '$2=="STD3" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD3
 awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.goo.LOW
+awk '$2=="LOW2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.LOW2
+awk '$2=="LOW3" {print $1}' $chanfile | sort | uniq          > ./channel.goo.LOW3
 awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.goo.HIGH
 awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.goo.GW
 awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.goo.FINE
 
-rm -f ./parameters_STD_*.txt ./parameters_STD2_*.txt ./parameters_STD3_*.txt ./parameters_FINE_*.txt ./parameters_HIGH_*.txt ./parameters_LOW_*.txt./parameters_GW_*.txt
+rm -f ./parameters_STD_*.txt \
+    ./parameters_STD2_*.txt \
+    ./parameters_STD3_*.txt \
+    ./parameters_FINE_*.txt \
+    ./parameters_HIGH_*.txt \
+    ./parameters_LOW_*.txt \
+    ./parameters_LOW2_*.txt \
+    ./parameters_LOW3_*.txt \
+    ./parameters_GW_*.txt
 
-for conf in STD STD2 STD3 LOW HIGH GW FINE; do
+for conf in STD STD2 STD3 LOW LOW2 LOW3 HIGH GW FINE; do
     if [ ! -s ./channel.goo.$conf ]; then continue; fi
     n=0
     p=0
     channel_list=""
     
     # maximum number of channels per option file
-    if [ "$conf" = "STD" ];    then nchanmax=8
+    if [ "$conf" = "STD" ];    then nchanmax=20
     elif [ "$conf" = "STD2" ]; then nchanmax=15
     elif [ "$conf" = "STD3" ]; then nchanmax=40
-    elif [ "$conf" = "LOW" ]; then nchanmax=20
+    elif [ "$conf" = "LOW" ];  then nchanmax=20
+    elif [ "$conf" = "LOW2" ]; then nchanmax=10
+    elif [ "$conf" = "LOW3" ]; then nchanmax=4
     elif [ "$conf" = "HIGH" ]; then nchanmax=4
     elif [ "$conf" = "FINE" ]; then nchanmax=5
     else nchanmax=5 #GW
