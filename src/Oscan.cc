@@ -55,7 +55,7 @@ bool Omicron::Scan(const double aTimeCenter){
   }
 
   // update channel list given the gps range
-  if(FFL->ExtractChannels((int)aTimeCenter)){
+  if(!FFL->ExtractChannels((int)aTimeCenter)){
     cerr<<"Omicron::Process: the input channels cannot be extracted"<<endl;
     return false;
   }

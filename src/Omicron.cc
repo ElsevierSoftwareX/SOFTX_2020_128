@@ -301,7 +301,7 @@ bool Omicron::Process(Segments *aSeg){
   }
   
   // update channel list given the gps range
-  if(FFL->ExtractChannels(aSeg->GetStart(0))){
+  if(!FFL->ExtractChannels(aSeg->GetStart(0))){
     cerr<<"Omicron::Process: the input channels cannot be extracted"<<endl;
     return false;
   }
