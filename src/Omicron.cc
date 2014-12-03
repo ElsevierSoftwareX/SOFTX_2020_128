@@ -300,6 +300,12 @@ bool Omicron::Process(Segments *aSeg){
     return false;
   }
   
+  // update channel list given the gps range
+  if(FFL->ExtractChannels(aSeg->GetStart(0))){
+    cerr<<"Omicron::Process: the input channels cannot be extracted"<<endl;
+    return false;
+  }
+
   // loop over chunks
   while(NewChunk()){
     cout<<"Omicron::Process: ** chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<endl;

@@ -19,6 +19,10 @@ bool Omicron::Scan(const double aTimeCenter){
     cerr<<"Omicron::Scan: this function can only be called if the chunk and segment durations are identical"<<endl;
     return false;
   }
+  if(FFL==NULL){
+    cerr<<"Omicron::Scan: this function can only be used with a valid FFL object"<<endl;
+    return false;
+  }
   if(fVerbosity){
     time ( &timer );
     ptm = gmtime ( &timer );
@@ -47,6 +51,12 @@ bool Omicron::Scan(const double aTimeCenter){
   if(!MakeDirectories(aTimeCenter)){
     cerr<<"Omicron::Scan: the directory structure cannot be created"<<endl;
     delete ScanSeg;
+    return false;
+  }
+
+  // update channel list given the gps range
+  if(FFL->ExtractChannels((int)aTimeCenter)){
+    cerr<<"Omicron::Process: the input channels cannot be extracted"<<endl;
     return false;
   }
 
