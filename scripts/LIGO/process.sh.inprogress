@@ -1,0 +1,167 @@
+#!/bin/bash
+#
+# process.sh
+#
+# Author: Florent Robinet
+# robinet@lal.in2p3.fr
+cd `dirname $0`
+
+###### user parameters
+
+delay=400 # do not look at data after now-delay
+hn=`hostname -d`
+if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
+elif [ "$hn" = "ligo-la.caltech.edu" ]; then IFO="L1"
+else 
+    echo "the hostname cannot be identified --> exit"
+    IFO="L1"
+    #exit 1
+fi
+declare -a data_type=("${IFO}_C ${IFO}_R" "${IFO}_C ${IFO}_R" "${IFO}_ER_C00_L1" "${IFO}_C ${IFO}_R" "${IFO}_C ${IFO}_R" "${IFO}_C ${IFO}_R" );
+proddir=`pwd`
+
+######################
+# THE FOLLOWING MUST MATCH GOO (chunk-overlap)
+declare -a config=("low" "low2" "gw" "fine" "std" "std2");
+declare -a chunk=(400 8000 300 300 500 500);
+declare -a over=(112 192 14 14 6 6);
+
+################################################################################
+###########                       check inputs                        ########### 
+################################################################################                               
+
+# GWOLLUM environment
+#source /home/detchar/opt/virgosoft/environment.v1r3.sh "" >> /dev/null
+source /home/florent/Soft/Virgo/GWOLLUMSet/v1r3/cmt/setup.sh "" >> /dev/null
+
+# directories
+mkdir -p ./logs
+for c in 0 1 2 3 4 5; do
+    mkdir -p ./${config[$c]}/triggers ./${config[$c]}/dags;
+done
+
+# channel lists
+if [ ! -e ./channels.${IFO} ]; then
+    echo "`date -u`: ./channels.${IFO} is missing" >> $logfile
+    exit 1
+fi
+awk '$2=="STD" {print}' ./channels.${IFO} > ./std/channels.list
+awk '$2=="STD2" {print}' ./channels.${IFO} > ./std2/channels.list
+awk '$2=="LOW" {print}' ./channels.${IFO} > ./low/channels.list
+awk '$2=="LOW2" {print}' ./channels.${IFO} > ./low2/channels.list
+awk '$2=="GW" {print}' ./channels.${IFO} > ./gw/channels.list
+awk '$2=="FINE" {print}' ./channels.${IFO} > ./fine/channels.list
+
+# vars
+now=`tconvert now`
+logfile=`pwd`/logs/process.${now}.txt
+echo "****************************************************************************" > $logfile
+echo "Local time: `date`" >> $logfile
+echo "UTC time: `date -u`" >> $logfile
+
+################################################################################
+###########                       previous condor                     ##########
+################################################################################
+
+# for safety
+condor_release -all >> /dev/null 2>&1
+
+echo "`date -u`: Cleaning anything older than 4 days..." >> $logfile
+
+# clean log files
+find ./logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+
+################################################################################
+###########                       loop over types                     ##########
+################################################################################
+for c in 0 1 2 3 4 5; do
+
+    echo "********************************************" >> $logfile
+    echo "`date -u`: processing ${config[$c]}..." >> $logfile
+
+    # clean old files
+    echo "`date -u`: cleaning old files for ${config[$c]}..." >> $logfile
+    find ./${config[$c]}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+    find ./${config[$c]}/dags -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+    
+    # check current processing
+    if [ -e ./${config[$c]}/omicron.dag.lock ]; then
+	echo "`date -u` condor (${config[$c]}) is already running --> skip" >> $logfile
+	continue
+    else echo "`date -u` previous processing (${config[$c]}) is finished --> clear!" >> $logfile
+    fi
+    
+    # archive dagman
+    if [ -e ./${config[$c]}/omicron.dag.dagman.out ]; then
+	mv ./${config[$c]}/omicron.dag.dagman.out ./${config[$c]}/dags/omicron.${now}.dag
+	rm -f ./${config[$c]}/omicron.dag*
+    fi
+
+    # cleaning triggers
+    rmdir ./${config[$c]}/triggers/*
+    rm -f ./${config[$c]}/triggers/*.ffl
+
+    # default timing = 1 chunk
+    tstop=$(( ($now - $delay) / ${chunk[$c]} ))
+    tstop=$(( $tstop * ${chunk[$c]} ))
+    tstart=$(( $tstop - ${chunk[$c]} ))
+
+    # no previous segment
+    if [ ! -e ./${config[$c]}/segments.process ]; then
+	echo "`date -u`: no previous segment (${config[$c]}) --> start a new one [$tstart; $tstop]" >> $logfile
+	echo "$tstart $tstop" > ./${config[$c]}/segments.tmp
+
+    # use previous segment
+    else
+	prev_stop=`head -n 1 ./${config[$c]}/segments.process | awk '{print $2}'`
+	if [ $(( $tstop - $prev_stop )) -gt $( 15 * ${chunk[$c]} ) ]; then
+	    echo "`date -u`: the last processed segment is too old (${config[$c]}) --> start a new one [$tstart; $tstop]" >> $logfile
+	    echo "$tstart $tstop" > ./${config[$c]}/segments.tmp
+	else
+	    tstart=$prev_stop
+	    echo "`date -u`: create new segment [$tstart; $tstop]" >> $logfile
+            echo "$tstart $tstop" > ./${config[$c]}/segments.tmp
+	fi
+    fi
+
+    # segment is too short
+    if [ `segsum ./${config[$c]}/segments.tmp` -lt ${chunk[$c]} ]; then
+	echo "`date -u`: the new segment is too short (${config[$c]}), start again later..." >> $logfile
+	rm -f ./${config[$c]}/segments.tmp
+	exit 0
+    fi
+    mv ./${config[$c]}/segments.tmp ./${config[$c]}/segments.process
+
+    echo "`date -u`: get LCF file for ${config[$c]} data" >> $logfile
+
+    #for type in ${data_type[$c]}; do
+	#ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - ${over[$c]} )) -e $(( $tstop + ${over[$c]} )) 1>./${config[$c]}/frames.lcf 2>> $logfile
+	#if [ -s ./${config[$c]}/frames.lcf ]; then break; fi
+    #done
+    if [ ! -s ./${config[$c]}/frames.lcf ]; then
+	echo "`date -u`: data are missing for this segment (${config[$c]}) --> skip" >> $logfile
+	#rm -f ./${config[$c]}/frames.lcf
+	#continue;
+    fi
+
+    # final segments (with overlap)
+    awk -v OV=${over[$c]} '{print $1-$OV/2,$2+$OV/2}' ./${config[$c]}/segments.process > ./${config[$c]}/segments.txt
+    
+    # Omicron parameters
+    cd ./${config[$c]}
+    GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
+    
+    # make dags
+    GetOmicronDAG -f -d `pwd`/${config[$c]} >> $logfile 2>&1
+
+    # go!
+    #if [ -e ./omicron.dag ]; then condor_submit_dag ./omicron.dag >> $logfile 2>&1; fi
+    cd ..
+
+    # cleaning
+    rm -f ./${config[$c]}/parameters_LOW_*.txt
+
+done
+
+
+exit 0
