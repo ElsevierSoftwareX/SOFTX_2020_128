@@ -51,4 +51,6 @@ application omiscan omiscan.cc
 alias omiscan             "$(OMICRONROOT)/$(Omicron_tag)/omiscan.exe"
 application omiplot omiplot.cc
 alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
+application omiwatch omiwatch.cc
+alias omiwatch            "$(OMICRONROOT)/$(Omicron_tag)/omiwatch.exe"
 
