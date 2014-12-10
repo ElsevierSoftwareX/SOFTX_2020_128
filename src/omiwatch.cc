@@ -9,6 +9,7 @@ int main (int argc, char* argv[]){
   gErrorIgnoreLevel = 3000;
 
   // check the argument
+  /*
   if(argc<3){
     cerr<<endl;
     cerr<<" usage:"<<endl; 
@@ -22,14 +23,17 @@ int main (int argc, char* argv[]){
     cerr<<endl;
     return 1;
   }
-  
-  if(!IsDirectory("$OMICRON_ONLINE_TRIGGERS")){
+  */
+
+  string onlinedir = (string)getenv("OMICRON_ONLINE_TRIGGERS");
+
+  if(!IsDirectory(onlinedir)){
     cerr<<"omiwatch ERROR: there is no online trigger directory"<<endl;
     return 2;
   }
 
   vector <string> chandir;
-  if(!ListDirectories("$OMICRON_ONLINE_TRIGGERS",chandir)){
+  if(!ListDirectories(onlinedir,chandir)){
     cerr<<"omiwatch ERROR: cannot scan the online trigger directory"<<endl;
     return 2;
   }
@@ -39,9 +43,9 @@ int main (int argc, char* argv[]){
 
   // loop over channels
   for(int c=0; c<(int)chandir.size(); c++){
-    cout<<"\n**** testing "<<chandir[c]<<endl;
+    cout<<"\n**** Watching "<<chandir[c]<<"..."endl;
 
-    R = new ReadTriggerSegments("${OMICRON_ONLINE_TRIGGERS}/"+chandir[c]+"/*.root");
+    R = new ReadTriggerSegments(onlinedir+"/"+chandir[c]+"/*.root");
     S = R->GetSegments();
  
     // test segment status
