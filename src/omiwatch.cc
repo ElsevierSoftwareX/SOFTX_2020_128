@@ -39,6 +39,7 @@ int main (int argc, char* argv[]){
 
   // loop over channels
   for(int c=0; c<(int)chandir.size(); c++){
+    cout<<"\n**** testing "<<chandir[c]<<endl;
 
     R = new ReadTriggerSegments("${OMICRON_ONLINE_TRIGGERS}/"+chandir[c]+"/*.root");
     S = R->GetSegments();
@@ -57,6 +58,7 @@ int main (int argc, char* argv[]){
       continue;
     }
 
+    cout<<"OK"<<endl;
     delete R;
   }
 
