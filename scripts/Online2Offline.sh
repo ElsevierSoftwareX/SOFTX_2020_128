@@ -95,33 +95,6 @@ for chandir in ${channel}; do
     first_file=`ls ${chandir}/ |head -1`
     first_start=`echo $first_file | awk -F_ '{print $((NF -1))}'`
 
-    # merging online trigger files
-    if [ $only_archive -eq 0 ]; then
-	echo "                merging online triggers..."
-	b1000=$(( $first_start / 1000 ))		
- 
-	# tmp place holder
-	o2o_tmp=${TMP}/o2o_${RANDOM}-${now}
-	mkdir -p $o2o_tmp
- 	while [ $b1000 -lt $now_base1000 ]; do
-	    nfiles=`ls ${chandir}/*_${b1000}*_*.root 2>&1 | wc -l`
-	    if [ $nfiles -lt 2 ]; then
-		b1000=$(( $b1000 + 1 ))
-		continue;
-	    fi
-	    if triggermerge.exe $o2o_tmp "${chandir}/*_${b1000}*_*.root" 2>&1 | grep -q "no livetime"; then
-		echo "no files -> skip"
-	    else
-		if [ "$(ls -A ${o2o_tmp})" ]; then
-		    rm -f ${chandir}/*_${b1000}*_*.root
-		    mv ${o2o_tmp}/*.root ${chandir}/
-		fi
-	    fi
-	    b1000=$(( $b1000 + 1 ))
-	done
-	rm -fr $o2o_tmp
-    fi
-
     # merge and archive files
     echo "                archiving online triggers..."
     b=$(( $first_start / $OMICRON_TRIGGERS_BASE ))
@@ -133,6 +106,33 @@ for chandir in ${channel}; do
 	b=$(( $b + 1 ))
     done
 
+    # exits if only archive
+    if [ $only_archive -eq 1 ]; then exit 0; fi
+
+    # merging online trigger files
+    echo "                merging online triggers..."
+    b1000=$(( $first_start / 1000 ))		
+    
+    # tmp place holder
+    o2o_tmp=${TMP}/o2o_${RANDOM}-${now}
+    mkdir -p $o2o_tmp
+    while [ $b1000 -lt $now_base1000 ]; do
+	nfiles=`ls ${chandir}/*_${b1000}*_*.root 2>&1 | wc -l`
+	if [ $nfiles -lt 2 ]; then
+	    b1000=$(( $b1000 + 1 ))
+	    continue;
+	fi
+	if triggermerge.exe $o2o_tmp "${chandir}/*_${b1000}*_*.root" 2>&1 | grep -q "no livetime"; then
+	    echo "no files -> skip"
+	else
+	    if [ "$(ls -A ${o2o_tmp})" ]; then
+		rm -f ${chandir}/*_${b1000}*_*.root
+		mv ${o2o_tmp}/*.root ${chandir}/
+	    fi
+	fi
+	b1000=$(( $b1000 + 1 ))
+    done
+    rm -fr $o2o_tmp
 done
 
 exit 0
