@@ -107,7 +107,7 @@ for chandir in ${channel}; do
     done
 
     # exits if only archive
-    if [ $only_archive -eq 1 ]; then exit 0; fi
+    if [ $only_archive -eq 1 ]; then continue; fi
 
     # merging online trigger files
     echo "                merging online triggers..."
