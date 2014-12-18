@@ -6,15 +6,15 @@
 # robinet@lal.in2p3.fr
 cd `dirname $0`
 # GWOLLUM environment
-source /home/detchar/opt/virgosoft/environment.v1r3.sh "" >> /dev/null
+source /home/detchar/opt/virgosoft/environment.v1r4.sh "" >> /dev/null
 
 ###### user parameters
 
 hn=`hostname -d`
 if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
 else  IFO="L1"; fi
-run=${RUN_NAMES##* }
-XMLDIR="/home/detchar/triggers/${run}/${IFO}"
+. ${GWOLLUM_SCRIPTS}/getrun.sh
+XMLDIR="/home/detchar/triggers/${RUN}/${IFO}"
 types="std std2 low fine gw"
 
 ######################
@@ -45,7 +45,7 @@ for t in $types; do
 	if [ ! -d ./${channel} ]; then continue; fi
 	if [ ! "$(ls -A ./${channel})" ]; then continue; fi
 	mkdir -p ${OMICRON_ONLINE_TRIGGERS}/${channel}
-	mkdir -p ${OMICRON_TRIGGERS}/${run}/${channel}
+	mkdir -p ${OMICRON_TRIGGERS}/${RUN}/${channel}
 		
 	# move root files
 	echo "${channel}: moving root files" >> $logfile
