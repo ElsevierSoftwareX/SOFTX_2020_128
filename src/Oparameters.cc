@@ -129,10 +129,10 @@ bool Omicron::ReadOptions(void){
     fWindows.push_back(2); fWindows.push_back(8); fWindows.push_back(32); 
   }
   for(int w=0; w<(int)fWindows.size(); w++){
-    if(fWindows[w]<=0||fWindows[w]>fSegmentDuration-fOverlapDuration){
+    if(fWindows[w]<=0||fWindows[w]>fSegmentDuration-fOverlapDuration-2){
       cerr<<"Omicron::ReadOptions: The window value "<<fWindows[w]<<" is not valid"<<endl;
       fWindows.clear();
-      fWindows.push_back((fSegmentDuration-fOverlapDuration)/4); fWindows.push_back((fSegmentDuration-fOverlapDuration)/2); fWindows.push_back(fSegmentDuration-fOverlapDuration); 
+      fWindows.push_back((fSegmentDuration-fOverlapDuration-2)/4); fWindows.push_back((fSegmentDuration-fOverlapDuration-2)/2); fWindows.push_back(fSegmentDuration-fOverlapDuration-2); 
       break;
     }
   }
@@ -194,9 +194,8 @@ bool Omicron::ReadOptions(void){
   }
   //*****************************
 
-  //***** set writing flags *****
-  if(!io->GetOpt("OUTPUT","WRITEPSD", writepsd)) writepsd=0;
-  if(!io->GetOpt("OUTPUT","WRITETIMESERIES", writetimeseries)) writetimeseries=0;;
+  //***** set output products *****
+  if(!io->GetOpt("OUTPUT","PRODUCTS", fOutProducts)) fOutProducts="triggers";
   //*****************************
 
   // dump options

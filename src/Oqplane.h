@@ -4,17 +4,10 @@
 #ifndef __Oqplane__
 #define __Oqplane__
 
-#include "CUtils.h"
 #include "MakeTriggers.h"
 #include "Spectrum.h"
 #include "FFT.h"
-#include "TFile.h"
-#include "TGraph.h"
-#include "TH2.h"
-
-
-#define NFROWMAX 1000
-
+#include "TH2D.h"
 
 using namespace std;
 
@@ -24,6 +17,7 @@ using namespace std;
  *
  * \author    Florent Robinet
  */
+/*
 class FreqRow {
 
  public:
@@ -71,7 +65,7 @@ class FreqRow {
   fft *offt;                ///< row fft
 };
 
-
+*/
 /**
  * Create a time-frequency Q-plane.
  * This class was designed to create and use a time-frequency Q-plane defined by a Q value. This class is private and can only be used by the Otile class.
@@ -84,49 +78,60 @@ class Oqplane {
   friend class Otile;  ///< friendly class
 
  private:
-
+  
   Oqplane(const double aQ, 
 	  const int aSampleFrequency, 
 	  const int aTimeRange, 
-	  const int aTimePad, 
 	  const double aFrequencyMin, 
 	  const double aFrequencyMax, 
-	  const double aMismatchStep, 
-	  const double aSNRThreshold);
+	  const double aMismatchStep);
+ 
   virtual ~Oqplane(void);
+
+  bool ProjectData(double *aDataRe, double *aDataIm);
+
+  bool SetTileContent(const int aTimeTileIndex, const int aFrequencyTileIndex, const double aContent);
+  bool SetTileContent(const double aTime, const double aFrequency, const double aContent);
+  void PrintParameters(void); ///< print plane parameters
+  double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
+
+  inline void PresentTile(void){
+    for(int f=0; f<qplane->GetNbinsY(); f++)
+      for(int t=0; t<qplane->GetNbinsX(); t++)
+	qplane->SetBinContent(t+1,f+1,(t/bandMultiple[f])%2);
+    return;
+  }
+
+  inline int GetNBands(void) { return qplane->GetNbinsY(); };
+  inline int GetBandNtiles(const int aBandIndex) { return qplane->GetNbinsX()/bandMultiple[aBandIndex]; };
+  inline double GetBandFrequency(const int aBandIndex) { return qplane->GetYaxis()->GetBinCenter(aBandIndex+1); };
+  inline double GetTimeRange(void) { return qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin(); };
+
     
-  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
-  bool SetPowerSpectrum(Spectrum *aSpec);
-  TH2D* GetMap(double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
-  
-  // STATUS
-  bool status_OK;                  ///< class status
-
+  //bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
+  bool SetPower(Spectrum *aSpec);
+    
   // PARAMETERS
-  double fQ;
-  int fTimeRange;                  ///< duration of analysis [s]
-  int fTimePad;                    ///< time pad [s]
-  int fSampleFrequency;            ///< sampling frequency [Hz]
-  double fFrequencyMin,            ///< frequency min
-    fFrequencyMax;                 ///< frequency max
-  double fMismatchStep;            ///< maximum mismatch between neighboring tiles
-  double fSNRThreshold;            ///< SNR Threshold
-
-  // DERIVED PARAMETERS
-  double fQPrime;                  ///< Q prime = Q / sqrt(11)
+  double Q;                         ///< Q value
+  double QPrime;                    ///< Q prime = Q / sqrt(11)
+  double SampleFrequency;           ///< sampling frequency
+  double MismatchStep;              ///< maximum mismatch between neighboring tiles
 
   // Q-PLANE
-  TH2D *hplane;                    ///< map
-  int fNumberOfRows;               ///< number of frequency rows
-  double fPlaneNormalization;      ///< plane normalization
-  vector <double> fFreq;           ///< vector of frequencies
-  FreqRow *freqrow[NFROWMAX];      ///< f-row objects
-  int fNumberOfTiles;              ///< number of tiles
-  
-  bool CheckParameters(void);      ///< check the validity of the parameters
-  void GetPlaneNormalization(void);///< get plane normalization
-  void BuildTiles(void);
+  TH2D *qplane;                     ///< Q plane
+  int Ntiles;                       ///< number of tiles in the plane
 
+  void GetPlaneNormalization(void); ///< get plane normalization
+  double PlaneNormalization;        ///< plane normalization
+  
+  // FREQUENCY BANDS
+  int *bandMultiple;                ///< band multiple (time resolution)
+  int *bandWindowSize;              ///< band Gaussian window size
+  double **bandWindow;              ///< band Gaussian window
+  double **bandWindowFreq;          ///< band Gaussian window frequency
+  double *bandPower;                ///< band power
+  fft **bandFFT;                    ///< band fft
+  
   ClassDef(Oqplane,0)  
 };
 

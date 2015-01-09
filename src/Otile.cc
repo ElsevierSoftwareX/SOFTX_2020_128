@@ -6,55 +6,51 @@
 ClassImp(Otile)
 
 ////////////////////////////////////////////////////////////////////////////////////
-Otile::Otile(const int aTimeRange, const int aTimePad,
+Otile::Otile(const int aTimeRange,
 	     const double aQMin, const double aQMax, 
 	     const double aFrequencyMin, const double aFrequencyMax, 
 	     const int aSampleFrequency, const double aMaximumMismatch, 
-	     const double aSNRThreshold, const int aVerbosity){ 
+	     const int aVerbosity): GwollumPlot("otile","GWOLLUM"){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
   // save parameters
   fTimeRange=aTimeRange;
-  fTimePad=aTimePad;
   fQMin=aQMin;
   fQMax=aQMax;
   fFrequencyMin=aFrequencyMin;
   fFrequencyMax=aFrequencyMax;
   fSampleFrequency=aSampleFrequency;
   fMaximumMismatch=aMaximumMismatch;
-  fSNRThreshold=aSNRThreshold;
   fVerbosity=aVerbosity;
   
   // init
-  status_OK=true;
   fNumberOfTiles=0;
-  for(int p=0; p<NQPLANEMAX; p++) qplanes[p]=NULL;
-
-  // adjust Q range
+  
+  // adjust Q min
   if(fQMin<sqrt(11.0)) fQMin=sqrt(11.0);
+  if(fQMax<sqrt(11.0)) fQMax=sqrt(11.0);
 
   // check parameters
-  status_OK*=CheckParameters();
+  status_OK=CheckParameters();
   fMismatchStep=2.0*sqrt(aMaximumMismatch/3.0);
 
   // compute Q values
   fQs = ComputeQs(fQMin,fQMax,fMaximumMismatch);
-
-  if(fQs.size() > NQPLANEMAX){
-    cerr<<"Otile::Otile: the number of Q-planes is too large: "<<fQs.size()<<">"<<NQPLANEMAX<<endl;
-    status_OK=false;
-    fQs.clear();
-  }
-
+ 
   // loop over planes
-  for(int p=0; p<(int)fQs.size(); p++){
-    qplanes[p]=new Oqplane(fQs[p],fSampleFrequency,fTimeRange,fTimePad,fFrequencyMin,fFrequencyMax,fMismatchStep,fSNRThreshold);
-    status_OK*=qplanes[p]->status_OK;
-    fNumberOfTiles+=qplanes[p]->fNumberOfTiles;
+  qplanes = new Oqplane* [(int)fQs.size()];
+  for(int q=0; q<(int)fQs.size(); q++){
+    qplanes[q]=new Oqplane(fQs[q],fSampleFrequency,fTimeRange,fFrequencyMin,fFrequencyMax,fMismatchStep);
+    fNumberOfTiles+=qplanes[q]->Ntiles;
   }
     
-  if(!status_OK) cerr<<"Otile::Otile: initialization failed!"<<endl;
-  if(fVerbosity>1) PrintInfo();
+  if(aVerbosity){
+    for(int q=0; q<(int)fQs.size(); q++){
+      cout<<"Otile::Otile: plane #"<<q<<endl;
+      if(aVerbosity>1) qplanes[q]->PrintParameters();
+    }
+  }
+  
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -63,10 +59,12 @@ Otile::~Otile(void){
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
   fQs.clear();
   for(int p=0; p<(int)fQs.size(); p++) delete qplanes[p];
+  delete qplanes;
 }
-  
+ 
+/* 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin){
+bool Otile::GetTriggers(MakeTriggers *aTriggers, const int aTimeStart, const int aExtraTimePadMin){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Otile::GetTriggers: the Otile object is corrupted"<<endl;
@@ -75,15 +73,17 @@ bool Otile::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataI
 
   // get triggers for each Q plane
   for(int p=0; p<(int)fQs.size(); p++){
-    if(!qplanes[p]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart,aExtraTimePadMin)){
-      cerr<<"Otile::GetTriggers: the q-plane "<<p<<" has failed to produce triggers"<<endl;
+    if(!qplanes[p]->GetTriggers(aTriggers,aTimeStart,aExtraTimePadMin)){
+      cerr<<"Otile::GetTriggers: the q-plane #"<<p<<" has failed to produce triggers"<<endl;
       return false;
     }
   }
 
   return true;
 }
+*/
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////
 TH2D* Otile::GetMap(const int qindex, double *aDataRe, double *aDataIm, const double time_offset, const bool printamplitude){
 ////////////////////////////////////////////////////////////////////////////////////
@@ -98,23 +98,24 @@ TH2D* Otile::GetMap(const int qindex, double *aDataRe, double *aDataIm, const do
 
   return qplanes[qindex]->GetMap(aDataRe,aDataIm,time_offset,printamplitude);
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SetPowerSpectrum(Spectrum *aSpec){
+bool Otile::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
-    cerr<<"Otile::SetPowerSpectrum: the Otile object is corrupted"<<endl;
+    cerr<<"Otile::SetPower: the Otile object is corrupted"<<endl;
     return false;
   }
   if(!aSpec->GetStatus()){
-    cerr<<"Otile::SetPowerSpectrum: the Spectrum object is corrupted"<<endl;
+    cerr<<"Otile::SetPower: the Spectrum object is corrupted"<<endl;
     return false;
   }
 
   // set power for each Q plane
   for(int p=0; p<(int)fQs.size(); p++){
-    if(!qplanes[p]->SetPowerSpectrum(aSpec)){
-      cerr<<"Otile::SetPowerSpectrum: the q-plane "<<p<<" has failed"<<endl;
+    if(!qplanes[p]->SetPower(aSpec)){
+      cerr<<"Otile::SetPower: cannot set power for plane #"<<p<<endl;
       return false;
     }
   }
@@ -125,17 +126,11 @@ bool Otile::SetPowerSpectrum(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 bool Otile::CheckParameters(void){
 ////////////////////////////////////////////////////////////////////////////////////  
-  if(!status_OK) return false;
-
   if(fTimeRange<1){
     cerr<<"Otile::CheckParameters: time range does not make any sense"<<endl;
     return false;
   }
-  if(2*fTimePad>=fTimeRange){
-    cerr<<"Otile::CheckParameters: time pads do not make any sense"<<endl;
-    return false;
-  }
-  if(fQMax<=fQMin){
+  if(fQMax<fQMin){
     cerr<<"Otile::CheckParameters: the Q range does not make any sense"<<endl;
     return false;
   }
@@ -145,6 +140,10 @@ bool Otile::CheckParameters(void){
   }
   if(fMaximumMismatch>0.5){
     cerr<<"Otile::CheckParameters: maximum mismatch is not reasonable (has to be <=0.5)"<<endl;
+    return false;
+  }
+  if(!IsPowerOfTwo(fSampleFrequency * fTimeRange)){
+    cerr<<"Otile::CheckParameters: data length is not an integer power of two"<<endl;
     return false;
   }
   return true;
@@ -197,10 +196,9 @@ void Otile::PrintInfo(void){
   cout<<" Fractional energy loss due to mismatch: "<<fMaximumMismatch<<endl;
   cout<<" Mismatch step between tiles: "<<fMismatchStep<<endl;
   cout<<" Number of Q planes: "<<fQs.size()<<endl;
-  cout<<" First Q: "<<fQs[0]<<endl;
-  cout<<" Last Q: "<<fQs[(int)fQs.size()-1]<<endl;
   cout<<" Total number of tiles: "<<fNumberOfTiles<<endl<<endl;
   
+  /*
   cout<<" List of Qs: "<<endl;
   for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<fQs[p]<<endl;
   cout<<" Effective frequency range: "<<endl;
@@ -209,7 +207,7 @@ void Otile::PrintInfo(void){
   for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfRows<<endl;
   cout<<" Number of tiles: "<<endl;
   for(int p=0; p<(int)fQs.size(); p++) cout<<"   "<<p<<":"<<qplanes[p]->fNumberOfTiles<<endl;
-
+  */
   return;
   
 }

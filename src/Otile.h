@@ -4,11 +4,9 @@
 #ifndef __Otile__
 #define __Otile__
 
-#include "CUtils.h"
 #include "Oqplane.h"
-#include "MakeTriggers.h"
-
-#define NQPLANEMAX 50
+//#include "MakeTriggers.h"
+#include "GwollumPlot.h"
 
 using namespace std;
 
@@ -17,7 +15,7 @@ using namespace std;
  * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins.
  * \author    Florent Robinet
  */
-class Otile {
+class Otile: public GwollumPlot {
 
  public:
 
@@ -27,32 +25,27 @@ class Otile {
   */
   /**
    * Constructor of the Otile class.
-   * The tiling is constructed given the user parameters. The parameter space is defined by a time range, a frequency range and a Q range. A time pad value is given to exclude triggers produced at both ends of the time range (to remove filtering artifacts, for example). The user must specify a maximum mismatch value corresponding to a maximal fractional energy loss from one tile to the next. When GetTriggers() is called, only triggers with a SNR value larger than the threshold are saved.
+   * The tiling is constructed given the user parameters. The parameter space is defined by a time range, a frequency range and a Q range. The user must specify a maximum mismatch value corresponding to a maximal fractional energy loss from one tile to the next.
    *
    * Some conditions are to be met:
    * - The time range must be a power of 2
    * - The sampling frequency must be a power of 2
-   * 
    * @param aTimeRange time range [s]
-   * @param aTimePad time pad [s]
    * @param aQMin minimal Q value
    * @param aQMax maximal Q value
    * @param aFrequencyMin minimal frequency [Hz]
    * @param aFrequencyMax maximal frequency [Hz]
    * @param aSampleFrequency sampling frequency [Hz]
    * @param aMaximumMismatch maximum mismatch between tiles
-   * @param aSNRThreshold SNR threshold to save triggers
    * @param aVerbosity verbosity level
    */
   Otile(const int aTimeRange, 
-	const int aTimePad,
 	const double aQMin, 
 	const double aQMax, 
 	const double aFrequencyMin, 
 	const double aFrequencyMax, 
 	const int aSampleFrequency, 
 	const double aMaximumMismatch, 
-	const double aSNRThreshold=0, 
 	const int aVerbosity=0);
 
   /**
@@ -71,7 +64,7 @@ class Otile {
    * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.
    * @param aSpec Spectrum structure where the PSD has been computed
    */
-  bool SetPowerSpectrum(Spectrum *aSpec);
+  bool SetPower(Spectrum *aSpec);
 
   /**
    * Saves triggers above SNR threshold.
@@ -91,7 +84,7 @@ class Otile {
    * @param aDataIm imaginary part of the data vector (frequency domain)
    * @param aTimeStart time offset
    */
-  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
+  //bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
 
   /**
    * Returns a SNR map of data projected onto a given Q plane. 
@@ -110,7 +103,7 @@ class Otile {
    * @param time_offset time offset [s]
    * @param printamplitude switch to amplitude
    */
-  TH2D* GetMap(const int qindex, double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
+  //TH2D* GetMap(const int qindex, double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
 
   /**
    * Returns the Q value of plane with index 'qindex'.
@@ -129,6 +122,16 @@ class Otile {
    */
   inline int GetNQPlanes(void){ return (int)fQs.size(); };
 
+  /**
+   * Returns a given Q plane.
+   */
+  inline TH2D* GetQPlane(const int qindex){ return qplanes[qindex]->qplane; };
+
+  /**
+   * Draws a given Q plane.
+   */
+  inline void DrawQPlane(const int qindex){ return Draw(qplanes[qindex]->qplane,"COLZ"); };
+  
   /**
    * Computes a set of Q values.
    * This function returns a vector of Q values corresponding to a set of parameters:
@@ -164,7 +167,7 @@ class Otile {
   double fMismatchStep;        ///< maximum mismatch between neighboring tiles
 
   // Q-PLANES
-  Oqplane *qplanes[NQPLANEMAX];///< q-plane objects
+  Oqplane **qplanes;///< q-plane objects
   vector <double> fQs;         ///< vector of Qs
   int fNumberOfTiles;          ///< total number of tiles (all Q-planes)
   

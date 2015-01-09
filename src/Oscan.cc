@@ -3,154 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "Omicron.h"
 
-////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Scan(const double aTimeCenter){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::Scan: the Omicron object is corrupted"<<endl;
-    return false;
-  }
-  if(fTrigDir.compare("none")) return ScanTriggers(aTimeCenter);
-  if(aTimeCenter<700000000){
-    cerr<<"Omicron::Scan: the input time is not reasonable"<<endl;
-    return false;
-  }
-  if(fChunkDuration!=fSegmentDuration){
-    cerr<<"Omicron::Scan: this function can only be called if the chunk and segment durations are identical"<<endl;
-    return false;
-  }
-  if(FFL==NULL){
-    cerr<<"Omicron::Scan: this function can only be used with a valid FFL object"<<endl;
-    return false;
-  }
-  if(fVerbosity){
-    time ( &timer );
-    ptm = gmtime ( &timer );
-    cout<<"#### Omicron::Scan timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
-  }
-
-  // locals
-  int dsize;          // native data size
-  double *dvector;    // data vector before resampling
-  int dsize_inj;      // native data size (inj)
-  double *dvector_inj;// data vector before resampling (inj)
-  int res;
-  
-  // Segment to process
-  if(fVerbosity) cout<<"Omicron::Scan: initiate data segments..."<<endl;
-  Segments *ScanSeg = new Segments((int)aTimeCenter-fChunkDuration/2,(int)aTimeCenter+fChunkDuration/2);
-
-  // data structure
-  if(!InitSegments(ScanSeg)||!NewChunk()){
-    cerr<<"Omicron::Scan: cannot initiate data segments."<<endl;
-    delete ScanSeg;
-    return false;
-  }
-
-  // create map directories
-  if(!MakeDirectories(aTimeCenter)){
-    cerr<<"Omicron::Scan: the directory structure cannot be created"<<endl;
-    delete ScanSeg;
-    return false;
-  }
-
-  // update channel list given the gps range
-  if(!FFL->ExtractChannels((int)aTimeCenter)){
-    cerr<<"Omicron::Process: the input channels cannot be extracted"<<endl;
-    return false;
-  }
-
-  // loop over channels
-  for(int c=0; c<(int)fChannels.size(); c++){
-    cout<<"Omicron::Scan: **** channel "<<fChannels[c]<<"..."<<endl;
-          
-    // get data vector
-    dvector=FFL->GetData(dsize, fChannels[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
-
-    if(dsize<=0){
-      cor_chunk_ctr[c]++;
-     cerr<<"Omicron::Scan: cannot retrieve data ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-      continue;
-    }
-
-    // get injection vector and inject it
-    if(fInjChan.size()){
-      dvector_inj=FFL->GetData(dsize_inj, fInjChan[c], dataseq->GetChunkTimeStart(), dataseq->GetChunkTimeEnd());
-      if(dsize_inj<=0){
-	cor_chunk_ctr[c]++;
-	cerr<<"Omicron::Scan: cannot retrieve injection data ("<<fInjChan[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-	delete dvector;
-	continue;
-      }
-      if(dsize_inj!=dsize){
-	cor_chunk_ctr[c]++;
-	cerr<<"Omicron::Scan: the sampling of the injection channel ("<<fInjChan[c]<<") is not the same as the sampling of the main channel --> skip chunk"<<endl;
-	delete dvector;
-	delete dvector_inj;
-	continue;
-      }
-      for(int d=0; d<dsize; d++) dvector[d]+=(fInjFact[c]*dvector_inj[d]);
-      delete dvector_inj;
-    }
-
-    // condition data vector
-    res=ConditionVector(c, dsize, dvector);
-    if(res<0){
-      cerr<<"Omicron::Scan: conditioning failed ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-      delete dvector;
-      delete ScanSeg;
-      cor_data_ctr[c]++;
-      return false;// fatal
-    }
-    if(res>0){
-      cerr<<"Omicron::Scan: conditioning failed ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-      delete dvector;
-      cor_data_ctr[c]++;
-      continue;// skip channel
-    }
-
-    delete dvector;// not needed anymore
-
-    // get maps
-    if(!MakeMaps(c, aTimeCenter)){
-      cerr<<"Omicron::Scan: cannot make maps ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-      cor_data_ctr[c]++;
-      continue;
-    }
-
-    // apply SNR threshold (except the first channel)
-    if(c&&Qmap_full[0]->GetMaximum()<fSNRThreshold){
-      cout<<"Omicron::Scan: below SNR threshold "<<Qmap_full[0]->GetMaximum()<<"<"<<fSNRThreshold<<" ("<<fChannels[c]<<" "<<dataseq->GetChunkTimeStart()<<" "<<dataseq->GetChunkTimeEnd()<<")."<<endl;
-      max_chunk_ctr[c]++;// use this specific monitor here
-      continue;
-    }
-
-    // save maps on disk
-    if(!WriteMaps(c)){
-      cerr<<"Omicron::Scan: cannot write maps for channel "<<fChannels[c]<<endl;
-      cor_data_ctr[c]++;
-      continue;
-    }
-
-    // save ASD on disk
-    SaveAPSD(c,"ASD");
-    
-    // save data on disk
-    SaveTS(c, aTimeCenter);
-
-    // time for this channel
-    if(fVerbosity>1){ 
-      time ( &timer );
-      ptm = gmtime ( &timer );
-      cout<<"#### Omicron::Scan timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
-    }
-  }
-        
-  delete ScanSeg;
-
-  return true;
-}
-
+/*
 ////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::ScanTriggers(const double aTimeCenter){
 ////////////////////////////////////////////////////////////////////////////////////
@@ -158,19 +11,11 @@ bool Omicron::ScanTriggers(const double aTimeCenter){
     cerr<<"Omicron::ScanTriggers: the Omicron object is corrupted"<<endl;
     return false;
   }
-  if(aTimeCenter<700000000){
-    cerr<<"Omicron::ScanTriggers: the input time is not reasonable"<<endl;
-    return false;
-  }
   if(!IsDirectory(fTrigDir)){
     cerr<<"Omicron::ScanTriggers: the trigger directory is required"<<endl;
     return false;
   }
-  if(fVerbosity){
-    time ( &timer );
-    ptm = gmtime ( &timer );
-    cout<<"#### Omicron::ScanTriggers timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
-  }
+  if(fVerbosity) PrintTimer("ScanTriggers");
 
   // Segment to process
   if(fVerbosity) cout<<"Omicron::ScanTriggers: initiate data segments..."<<endl;
@@ -259,11 +104,7 @@ bool Omicron::ScanTriggers(const double aTimeCenter){
     }
 
     // time for this channel
-    if(fVerbosity>1){ 
-      time ( &timer );
-      ptm = gmtime ( &timer );
-      cout<<"#### Omicron::ScanTriggers timer = "<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) ---> +"<<timer-timer_start<<"s ####"<<endl;
-    }
+    if(fVerbosity>1) PrintTimer("ScanTriggers");
 
     // cleaning for next channel
     for(int q=0; q<(int)qs.size(); q++) delete qmap[q];
@@ -276,46 +117,24 @@ bool Omicron::ScanTriggers(const double aTimeCenter){
 
   return true;
 }
-
+*/
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
+bool Omicron::MakeMaps(const int aNseg){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::MakeMaps: the Omicron object is corrupted"<<endl;
-    return false;
-  }
-  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::MakeMaps: channel number "<<aChNumber<<" does not exist"<<endl;
-    return false;
-  }
-  if(aTimeCenter-fWindowMax<dataseq->GetSegmentTimeStart(0)+fOverlapDuration/2){
-    cerr<<"Omicron::MakeMaps: the requested central time "<<aTimeCenter<<" is not compatible with the data segmentation and the windowing -> you need to increase your segment"<<endl;
-    return false;
-  }
-  if(aTimeCenter+fWindowMax>dataseq->GetSegmentTimeEnd(0)-fOverlapDuration/2){
-    cerr<<"Omicron::MakeMaps: the requested central time "<<aTimeCenter<<" is not compatible with the data segmentation and the windowing -> you need to increase your segment"<<endl;
-    return false;
-  }
 
-  if(fVerbosity) cout<<"Omicron::MakeMaps: make maps for channel "<<fChannels[aChNumber]<<" starting at "<<dataseq->GetChunkTimeStart()<<endl;
-
-  Qmap_center=aTimeCenter;
-  double toffset=Qmap_center-dataseq->GetSegmentTimeStart(0)-(double)fSegmentDuration/2.0;
+  // locals
   ostringstream tmpstream;
 
   // get Qmaps
-  if(fVerbosity>1) cout<<"Omicron::MakeMaps: make Qmaps..."<<endl;
   for(int q=0; q<tile->GetNQPlanes(); q++){
-    Qmap[q] = tile->GetMap(q, dataRe[0], dataIm[0], -toffset);
+    Qmap[q] = tile->GetMap(q, dataRe[aNseg], dataIm[aNseg], dataseq->GetSegmentTimeStart(0)+(double)fSegmentDuration/2.0-timeoffset);
     if(Qmap[q]==NULL){
-      cerr<<"Omicron::MakeMaps: maps for channel "<<fChannels[aChNumber]<<" are corrupted"<<endl;
-      delete dataRe[0];
-      delete dataIm[0];
+      cerr<<"Omicron::MakeMaps: cannot retrieve Qmaps ("<<fChannels[chanindex]<<" "<<dataseq->GetSegmentTimeStart(aNseg)<<"-"<<dataseq->GetSegmentTimeEnd(aNseg)<<")"<<endl;
       return false;
     }
-
+    
     // map title
-    tmpstream<<fChannels[aChNumber]<<": GPS="<<fixed<<setprecision(3)<<Qmap_center<<", Q="<<tile->GetQ(q);
+    tmpstream<<fChannels[chanindex]<<": GPS="<<fixed<<setprecision(3)<<timeoffset<<", Q="<<tile->GetQ(q);
     Qmap[q]->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     
@@ -327,13 +146,9 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
     Qmap[q]->GetYaxis()->SetTitleSize(0.045);
     Qmap[q]->GetZaxis()->SetTitleSize(0.05);
   }
-  delete dataRe[0];
-  delete dataIm[0];
-
-  MapChNumber=aChNumber;
 
   // create overall maps
-  MakeFullMaps(aChNumber,aTimeCenter,tile->GetNQPlanes(),Qmap);
+  MakeFullMaps(tile->GetNQPlanes(),Qmap);
 
   // Q-map containing the loudest tile
   for(int w=0; w<(int)fWindows.size(); w++){
@@ -344,19 +159,18 @@ bool Omicron::MakeMaps(const int aChNumber, const double aTimeCenter){
       Qmap[q]->GetXaxis()->SetRange();
     }
   }
-  
+    
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::MakeFullMaps(const int aChNumber, const double aTimeCenter, const int aNq, TH2D **aQmap){
+void Omicron::MakeFullMaps(const int aNq, TH2D **aQmap){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // create overall maps
-  if(fVerbosity>1) cout<<"Omicron::MakeFullMaps: make overall maps..."<<endl;
   ostringstream tmpstream;
   for(int w=0; w<(int)fWindows.size(); w++){
-    tmpstream<<fChannels[aChNumber]<<": GPS="<<fixed<<setprecision(3)<<aTimeCenter;
+    tmpstream<<fChannels[chanindex]<<": GPS="<<fixed<<setprecision(3)<<timeoffset;
     Qmap_full[w]->Reset();
     Qmap_full[w]->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
@@ -391,34 +205,26 @@ void Omicron::MakeFullMaps(const int aChNumber, const double aTimeCenter, const 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vector <double>& aQ, TH2D **aQmap){
+bool Omicron::WriteMaps(const vector <double>& aQ, TH2D **aQmap){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::WriteMaps: the Omicron object is corrupted"<<endl;
     return false;
   }
-  if(aChNumber<0||aChNumber>=(int)fChannels.size()){
-    cerr<<"Omicron::WriteMaps: channel number "<<aChNumber<<" does not exist"<<endl;
-    return false;
-  }
-  if(!aQ.size()&&MapChNumber!=aChNumber){
-    cerr<<"Omicron::WriteMaps: the map in memory is not associated to channel "<<fChannels[aChNumber]<<endl;
-    return false;
-  }
-  if(aQ.size()>0&&aQmap==NULL){
-    cerr<<"Omicron::WriteMaps: the input maps are NULL for channel "<<fChannels[aChNumber]<<endl;
-    return false;
-  }
   if(aQ.size()>0){
+    if(aQmap==NULL){
+      cerr<<"Omicron::WriteMaps: there is no input maps"<<endl;
+      return false;
+    }
     for(int q=0; q<(int)aQ.size(); q++){
       if(aQmap[q]==NULL){
-	cerr<<"Omicron::WriteMaps: the input maps are NULL for channel "<<fChannels[aChNumber]<<endl;
+	cerr<<"Omicron::WriteMaps: the input map #"<<q<<" is NULL"<<endl;
 	return false;
       }
     }
   }
 
-  if(fVerbosity) cout<<"Omicron::WriteMaps: write maps for channel "<<fChannels[aChNumber]<<endl;
+  if(fVerbosity) cout<<"Omicron::MakeMaps: write maps..."<<endl;
 
   // number of qmaps
   int nqs;
@@ -433,11 +239,11 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fmap;
-    if(first_save[aChNumber]){
-      fmap=new TFile((fOutdir[aChNumber]+"/"+fChannels[aChNumber]+"_data.root").c_str(),"RECREATE");
-      first_save[aChNumber]=false;
+    if(first_save[chanindex]){
+      fmap=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"RECREATE");
+      first_save[chanindex]=false;
     }
-    else fmap=new TFile((fOutdir[aChNumber]+"/"+fChannels[aChNumber]+"_data.root").c_str(),"UPDATE");
+    else fmap=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"UPDATE");
     fmap->cd();
     for(int q=0; q<nqs; q++) map_tmp[q]->Write();
     for(int w=0; w<(int)fWindows.size(); w++) Qmap_full[w]->Write();
@@ -458,10 +264,10 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
 
   // summary tree
   TTree *MS = new TTree("mapsummary", "map summary");
-  double map_gps, map_q, map_gpsmax, map_freqmax, map_snrmax;
+  double map_q, map_gpsmax, map_freqmax, map_snrmax;
   int map_win, map_nq, map_nwin, map_nformat, map_wstart, map_wstop;
   string map_format;
-  MS->Branch("gps_center",&map_gps,"gps_center/D");
+  MS->Branch("gps_center",&timeoffset,"gps_center/D");
   MS->Branch("gps_whitening_start",&map_wstart,"gps_whitening_start/I");
   MS->Branch("gps_whitening_stop",&map_wstop,"gps_whitening_stop/I");
   MS->Branch("nQ",&map_nq,"nQ/I");
@@ -473,8 +279,6 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
   MS->Branch("snr_loudest",&map_snrmax,"snr_loudest/D");
   MS->Branch("nformat",&map_nformat,"nformat/I");
   MS->Branch("format",&map_format);
-  if(aTimeCenter>0) map_gps=aTimeCenter;
-  else map_gps=Qmap_center;
   map_nwin=(int)fWindows.size();
   map_nq=nqs;
   map_nformat=(int)form.size();
@@ -514,19 +318,19 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
       map_tmp[q]->GetMaximumBin(xmax, ymax, zmax);
          
       // loudest tile
-      tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<Qmap_center+map_tmp[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<map_tmp[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<map_tmp[q]->GetBinContent(xmax,ymax);
+      tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<timeoffset+map_tmp[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<map_tmp[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<map_tmp[q]->GetBinContent(xmax,ymax);
       GPlot->AddText(tmpstream.str(), 0.01,0.01,0.03);
       tmpstream.str(""); tmpstream.clear();
-      map_gpsmax=Qmap_center+map_tmp[q]->GetXaxis()->GetBinCenter(xmax);
+      map_gpsmax=timeoffset+map_tmp[q]->GetXaxis()->GetBinCenter(xmax);
       map_freqmax=map_tmp[q]->GetYaxis()->GetBinCenter(ymax);
       map_snrmax=map_tmp[q]->GetBinContent(xmax,ymax);
 
       // save qmaps
       for(int f=0; f<(int)form.size(); f++){
-	tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_mapQ"<<q<<"_dt"<<fWindows[w]<<"."<<form[f];
+	tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_mapQ"<<q<<"_dt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(tmpstream.str());
 	tmpstream.str(""); tmpstream.clear();
- 	tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_mapQ"<<q<<"th_dt"<<fWindows[w]<<"."<<form[f];
+ 	tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_mapQ"<<q<<"th_dt"<<fWindows[w]<<"."<<form[f];
 	GPlot->SetGridx(0); GPlot->SetGridy(0);
 	GPlot->Print(tmpstream.str(),0.5);
 	GPlot->SetGridx(1); GPlot->SetGridy(1);
@@ -554,16 +358,16 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
     Qmap_full[w]->GetMaximumBin(xmax, ymax, zmax);
          
     // loudest tile
-    tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<Qmap_center+Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)<<", f="<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap_full[w]->GetBinContent(xmax,ymax);
+    tmpstream<<"Loudest tile: GPS="<<fixed<<setprecision(3)<<timeoffset+Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)<<", f="<<Qmap_full[w]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<Qmap_full[w]->GetBinContent(xmax,ymax);
     GPlot->AddText(tmpstream.str(), 0.01,0.01,0.03);
     tmpstream.str(""); tmpstream.clear();
 
     // save maps
     for(int f=0; f<(int)form.size(); f++){
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_map_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_map_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_mapth_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_mapth_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->SetGridx(0); GPlot->SetGridy(0);
       GPlot->Print(tmpstream.str(),0.5);
       GPlot->SetGridx(1); GPlot->SetGridy(1);
@@ -595,17 +399,17 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
     GPlot->SetLogx(0);
     GPlot->Draw(proj);
     for(int f=0; f<(int)form.size(); f++){
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_projt_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_projt_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_projtth_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_projtth_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str(),0.5);
       tmpstream.str(""); tmpstream.clear();
     }
     delete proj;
 
     proj=Qmap_full[w]->ProjectionY("_pfy",xmax,xmax);
-    tmpstream<<"SNR vs frequency at GPS = "<<fixed<<setprecision(3)<<Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)+Qmap_center;
+    tmpstream<<"SNR vs frequency at GPS = "<<fixed<<setprecision(3)<<Qmap_full[w]->GetXaxis()->GetBinCenter(xmax)+timeoffset;
     proj->SetTitle(tmpstream.str().c_str());
     tmpstream.str(""); tmpstream.clear();
     proj->GetXaxis()->SetTitle("Frequency [Hz]");
@@ -618,10 +422,10 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
     GPlot->SetLogx(1);
     GPlot->Draw(proj);
     for(int f=0; f<(int)form.size(); f++){
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_projf_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_projf_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str());
       tmpstream.str(""); tmpstream.clear();
-      tmpstream<<fOutdir[aChNumber]<<"/"<<fChannels[aChNumber]<<"_projfth_dt"<<fWindows[w]<<"."<<form[f];
+      tmpstream<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_projfth_dt"<<fWindows[w]<<"."<<form[f];
       GPlot->Print(tmpstream.str(),0.5);
       tmpstream.str(""); tmpstream.clear();
     }
@@ -629,7 +433,7 @@ bool Omicron::WriteMaps(const int aChNumber, const double aTimeCenter, const vec
   }
 
   // save map summary
-  TFile summary((fOutdir[aChNumber]+"/"+fChannels[aChNumber]+"_mapsummary.root").c_str(),"RECREATE");
+  TFile summary((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_mapsummary.root").c_str(),"RECREATE");
   summary.cd();
   MS->Write();
   summary.Close();

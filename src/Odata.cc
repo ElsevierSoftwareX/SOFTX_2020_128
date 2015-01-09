@@ -111,7 +111,7 @@ bool Odata::NewChunk(void){
 
   // end of data segments --> stop
   if(seg>=fSegments->GetNsegments()){
-    cout<<"Odata::NewChunk: end of data segments"<<endl;
+    if(fVerbosity) cout<<"Odata::NewChunk: end of data segments"<<endl;
     ChunkStart=-1;
     return false;
   }
