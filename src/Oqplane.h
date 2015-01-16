@@ -33,33 +33,35 @@ class Oqplane {
 	  const double aMismatchStep);
   virtual ~Oqplane(void);
 
+  void PrintParameters(void);
   bool ProjectData(double *aDataRe, double *aDataIm);
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad=0, const int aRightTimePad=0, const int aT0=0);
-  inline TH2D* GetMap(void){ return qplane; };
+  bool SaveTriggers(MakeTriggers *aTriggers, 
+		    const double aSNRThr, 
+		    const int aLeftTimePad=0, 
+		    const int aRightTimePad=0, 
+		    const int aT0=0);
 
   // GETS
-  inline double GetTimeRange(void) { return qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin(); };
-  //inline const Double_t* GetBands(void) { return qplane->GetYaxis()->GetXbins()->GetArray(); };
-  inline int GetNBands(void) { return qplane->GetNbinsY(); };
-  inline int GetBandNtiles(const int aBandIndex) { return qplane->GetNbinsX()/bandMultiple[aBandIndex]; };
-
-  inline double GetTileSNR(const int aTimeTileIndex, const int aFrequencyTileIndex){    
-    return qplane->GetBinContent(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1,aFrequencyTileIndex+1);
+  inline TH2D* GetMap(void){ 
+    return qplane;
   };
-  inline double GetTileAmplitude(const int aTimeTileIndex, const int aFrequencyTileIndex){    
-    return GetTileSNR(aTimeTileIndex,aFrequencyTileIndex)*sqrt(bandPower[aFrequencyTileIndex]);
+  inline double GetTimeRange(void){ 
+    return qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin(); 
   };
-  inline double GetTileTime(const int aTimeTileIndex, const int aFrequencyTileIndex){
-    return qplane->GetXaxis()->GetBinCenter(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  inline double GetTimeMin(void){ 
+    return qplane->GetXaxis()->GetXmin(); 
   };
-  inline double GetTileTimeStart(const int aTimeTileIndex, const int aFrequencyTileIndex){
-    return qplane->GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  inline double GetTimeMax(void){ 
+    return qplane->GetXaxis()->GetXmax(); 
   };
-  inline double GetTileTimeEnd(const int aTimeTileIndex, const int aFrequencyTileIndex){
-    return qplane->GetXaxis()->GetBinUpEdge(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  inline double GetFrequencyMin(void){ 
+    return qplane->GetYaxis()->GetXmin(); 
   };
-  inline double GetTileWidth(const int aTimeTileIndex, const int aFrequencyTileIndex){
-    return qplane->GetXaxis()->GetBinWidth(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1)*bandMultiple[aFrequencyTileIndex];
+  inline double GetFrequencyMax(void){ 
+    return qplane->GetYaxis()->GetXmax(); 
+  };
+  inline int GetNBands(void){ 
+    return qplane->GetNbinsY();
   };
   inline double GetBandFrequency(const int aBandIndex){ 
     return qplane->GetYaxis()->GetBinCenterLog(aBandIndex+1);
@@ -73,35 +75,45 @@ class Oqplane {
   inline double GetBandWidth(const int aBandIndex){ 
     return qplane->GetYaxis()->GetBinWidth(aBandIndex+1);
   };
-  
+  inline double GetTileDuration(const int aBandIndex){
+    return qplane->GetXaxis()->GetBinWidth(1)*bandMultiple[aBandIndex];
+  };
+  inline int GetBandNtiles(const int aBandIndex){ 
+    return qplane->GetNbinsX()/bandMultiple[aBandIndex];
+  };
+  inline double GetTileSNR(const int aTimeTileIndex, const int aBandIndex){    
+    return qplane->GetBinContent(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
+  };
+  inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){    
+    return GetTileSNR(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
+  };
+  inline double GetTileTime(const int aTimeTileIndex, const int aBandIndex){
+    return qplane->GetXaxis()->GetBinCenter(aTimeTileIndex*bandMultiple[aBandIndex]+1);
+  };
+  inline double GetTileTimeStart(const int aTimeTileIndex, const int aBandIndex){
+    return qplane->GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
+  };
+  inline double GetTileTimeEnd(const int aTimeTileIndex, const int aBandIndex){
+    return qplane->GetXaxis()->GetBinUpEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
+  };
+  inline int GetTimeTileIndex(const int aBandIndex, const double aTime){
+    return (int)floor((aTime-GetTimeMin())/GetTileDuration(aBandIndex));
+  };
+
   // SETS
-  void SetTileSNR(const int aTimeTileIndex, const int aBandIndex, const double aSNR);
-  void SetTileSNR(const double aTime, const double aFrequency, const double aSNR);
-
-  void PrintParameters(void); ///< print plane parameters
-  double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
-
-  inline void PresentTile(void){
-    for(int f=0; f<qplane->GetNbinsY(); f++)
-      for(int t=0; t<qplane->GetNbinsX(); t++)
-	qplane->SetBinContent(t+1,f+1,(t/bandMultiple[f])%2);
-    return;
-  }
-
-
-    
-  //bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
   bool SetPower(Spectrum *aSpec);
-    
-  // PARAMETERS
-  double Q;                         ///< Q value
-  double QPrime;                    ///< Q prime = Q / sqrt(11)
+  void SetTileSNR(const int aTimeTileIndex, const int aBandIndex, const double aSNR);
+  void SetTileDisplay(void);
+
+  // INTERNAL
+  double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
+  void GetPlaneNormalization(void);
  
   // Q-PLANE
+  double Q;                         ///< Q value
+  double QPrime;                    ///< Q prime = Q / sqrt(11)
   TH2D *qplane;                     ///< Q plane
   int Ntiles;                       ///< number of tiles in the plane
-
-  void GetPlaneNormalization(void); ///< get plane normalization
   double PlaneNormalization;        ///< plane normalization
   
   // FREQUENCY BANDS
