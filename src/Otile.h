@@ -83,58 +83,47 @@ class Otile: public GwollumPlot {
 
   /**
    * Sets the data power spectrum.
-   * This function must be called before the GetTriggers() or GetMap() functions. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over the tile (weighted by the tile Gaussian window).
-   * If this function is not called, power is set to 1 and the amplitude is just the SNR.
+   * This function must be called to compute the amplitude in a given tile: amplitude = SNR * sqrt(power).
+   * The power of a tile is given by the input power spectrum weighted by the Gaussian window.
+   * If this function is never called, the power is set to 0. 
    *
    * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.
    * @param aSpec Spectrum structure where the PSD has been computed
    */
   bool SetPower(Spectrum *aSpec);
 
+  /**
+   * Projects a data vector onto the Q planes.
+   * A complex data vector is projected onto all the Q-planes. The tiles are populated with the resulting SNR values.
+   *
+   * IMPORTANT: the input data vector must the right size, i.e. SampleFrequency/2 as defined in the constructor. No check will be performed!
+   * @param aDataRe real part of the data vector (frequency domain)
+   * @param aDataIm imaginary part of the data vector (frequency domain)
+   */
   bool ProjectData(double *aDataRe, double *aDataIm);
+
+  /**
+   * Saves tiles above a SNR threshold in a MakeTriggers structure.
+   * The triggers Segments are also saved follwing the GWOLLUM convention for triggers. A padding can be provided to NOT saved triggers on the plane edges. The planes are always centered on 0. A T0 must therefore be provided.
+   * @param aTriggers MakeTriggers object
+   * @param aSNRThr SNR threshold
+   * @param aLeftTimePad duration of the left padding
+   * @param aRightTimePad duration of the right padding
+   * @param aT0 plane central time
+   */
   bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad=0, const int aRightTimePad=0, const int aT0=0);
+
+  /**
+   * Saves the maps for each Q-planes in output files.
+   * The maps are saved in output files.
+   * @param aOutdir output directory path
+   * @param aName name identifier
+   * @param aT0 plane central time
+   * @param aFormat output format string
+   * @param aWindows list of time windows
+   */
   bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows);
 
-  /**
-   * Saves triggers above SNR threshold.
-   * A complex data vector is projected onto all Q-planes. The tiles are populated with the SNR values. A trigger is defined as a tile with a SNR value above the threshold defined in Otile(). This trigger is added to the Triggers object with the <a href="../../Main/convention.html#triggers">GWOLLUM convention</a> with the following parameters:
-   * - time = tile central time
-   * - frequency = tile central frequency
-   * - tstart = tile starting time
-   * - tend = tile ending time
-   * - fstart = tile starting frequency
-   * - fend = tile ending frequency
-   * - snr = tile SNR value
-   * - amplitude = SNR*sqrt(power) where power is the noise power average in the tile set with SetPowerSpectrum(). 
-   *
-   * A time offset must be given corresponding to the starting time of the time range.
-   * @param aTriggers MakeTriggers object
-   * @param aDataRe real part of the data vector (frequency domain)
-   * @param aDataIm imaginary part of the data vector (frequency domain)
-   * @param aTimeStart time offset
-   */
-  //bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
-
-  /**
-   * Returns a SNR map of data projected onto a given Q plane. 
-   * A complex data vector is projected onto the Q-plane with index qindex. The tiles are populated with the SNR values and the resulting map is returned as a TH2 histogram.
-   *
-   * The input complex vector must be given in the frequency domain and have the right size, i.e. half of the sampling frequency times the time range.
-   *
-   * If given, the time offset is added to the time of the tiles.
-   * 
-   * If printamplitude=true, the amplitude is used instead of the SNR.
-   *
-   * Do not delete the returned histogram. It will be deleted by the class.
-   * @param qindex Q-plane index
-   * @param aDataRe real part of the data vector (frequency domain)
-   * @param aDataIm imaginary part of the data vector (frequency domain)
-   * @param time_offset time offset [s]
-   * @param printamplitude switch to amplitude
-   */
-  //TH2D* GetMap(const int qindex, double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
-
-  
   /**
    * Computes a set of Q values.
    * This function returns a vector of Q values corresponding to a set of parameters:
@@ -144,7 +133,11 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
-  inline double GetTimeRange(void) { return tilemap->GetXaxis()->GetXmax()-tilemap->GetXaxis()->GetXmin(); };
+  
+  /**
+   * Returns the tiling time range.
+   */
+  inline double GetTimeRange(void){ return tilemap->GetXaxis()->GetXmax()-tilemap->GetXaxis()->GetXmin(); };
 
 
  private:

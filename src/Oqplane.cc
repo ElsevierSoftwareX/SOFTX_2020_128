@@ -120,6 +120,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
     tend=GetTimeTileIndex(f,(double)(GetTimeRange()/2.0-aRightTimePad));
     if(GetTileTime(tend,f)<(double)(GetTimeRange()/2.0-aRightTimePad)) tend++;// GWOLLUM convention
 
+    // fill triggers
     for(int t=tstart; t<tend; t++){
       if(GetTileContent(t,f)<aSNRThr) continue;
       tiletime=GetTileTime(t,f)+(double)aT0;
@@ -170,8 +171,8 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     for(; i<end; i++){
       index=i+GetBandNtiles(f)/2-LeftZeroPadSize;
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];
-      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];
+      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
+      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
     }
     end+=LeftZeroPadSize+RightZeroPadSize;
     for(; i<end; i++){
@@ -182,8 +183,8 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     for(; i<end; i++){
       index=i-(LeftZeroPadSize+end/2);
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];
-      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];
+      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
+      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
     }
 
     // fft-backward
