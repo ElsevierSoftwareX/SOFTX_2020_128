@@ -5,14 +5,13 @@
 #define __Otile__
 
 #include "Oqplane.h"
-//#include "MakeTriggers.h"
 #include "GwollumPlot.h"
 
 using namespace std;
 
 /**
  * Construct a time-frequency-Q tiling.
- * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins.
+ * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins. Once constructed, the planes can be used to apply a Q-transform to data. This class offers a graphical interface (GwollumPlot inheritance) and plotting functions to display the tiles and the data.
  * \author    Florent Robinet
  */
 class Otile: public GwollumPlot {
@@ -27,9 +26,11 @@ class Otile: public GwollumPlot {
    * Constructor of the Otile class.
    * The tiling is constructed given the user parameters. The parameter space is defined by a time range, a frequency range and a Q range. The user must specify a maximum mismatch value corresponding to a maximal fractional energy loss from one tile to the next.
    *
-   * Some conditions are to be met:
-   * - The time range must be a power of 2
+   * Some conditions are to be met to use this class:
+   * - The time range must be a power of 2 and at least 4s long
    * - The sampling frequency must be a power of 2
+   * - The Q value cannot be smaller than sqrt(11)
+   * - The maximum mismatch cannot be larger than 0.5
    * @param aTimeRange time range [s]
    * @param aQMin minimal Q value
    * @param aQMax maximal Q value
@@ -56,6 +57,30 @@ class Otile: public GwollumPlot {
      @}
   */
   
+  /**
+   * Returns the number of Q planes.
+   */
+  inline int GetNQ(void){ return nq; };
+
+  /**
+   * Returns the Q value of a given plane.
+   * -1.0 is returned if this function fails.
+   * @param aQindex Q-plane index
+   */
+  double GetQ(const int aQindex);
+
+  /**
+   * Displays a canonical representation of a given Q-plane.
+   * @param aQindex Q-plane index
+   */
+  bool DisplayTiling(const int aQindex);
+
+  /**
+   * Draws a given Q-plane.
+   * @param aQindex Q-plane index
+   */
+  bool DrawPlane(const int aQindex);
+
   /**
    * Sets the data power spectrum.
    * This function must be called before the GetTriggers() or GetMap() functions. The power spectrum must be set to compute the trigger amplitude defined as SNR*sqrt(power). power is the weighted average of the PSD over the tile (weighted by the tile Gaussian window).
@@ -109,27 +134,6 @@ class Otile: public GwollumPlot {
    */
   //TH2D* GetMap(const int qindex, double *aDataRe, double *aDataIm, const double time_offset=0.0, const bool printamplitude=false);
 
-  /**
-   * Returns the Q value of plane with index 'qindex'.
-   * -1.0 is returned if this function fails.
-   * @param qindex Q-plane index
-   */
-  double GetQ(const int qindex);
-
-  /**
-   * Returns the number of Q planes
-   */
-  inline int GetNQPlanes(void){ return (int)Qs.size(); };
-
-  /**
-   * Returns a given Q plane.
-   */
-  inline TH2D* GetQPlane(const int qindex){ return qplanes[qindex]->qplane; };
-
-  /**
-   * Draws a given Q plane.
-   */
-  inline void DrawQPlane(const int qindex){ return Draw(qplanes[qindex]->qplane,"COLZ"); };
   
   /**
    * Computes a set of Q values.
@@ -140,18 +144,18 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
-  inline double GetTimeRange(void) { return maps[0]->GetXaxis()->GetXmax()-maps[0]->GetXaxis()->GetXmin(); };
+  inline double GetTimeRange(void) { return tilemap->GetXaxis()->GetXmax()-tilemap->GetXaxis()->GetXmin(); };
 
 
  private:
 
   int fVerbosity;              ///< verbosity level
-  TH2D **maps;                 ///< maps
-  vector <double> Qs;          ///< vector of Qs
+  TH2D *tilemap;               ///< maps: 0=combined, then individual Qplanes
   Oqplane **qplanes;           ///< Q planes
+  int nq;                      ///< number of q planes
 
-  void MakeTiling(void);       /// fill tiling from Q planes
-  void SetTileContent(const double t1, const double f1, const double t2, const double f2, const double content);
+  //void MakeTiling(void);       /// fill tiling from Q planes
+  //void SetTileContent(const double t1, const double f1, const double t2, const double f2, const double content);
     
   ClassDef(Otile,0)  
 };

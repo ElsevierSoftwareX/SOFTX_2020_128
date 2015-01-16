@@ -13,6 +13,9 @@ Otile::Otile(const int aTimeRange,
 	     const int aVerbosity): GwollumPlot("otile","GWOLLUM"){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
+  // Plots
+  SetLogx(0); SetLogy(1); SetLogz(1);
+
   // save parameters
   int TimeRange=(int)fabs(aTimeRange);
   double QMin=fabs(aQMin);
@@ -24,7 +27,6 @@ Otile::Otile(const int aTimeRange,
   fVerbosity=aVerbosity;
   
   ////// Adjust parameters   ////////////////////////////////
-    
   if(QMax<QMin){ QMin=fabs(aQMax); QMax=fabs(aQMin); }
   if(QMin<sqrt(11.0)) QMin=sqrt(11.0);
   if(QMax<sqrt(11.0)) QMax=sqrt(11.0);
@@ -42,73 +44,52 @@ Otile::Otile(const int aTimeRange,
   double MismatchStep=2.0*sqrt(MaximumMismatch/3.0);
 
   // compute Q values
-  Qs = ComputeQs(QMin,QMax,MaximumMismatch);
+  vector <double> Qs = ComputeQs(QMin,QMax,MaximumMismatch);
+  nq = (int)Qs.size();
  
-  // create maps
-  maps = new TH2D* [(int)Qs.size()];
-
   // create Q planes
-  qplanes = new Oqplane* [(int)Qs.size()];
-  for(int q=0; q<(int)Qs.size(); q++){
+  if(aVerbosity) cout<<"Otile::Otile: creating "<<nq<<" Q-planes"<<endl;
+  qplanes = new Oqplane* [nq];
+  for(int q=0; q<nq; q++){
     qplanes[q]=new Oqplane(Qs[q],SampleFrequency,TimeRange,FrequencyMin,FrequencyMax,MismatchStep);
-    maps[q+1] = qplanes[q]->GetMap();
+    if(aVerbosity>1) qplanes[q]->PrintParameters();
   }
+  Qs.clear();
 
+  // update parameters  
   TimeRange=qplanes[0]->GetTimeRange();
-  FrequencyMin=qplanes[0]->GetBandStart(0);
-  FrequencyMax=qplanes[(int)Qs.size()-1]->GetBandEnd(qplanes[(int)Qs.size()-1]->GetNBands()-1);
+  FrequencyMin=qplanes[0]->GetFrequencyMin();
+  FrequencyMax=qplanes[nq-1]->GetFrequencyMax();
 
   // frequency binning
-  int nfbins = 1000;
+  int nfbins = 1000;// FIXME
   double *fbins = new double [nfbins+1];
   for(int b=0; b<=nfbins; b++) fbins[b] = FrequencyMin * exp((double)b/(double)nfbins*log(FrequencyMax/FrequencyMin));
 
-  // create tiling
-  maps[0] = new TH2D("Otiling","Otiling",
-		   qplanes[0]->GetBandNtiles(qplanes[0]->GetNBands()-1),-(double)TimeRange/2.0,(double)TimeRange/2.0,
-		   nfbins,fbins);
+  // create combined tiling
+  tilemap = new TH2D("Otiling","Otiling",
+		     qplanes[0]->GetBandNtiles(qplanes[0]->GetNBands()-1),-(double)TimeRange/2.0,(double)TimeRange/2.0,
+		     nfbins,fbins);
   delete fbins;
-  maps[0]->GetXaxis()->SetTitle("Time [s]");
-  maps[0]->GetYaxis()->SetTitle("Frequency [Hz]");
-  maps[0]->GetZaxis()->SetTitle("SNR");
-  maps[0]->GetXaxis()->SetLabelSize(0.045);
-  maps[0]->GetYaxis()->SetLabelSize(0.045);
-  maps[0]->GetZaxis()->SetLabelSize(0.045);
-  maps[0]->GetXaxis()->SetTitleSize(0.045);
-  maps[0]->GetYaxis()->SetTitleSize(0.045);
-  maps[0]->GetZaxis()->SetTitleSize(0.045);
-  maps[0]->GetZaxis()->SetRangeUser(1,50);
-  
-  /*
-  cout<<"\n--- Otile::PrintInfo ---"<<endl;
-  cout<<" Time Range: "<<fTimeRange<<endl;
-  cout<<" Q range: "<<fQMin<<" - "<<fQMax<<endl;
-  cout<<" Frequency range: "<<fFrequencyMin<<" - "<<fFrequencyMax<<endl;
-  cout<<" Sampling frequency: "<<fSampleFrequency<<endl;
-  cout<<" Fractional energy loss due to mismatch: "<<fMaximumMismatch<<endl;
-  cout<<" Mismatch step between tiles: "<<fMismatchStep<<endl;
-  cout<<" Number of Q planes: "<<fQs.size()<<endl;
-  cout<<" Total number of tiles: "<<fNumberOfTiles<<endl<<endl;
-  */
-  /*
-  if(aVerbosity){
-    for(int q=0; q<(int)fQs.size(); q++){
-      cout<<"Otile::Otile: plane #"<<q<<endl;
-      if(aVerbosity>1) qplanes[q]->PrintParameters();
-    }
-  }
-  */
+  tilemap->GetXaxis()->SetTitle("Time [s]");
+  tilemap->GetYaxis()->SetTitle("Frequency [Hz]");
+  tilemap->GetZaxis()->SetTitle("SNR");
+  tilemap->GetXaxis()->SetLabelSize(0.045);
+  tilemap->GetYaxis()->SetLabelSize(0.045);
+  tilemap->GetZaxis()->SetLabelSize(0.045);
+  tilemap->GetXaxis()->SetTitleSize(0.045);
+  tilemap->GetYaxis()->SetTitleSize(0.045);
+  tilemap->GetZaxis()->SetTitleSize(0.045);
+  tilemap->GetZaxis()->SetRangeUser(1,50);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 Otile::~Otile(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
-  Qs.clear();
-  for(int p=0; p<(int)Qs.size(); p++) delete qplanes[p];
+  for(int p=0; p<nq; p++) delete qplanes[p];
   delete qplanes;
-  delete maps[0];
-  delete maps;
+  delete tilemap;
 }
  
 ////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +99,7 @@ bool Otile::SetPower(Spectrum *aSpec){
     cerr<<"Otile::SetPower: the Spectrum object is corrupted"<<endl;
     return false;
   }
-  for(int p=0; p<(int)Qs.size(); p++){
+  for(int p=0; p<nq; p++){
     if(!qplanes[p]->SetPower(aSpec)){
       cerr<<"Otile::SetPower: cannot set power for plane #"<<p<<endl;
       return false;
@@ -131,13 +112,13 @@ bool Otile::SetPower(Spectrum *aSpec){
 bool Otile::ProjectData(double *aDataRe, double *aDataIm){
 ////////////////////////////////////////////////////////////////////////////////////
   // project onto q planes
-  for(int p=0; p<(int)Qs.size(); p++){
+  for(int p=0; p<nq; p++){
     if(!qplanes[p]->ProjectData(aDataRe, aDataIm)){
       cerr<<"Otile::ProjectData: cannot project data onto plane #"<<p<<endl;
       return false;
     }
   }
-  MakeTiling();
+  //MakeTiling();
   return true;
 }
 
@@ -154,7 +135,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const in
   }
 
   // save triggers for each Q plane
-  for(int p=0; p<(int)Qs.size(); p++){
+  for(int p=0; p<nq; p++){
     if(!qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0)) return false;// max triggers
   }
 
@@ -197,26 +178,24 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
   
   // save maps for each Q plane
   int xmax, ymax, zmax;
-  for(int q=0; q<=(int)Qs.size(); q++){
+  for(int q=0; q<nq; q++){
     if(fVerbosity>1) cout<<"\t- map Q"<<q<<endl;
     
     // write root
     if(aFormat.find("root")!=string::npos){
       froot->cd();
-      maps[q]->Write();
+      qplanes[q]->Write();
     }
       
     if(form.size()){
       // draw map
       if(fVerbosity>1) cout<<"\t\t- Draw map"<<endl;
-      maps[q]->GetXaxis()->SetRange(-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)aWindows[(int)aWindows.size()-1]/2.0);
-      Draw(maps[q],"COLZ");
-      SetLogx(0); SetLogy(1); SetLogz(1);
+      qplanes[q]->GetXaxis()->SetRange(-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)aWindows[(int)aWindows.size()-1]/2.0);
+      Draw(qplanes[q],"COLZ");
       
       // title
-      if(q) tmpstream<<aName<<": GPS="<<aT0<<", Q="<<fixed<<setprecision(3)<<Qs[q-1];
-      else tmpstream<<aName<<": GPS="<<aT0;
-      maps[q]->SetTitle(tmpstream.str().c_str());
+      tmpstream<<aName<<": GPS="<<aT0<<", Q="<<fixed<<setprecision(3)<<qplanes[q]->GetQ();
+      qplanes[q]->SetTitle(tmpstream.str().c_str());
       tmpstream.clear(); tmpstream.str("");
       
       // loop over time windows
@@ -224,11 +203,11 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
       for(int w=0; w<(int)aWindows.size(); w++){
 	
 	// zoom in
-	maps[q]->GetXaxis()->SetRangeUser(-(double)aWindows[w]/2.0,(double)aWindows[w]/2.0);
+	qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[w]/2.0,(double)aWindows[w]/2.0);
 	
 	// loudest tile
-	maps[q]->GetMaximumBin(xmax, ymax, zmax);
-	tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)aT0+maps[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<maps[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<maps[q]->GetBinContent(xmax,ymax);
+	qplanes[q]->GetMaximumBin(xmax, ymax, zmax);
+	tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)aT0+qplanes[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<qplanes[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<qplanes[q]->GetBinContent(xmax,ymax);
 	AddText(tmpstream.str(), 0.01,0.01,0.03);
 	tmpstream.clear(); tmpstream.str("");
 	
@@ -241,7 +220,7 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
       }
       
       // unzoom
-      maps[q]->GetXaxis()->UnZoom();
+      qplanes[q]->GetXaxis()->UnZoom();
     }
 
   }
@@ -253,14 +232,36 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Otile::GetQ(const int qindex){
+double Otile::GetQ(const int aQindex){
 ////////////////////////////////////////////////////////////////////////////////////  
-  if(qindex<0||qindex>=(int)Qs.size()){
-    cerr<<"Otile::GetQ: this q index is not allowed"<<endl;
+  if(aQindex<0||aQindex>=nq){
+    cerr<<"Otile::GetQ: the Q-plane #"<<aQindex<<" does not exist"<<endl;
     return -1.0;
   }
+  return qplanes[aQindex]->GetQ();
+}
 
-  return Qs[qindex];
+////////////////////////////////////////////////////////////////////////////////////
+bool Otile::DisplayTiling(const int aQindex){
+////////////////////////////////////////////////////////////////////////////////////  
+  if(aQindex<0||aQindex>=nq){
+    cerr<<"Otile::DisplayTiling: the Q-plane #"<<aQindex<<" does not exist"<<endl;
+    return false;
+  }
+  qplanes[aQindex]->SetTileDisplay();
+  Draw(qplanes[aQindex],"COL");
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Otile::DrawPlane(const int aQindex){
+////////////////////////////////////////////////////////////////////////////////////  
+  if(aQindex<0||aQindex>=nq){
+    cerr<<"Otile::DrawPlane: the Q-plane #"<<aQindex<<" does not exist"<<endl;
+    return false;
+  }
+  Draw(qplanes[aQindex],"COLZ");
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -280,7 +281,7 @@ vector <double> Otile::ComputeQs(const double aQMin, const double aQMax, const d
   return qs;
 }
 
-
+/*
 ////////////////////////////////////////////////////////////////////////////////////
 void Otile::MakeTiling(void){
 ////////////////////////////////////////////////////////////////////////////////////  
@@ -314,3 +315,4 @@ void Otile::SetTileContent(const double t1, const double f1, const double t2, co
       if(content>maps[0]->GetBinContent(t+1,f+1)) maps[0]->SetBinContent(t+1,f+1,content);
   return;
 }
+*/

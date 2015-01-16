@@ -8,7 +8,7 @@ ClassImp(Oqplane)
 ////////////////////////////////////////////////////////////////////////////////////
 Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRange, 
 		 const double aFrequencyMin, const double aFrequencyMax, 
-		 const double aMismatchStep){ 
+		 const double aMismatchStep): Omap(){ 
 ////////////////////////////////////////////////////////////////////////////////////
   
   // save parameters
@@ -47,69 +47,40 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // get plane normalization
   GetPlaneNormalization();
 
-  // frequency binning calculation
-  double FrequencyCumulativeMismatch = log(FrequencyMax/FrequencyMin) * sqrt(2.0 + Q*Q) / 2.0;
-  int Nf = (int)ceil(FrequencyCumulativeMismatch / MismatchStep);
-  if(Nf<=0.0) Nf = 1.0;
-  double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)Nf;
-  double *fbins = new double [Nf+1];
-  for(int f=0; f<=Nf; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
-
-  // time binning calculation (based on the highest frequency band)
-  double TimeCumulativeMismatch = (double)TimeRange * 2.0*TMath::Pi() * sqrt(fbins[Nf-1]*fbins[Nf]) / Q;
-  int Nt = NextPowerOfTwo(TimeCumulativeMismatch / MismatchStep);
-
   // Q plane definition
   ostringstream titlestream;
   titlestream<<"qplane_"<<setprecision(5)<<fixed<<Q;
-  qplane = new TH2D(titlestream.str().c_str(),titlestream.str().c_str(),
-		    Nt, -(double)TimeRange/2.0,+(double)TimeRange/2.0,
-		    Nf, fbins);
-  qplane->GetXaxis()->SetTitle("Time [s]");
-  qplane->GetYaxis()->SetTitle("Frequency [Hz]");
-  qplane->GetZaxis()->SetTitle("SNR");
-  qplane->GetXaxis()->SetLabelSize(0.045);
-  qplane->GetYaxis()->SetLabelSize(0.045);
-  qplane->GetZaxis()->SetLabelSize(0.045);
-  qplane->GetXaxis()->SetTitleSize(0.045);
-  qplane->GetYaxis()->SetTitleSize(0.045);
-  qplane->GetZaxis()->SetTitleSize(0.045);
-  qplane->GetZaxis()->SetRangeUser(1,50);
-  delete fbins;
+  SetName(titlestream.str().c_str());
+  SetTitle(titlestream.str().c_str());
+
+  // set binning
+  Omap::SetBins(Q,FrequencyMin,FrequencyMax,TimeRange,MismatchStep);
 
   // band variables
-  bandMultiple   = new int     [qplane->GetNbinsY()];
-  bandPower      = new double  [qplane->GetNbinsY()];
-  bandFFT        = new fft*    [qplane->GetNbinsY()];
-  bandWindow     = new double* [qplane->GetNbinsY()];
-  bandWindowFreq = new double* [qplane->GetNbinsY()];
-  bandWindowSize = new int     [qplane->GetNbinsY()];
+  bandPower      = new double  [GetNBands()];
+  bandFFT        = new fft*    [GetNBands()];
+  bandWindow     = new double* [GetNBands()];
+  bandWindowFreq = new double* [GetNBands()];
+  bandWindowSize = new int     [GetNBands()];
 
   double windowargument;
   double rownormalization;
   double ifftnormalization;
-  Ntiles=0;
 
   for(int f=0; f<GetNBands(); f++){
     
     // no power
     bandPower[f]=0.0;
-    
-    // find multiple
-    TimeCumulativeMismatch = (double)TimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / Q;
-    Nt = NextPowerOfTwo(TimeCumulativeMismatch / MismatchStep);
-    bandMultiple[f] = qplane->GetNbinsX() / Nt;
-    Ntiles+=Nt;
-        
+           
     // band fft
-    bandFFT[f] = new fft(Nt,"FFTW_ESTIMATE");
+    bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE");
 
     // Gaussian window
     bandWindowSize[f] = 2 * (int)floor(GetBandFrequency(f)/QPrime*TimeRange) + 1;
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
     rownormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));
-    ifftnormalization = (double)Nt / ((double)SampleFrequency*(double)TimeRange);
+    ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
     for(int i=0; i<bandWindowSize[f]; i++){
       bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * MinimumFrequencyStep;
       windowargument=bandWindowFreq[f][i]*QPrime/GetBandFrequency(f);
@@ -123,18 +94,16 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
 ////////////////////////////////////////////////////////////////////////////////////
 Oqplane::~Oqplane(void){
 ////////////////////////////////////////////////////////////////////////////////////
-  for(int f=0; f<qplane->GetNbinsY(); f++){
+  for(int f=0; f<GetNBands(); f++){
     delete bandFFT[f];
     delete bandWindow[f];
     delete bandWindowFreq[f];
   }
-  delete bandMultiple;
   delete bandWindowSize;
   delete bandFFT;
   delete bandPower;
   delete bandWindow;
   delete bandWindowFreq;
-  delete qplane;
 }
 
 
@@ -152,11 +121,11 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
     if(GetTileTime(tend,f)<(double)(GetTimeRange()/2.0-aRightTimePad)) tend++;// GWOLLUM convention
 
     for(int t=tstart; t<tend; t++){
-      if(GetTileSNR(t,f)<aSNRThr) continue;
+      if(GetTileContent(t,f)<aSNRThr) continue;
       tiletime=GetTileTime(t,f)+(double)aT0;
       if(!aTriggers->AddTrigger(tiletime,
 				GetBandFrequency(f),
-				GetTileSNR(t,f),
+				GetTileContent(t,f),
 				Q,
 				tiletime-GetTileDuration(f)/2.0,
 				tiletime+GetTileDuration(f)/2.0,
@@ -232,11 +201,12 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // make Gaussian threshold
     Thr=1e20;
     UpdateThreshold(f,energies,Thr);
+    //UpdateThreshold(f,energies,Thr);
     meanenergy=UpdateThreshold(f,energies,Thr);
     
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++)
-      SetTileSNR(t,f,sqrt(2.0*energies[t]/meanenergy));
+      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy));
 
     delete energies;
   }
@@ -293,15 +263,6 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Oqplane::SetTileSNR(const int aTimeTileIndex, const int aBandIndex, const double aSNR){
-////////////////////////////////////////////////////////////////////////////////////
-  int tstart = aTimeTileIndex * bandMultiple[aBandIndex];
-  int tend=tstart+bandMultiple[aBandIndex];
-  for(int t=tstart; t<tend; t++) qplane->SetBinContent(t+1,aBandIndex+1,aSNR);
-  return;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
 void Oqplane::GetPlaneNormalization(void){
 ////////////////////////////////////////////////////////////////////////////////////  
   double coefficients[9] = {0,-2,0,22.0/3.0,0,-146.0/15.0,0,186.0/35.0,0};
@@ -341,15 +302,7 @@ void Oqplane::PrintParameters(void){
   cout<<"\t- Frequency range           = "<<GetFrequencyMin()<<"-"<<GetFrequencyMax()<<" Hz"<<endl;
   cout<<"\t- Number of frequency rows  = "<<GetNBands()<<endl;
   cout<<"\t- Number of tiles           = "<<Ntiles<<endl;
-  cout<<"\t- Number of bins (internal) = "<<qplane->GetNbinsX()*GetNBands()<<endl;
+  cout<<"\t- Number of bins (internal) = "<<GetNbinsX()*GetNBands()<<endl;
   return;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-void Oqplane::SetTileDisplay(){
-  ////////////////////////////////////////////////////////////////////////////////////
-  for(int f=0; f<qplane->GetNbinsY(); f++)
-    for(int t=0; t<qplane->GetNbinsX(); t++)
-      qplane->SetBinContent(t+1,f+1,(t/bandMultiple[f])%2);
-  return;
-}

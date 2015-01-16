@@ -8,6 +8,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class Odata;
+#pragma link C++ class Omap;
 #pragma link C++ class Oqplane;
 #pragma link C++ class Otile;
 #pragma link C++ class Omicron;
