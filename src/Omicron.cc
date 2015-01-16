@@ -168,15 +168,10 @@ Omicron::Omicron(const string aOptionFile){
   
   // init tiles
   if(fVerbosity) cout<<"Omicron::Omicron: init Tile..."<<endl;
-  tile = new Otile(fSegmentDuration,fOverlapDuration/2,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fSNRThreshold,fVerbosity);
-  status_OK*=tile->GetStatus();
-
-  // init Qmaps
-  if(fVerbosity) cout<<"Omicron::Omicron: init Qmaps..."<<endl;
-  Qmap = new TH2D* [tile->GetNQPlanes()];
-  for(int q=0; q<tile->GetNQPlanes(); q++) Qmap[q]=NULL;
+  tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fVerbosity);
   
   // init full maps
+  /*
   Qmap_full = new TH2D* [(int)fWindows.size()];
   int nfbins; ostringstream tmpstream;
   if(fFreqRange[0]>=1) nfbins = (int)fabs(fFreqRange[1]-fFreqRange[0])+1;
@@ -199,6 +194,7 @@ Omicron::Omicron(const string aOptionFile){
   }
   delete f_bin;
   loudest_qmap = new int [(int)fWindows.size()];
+  */
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -227,10 +223,9 @@ Omicron::~Omicron(void){
   if(FFL!=NULL) delete FFL;
   delete dataseq;
   delete tile;
-  delete Qmap;
-  for(int w=0; w<(int)fWindows.size(); w++) delete Qmap_full[w];
-  delete Qmap_full;
-  delete loudest_qmap;
+  //for(int w=0; w<(int)fWindows.size(); w++) delete Qmap_full[w];
+  //delete Qmap_full;
+  //delete loudest_qmap;
   delete GPlot;
   delete ChunkVect;
   delete SegVect;
@@ -480,16 +475,16 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- make spectrum..."<<endl;
   if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*fSampleFrequency, ChunkVect)) return 5;
 
-  // set new power for this chunk
-  if(fVerbosity>1) cout<<"\t- normalize tiling..."<<endl;
-  if(!tile->SetPowerSpectrum(spectrum)) return 6;
+  // connect spectrum to tiling
+  if(fVerbosity>1) cout<<"\t- connect spectrum to tiling..."<<endl;
+  if(!tile->SetPower(spectrum)) return 6;
 
   chan_cond_ctr[chanindex]++;
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Project(void){
+bool Omicron::ProjectAndSave(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::Project: the Omicron object is corrupted"<<endl;
@@ -510,55 +505,55 @@ bool Omicron::Project(void){
     // whiten data
     if(!Whiten(&(dataRe[s]), &(dataIm[s]))) return false;
     
-
-
-    /////////////////////
-    //*** MAPS
-    if(fOutProducts.find("maps")!=string::npos) MakeMaps(s);
-
-    //*** TRIGGERS
-    if(fOutProducts.find("triggers")!=string::npos&&!triggers[chanindex]->GetMaxFlag()){
-      
-      if(tile->GetTriggers(triggers[chanindex],dataRe[s],dataIm[s],dataseq->GetSegmentTimeStart(s),dataseq->GetCurrentOverlapDuration()-fOverlapDuration))
-	triggers[chanindex]->AddSegment(dataseq->GetSegmentTimeStart(s)+dataseq->GetCurrentOverlapDuration()-fOverlapDuration/2,dataseq->GetSegmentTimeEnd(s)-fOverlapDuration/2);// add processed segment
+    // project data
+    if(!tile->ProjectData(dataRe[s], dataIm[s])){
+      delete dataRe[s];
+      delete dataIm[s];
+      return false;
     }
-  
+
+    // save triggers
+    if(fOutProducts.find("triggers")!=string::npos){
+      if(!triggers[chanindex]->GetMaxFlag()){
+	tile->SaveTriggers(triggers[chanindex],
+			   fSNRThreshold,
+			   dataseq->GetCurrentOverlapDuration()-dataseq->GetOverlapDuration()/2,
+			   dataseq->GetOverlapDuration()/2,
+			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
+      }
+    }
+
+    // save maps
+    if(fOutProducts.find("maps")!=string::npos){
+      tile->SaveMaps(fOutdir[chanindex],
+		     fChannels[chanindex],
+		     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+		     fOutFormat,fWindows);
+    }
+
     delete dataRe[s];
     delete dataIm[s];
-  } 
-
-  //if(!triggers[chanindex]->SortTriggers()) return -3;
-
-  // clustering if any
-  //if(fClusterAlgo[0].compare("none")){
-  //if(!triggers[chanindex]->Clusterize(fClusterAlgo[0])) return -4;
-  // if(fVerbosity>1) cout<<"\t- "<<triggers[chanindex]->GetNClusters()<<" clusters were found"<<endl;
-  //}
-  
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::WriteOutput(void){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Omicron::WriteOutput: the Omicron object is corrupted"<<endl;
-    return false;
   }
 
-  if(fVerbosity) cout<<"Omicron::WriteOutput: write output..."<<endl;
-
-  //*** TRIGGERS
+  // write triggers
   if(fOutProducts.find("triggers")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- write triggers..."<<endl;
-
+    
     // don't save if max flag
     if(triggers[chanindex]->GetMaxFlag()){
-      cerr<<"Omicron::WriteOutput: the number of triggers is maxed-out ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+      cerr<<"Omicron::ProjectAndSave: the number of triggers is maxed-out, do not save chunk ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
       triggers[chanindex]->Reset();
     }
     else{      
-      // save triggers for this chunk
+
+      // sort triggers
+      triggers[chanindex]->SortTriggers();
+  
+      // clustering if any
+      if(fClusterAlgo[0].compare("none")){
+	triggers[chanindex]->Clusterize(fClusterAlgo[0]);
+      }
+
+      // write triggers on disk
       if(triggers[chanindex]->Write(fWriteMode).compare("none")){
 	chan_wtrig_ctr[chanindex]++;
 	outSegments[chanindex]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);// FIXME: what about maps?
@@ -566,15 +561,6 @@ bool Omicron::WriteOutput(void){
     }
   }
   
-  //*** MAPS
-  if(fOutProducts.find("maps")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- write ASD..."<<endl;
-    if(!WriteMaps()){
-      cerr<<"Omicron::WriteOutput: the maps cannot be saved ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
-    }
-    else chan_wmaps_ctr[chanindex]++;
-  }
-
   //*** ASD
   if(fOutProducts.find("asd")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write ASD..."<<endl;

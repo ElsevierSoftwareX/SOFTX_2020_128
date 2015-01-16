@@ -6,25 +6,35 @@
 ClassImp(Oqplane)
 
 ////////////////////////////////////////////////////////////////////////////////////
-Oqplane::Oqplane(const double aQ, const int aSampleFrequency,
-		 const int aTimeRange, 
+Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRange, 
 		 const double aFrequencyMin, const double aFrequencyMax, 
 		 const double aMismatchStep){ 
 ////////////////////////////////////////////////////////////////////////////////////
   
   // save parameters
-  Q=fabs(aQ);
-  SampleFrequency     =fabs(aSampleFrequency);
-  double FrequencyMin =fabs(aFrequencyMin);
-  double FrequencyMax =fabs(aFrequencyMax);
-  MismatchStep        =fabs(aMismatchStep);
+  Q=aQ;
+  int TimeRange          =aTimeRange;
+  int SampleFrequency    =aSampleFrequency;
+  double FrequencyMin    =aFrequencyMin;
+  double FrequencyMax    =aFrequencyMax;
+  double MismatchStep    =aMismatchStep;
   
+  // adjust time range
+  if(TimeRange<4){
+    cerr<<"Oqplane::Oqplane: the time range must be at least 4s --> set to 4s"<<endl;
+    TimeRange=4;
+  }
+  if(!IsPowerOfTwo(TimeRange)){
+    TimeRange=NextPowerOfTwo(TimeRange);
+    cerr<<"Oqplane::Oqplane: the time range must be a power of 2 --> set to "<<TimeRange<<"s"<<endl;
+  }
+
   // derived parameters
-  QPrime                           = Q / sqrt(11);
-  double NyquistFrequency          = SampleFrequency / 2;
-  double MinimumAllowableFrequency = 50 * Q / (2 * TMath::Pi() * aTimeRange);
-  double MaximumAllowableFrequency = NyquistFrequency/(1 + sqrt(11) / Q);
-  double MinimumFrequencyStep      = 1 / (double)aTimeRange;
+  QPrime                           = Q / sqrt(11.0);
+  int NyquistFrequency             = SampleFrequency/2;
+  double MinimumAllowableFrequency = 50.0 * Q / (2.0 * TMath::Pi() * (double)TimeRange);
+  double MaximumAllowableFrequency = (double)NyquistFrequency/(1.0 + sqrt(11.0) / Q);
+  double MinimumFrequencyStep      = 1.0 / (double)TimeRange;
  
   // adjust frequency range
   if(FrequencyMin<MinimumAllowableFrequency) FrequencyMin = MinimumAllowableFrequency;
@@ -36,7 +46,6 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency,
 
   // get plane normalization
   GetPlaneNormalization();
-  Ntiles=0;
 
   // frequency binning calculation
   double FrequencyCumulativeMismatch = log(FrequencyMax/FrequencyMin) * sqrt(2.0 + Q*Q) / 2.0;
@@ -44,26 +53,30 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency,
   if(Nf<=0.0) Nf = 1.0;
   double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)Nf;
   double *fbins = new double [Nf+1];
-  fbins[0]=FrequencyMin;
-  for(int f=1; f<=Nf; f++)
-    fbins[f] = 2.0*floor((FrequencyMin * exp( (0.5+(double)f-1) * FrequencyLogStep )/MinimumFrequencyStep+0.5))*MinimumFrequencyStep-fbins[f-1];
-   
+  for(int f=0; f<=Nf; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
+
   // time binning calculation (based on the highest frequency band)
-  double TimeCumulativeMismatch = (double)aTimeRange * 2.0 * TMath::Pi() * (fbins[Nf-1]+fbins[Nf])/2.0 / Q;
+  double TimeCumulativeMismatch = (double)TimeRange * 2.0*TMath::Pi() * sqrt(fbins[Nf-1]*fbins[Nf]) / Q;
   int Nt = NextPowerOfTwo(TimeCumulativeMismatch / MismatchStep);
-  //double TimeMismatchStep = TimeCumulativeMismatch / (double)Nt;
-  //double TimeStep = fQ*TimeMismatchStep/2.0/TMath::Pi()/fc;
 
   // Q plane definition
   ostringstream titlestream;
   titlestream<<"qplane_"<<setprecision(5)<<fixed<<Q;
   qplane = new TH2D(titlestream.str().c_str(),titlestream.str().c_str(),
-		    Nt, -(double)aTimeRange/2.0,+(double)aTimeRange/2.0,
+		    Nt, -(double)TimeRange/2.0,+(double)TimeRange/2.0,
 		    Nf, fbins);
   qplane->GetXaxis()->SetTitle("Time [s]");
   qplane->GetYaxis()->SetTitle("Frequency [Hz]");
+  qplane->GetZaxis()->SetTitle("SNR");
+  qplane->GetXaxis()->SetLabelSize(0.045);
+  qplane->GetYaxis()->SetLabelSize(0.045);
+  qplane->GetZaxis()->SetLabelSize(0.045);
+  qplane->GetXaxis()->SetTitleSize(0.045);
+  qplane->GetYaxis()->SetTitleSize(0.045);
+  qplane->GetZaxis()->SetTitleSize(0.045);
+  qplane->GetZaxis()->SetRangeUser(1,50);
   delete fbins;
-  
+
   // band variables
   bandMultiple   = new int     [qplane->GetNbinsY()];
   bandPower      = new double  [qplane->GetNbinsY()];
@@ -75,6 +88,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency,
   double windowargument;
   double rownormalization;
   double ifftnormalization;
+  Ntiles=0;
 
   for(int f=0; f<GetNBands(); f++){
     
@@ -82,41 +96,26 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency,
     bandPower[f]=0.0;
     
     // find multiple
-    TimeCumulativeMismatch = (double)aTimeRange * 2.0 * TMath::Pi() * GetBandFrequency(f) / Q;
+    TimeCumulativeMismatch = (double)TimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / Q;
     Nt = NextPowerOfTwo(TimeCumulativeMismatch / MismatchStep);
-    bandMultiple[f] = qplane->GetNbinsX() / (double)Nt;
+    bandMultiple[f] = qplane->GetNbinsX() / Nt;
     Ntiles+=Nt;
         
     // band fft
     bandFFT[f] = new fft(Nt,"FFTW_ESTIMATE");
 
     // Gaussian window
-    bandWindowSize[f] = 2 * (int)floor(GetBandFrequency(f)/QPrime*aTimeRange) + 1;
+    bandWindowSize[f] = 2 * (int)floor(GetBandFrequency(f)/QPrime*TimeRange) + 1;
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
     rownormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));
-    ifftnormalization = (double)Nt / ((double)SampleFrequency*(double)aTimeRange);
+    ifftnormalization = (double)Nt / ((double)SampleFrequency*(double)TimeRange);
     for(int i=0; i<bandWindowSize[f]; i++){
       bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * MinimumFrequencyStep;
       windowargument=bandWindowFreq[f][i]*QPrime/GetBandFrequency(f);
       bandWindow[f][i] = rownormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);
       bandWindowFreq[f][i]+=GetBandFrequency(f);
     }
-
-    //int HalfWindowLength = (int)floor(GetBandFrequency(f)/QPrime/MinimumFrequencyStep);
-    //int WindowS     = 2 * HalfWindowLength + 1;
-    /*    
-    double RowNormalization = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));
-    double IfftNormalization = (double)GetBandNtiles / ((double)fSampleFrequency*(double)aTimeRange);
-    for(int i=0; i<WindowLength; i++){
-      WindowFrequency=(double)(-HalfWindowLength + i) * MinimumFrequencyStep;
-      fWindowFrequency.push_back(GetBandFrequency(f)+WindowFrequency);
-      windowargument=WindowFrequency*QPrime/GetBandFrequency(f);
-      fWindow.push_back(RowNormalization*IfftNormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument));
-      fDataIndices.push_back((int)floor(1.5 + GetBandFrequency(f) / fMinimumFrequencyStep - (double)HalfWindowLength + (double)i));
-    }
-    fZeroPadLength = Nt - fWindowLength;
-    */
   }
   
 }
@@ -130,6 +129,7 @@ Oqplane::~Oqplane(void){
     delete bandWindowFreq[f];
   }
   delete bandMultiple;
+  delete bandWindowSize;
   delete bandFFT;
   delete bandPower;
   delete bandWindow;
@@ -138,44 +138,68 @@ Oqplane::~Oqplane(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SetTileContent(const int aTimeTileIndex, const int aFrequencyTileIndex, const double aContent){
+void Oqplane::SetTileSNR(const int aTimeTileIndex, const int aBandIndex, const double aSNR){
 ////////////////////////////////////////////////////////////////////////////////////
-  int tstart = aTimeTileIndex * bandMultiple[aFrequencyTileIndex];
+  int tstart = aTimeTileIndex * bandMultiple[aBandIndex];
   int t=tstart;
-  while(t/bandMultiple[aFrequencyTileIndex]==tstart/bandMultiple[aFrequencyTileIndex]){
-    qplane->SetBinContent(t+1,aFrequencyTileIndex+1,aContent);
+  while(t/bandMultiple[aBandIndex]==tstart/bandMultiple[aBandIndex]){
+    qplane->SetBinContent(t+1,aBandIndex+1,aSNR);
     t++;
   }
-
-  return true;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SetTileContent(const double aTime, const double aFrequency, const double aContent){
+void Oqplane::SetTileSNR(const double aTime, const double aFrequency, const double aSNR){
 ////////////////////////////////////////////////////////////////////////////////////
-  
   int t = (int)(aTime-(qplane->GetXaxis()->GetXmax())/qplane->GetXaxis()->GetBinWidth(1));
   int f = qplane->GetYaxis()->FindFixBin(aFrequency)-1;// FIXME: find a direct computation!
   int tstart = (t/bandMultiple[f]) * bandMultiple[f];
   t=tstart;
   while(t/bandMultiple[f] == tstart/bandMultiple[f]){
-    qplane->SetBinContent(t+1,f+1,aContent);
+    qplane->SetBinContent(t+1,f+1,aSNR);
     t++;
   }
-
-  return true;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 void Oqplane::PrintParameters(void){
 ////////////////////////////////////////////////////////////////////////////////////
-  cout<<"\t- Q = "<<Q<<endl;
-  cout<<"\t- Time range = "<<qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin()<<" s"<<endl;
-  cout<<"\t- Frequency range = "<<qplane->GetYaxis()->GetXmin()<<"-"<<qplane->GetYaxis()->GetXmax()<<" Hz"<<endl;
-  cout<<"\t- Number of frequency rows = "<<qplane->GetNbinsY()<<endl;
-  cout<<"\t- Number of tiles = "<<Ntiles<<endl;
-  cout<<"\t- Number of bins = "<<qplane->GetNbinsX()*qplane->GetNbinsY()<<endl;
+  cout<<"\t- Q                         = "<<Q<<endl;
+  cout<<"\t- Time range                = "<<qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin()<<" s"<<endl;
+  cout<<"\t- Frequency range           = "<<qplane->GetYaxis()->GetXmin()<<"-"<<qplane->GetYaxis()->GetXmax()<<" Hz"<<endl;
+  cout<<"\t- Number of frequency rows  = "<<qplane->GetNbinsY()<<endl;
+  cout<<"\t- Number of tiles           = "<<Ntiles<<endl;
+  cout<<"\t- Number of bins (internal) = "<<qplane->GetNbinsX()*qplane->GetNbinsY()<<endl;
   return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad, const int aRightTimePad, const int aT0){
+////////////////////////////////////////////////////////////////////////////////////
+  double tiletime;
+  for(int f=0; f<GetNBands(); f++){
+    for(int t=0; t<GetBandNtiles(f); t++){
+      tiletime=GetTileTime(t,f);
+      if(tiletime-GetTileWidth(t,f)/2.0<(double)(aLeftTimePad-GetTimeRange()/2)) continue;
+      if(tiletime>(double)(GetTimeRange()/2.0-aRightTimePad)) break;
+      if(GetTileSNR(t,f)<aSNRThr) continue;
+      if(!aTriggers->AddTrigger(tiletime+(double)aT0,
+				GetBandFrequency(f),
+				GetTileSNR(t,f),
+				Q,
+				tiletime+(double)aT0-GetTileWidth(t,f)/2.0,
+				tiletime+(double)aT0+GetTileWidth(t,f)/2.0,
+				GetBandFrequency(f)-GetBandWidth(f)/2.0,
+				GetBandFrequency(f)+GetBandWidth(f)/2.0,
+				GetTileAmplitude(t,f))
+	 ) return false; // max triggers
+    }
+  }
+
+  // for trigger segments see Otile::SaveTriggers()
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -238,91 +262,47 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     energies = bandFFT[f]->GetNorm2();
 
     // make threshold to exclude outliers
-    Thr=0;
+    Thr=1e20;
     UpdateThreshold(f,energies,Thr);
     meanenergy=UpdateThreshold(f,energies,Thr);
     
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy));// SNR
+      SetTileSNR(t,f,sqrt(2.0*energies[t]/meanenergy));// SNR
     }
     delete energies;
     
   }
  
-  /*
-  
-  
-  // mean energy without outliers
-  MeanEnergy=0;
-  numberofvalidtiles=0;
-  for(int t=0; t<fNumberOfTiles; t++){
-    ValidIndices[t]=true;
-        
-    // edge selection (GWOLLUM conventions)
-    if(fTime[t]-fDuration/2.0<(double)fTimePad){ ValidIndices[t]=false; continue; }
-    if(fTime[t]>(double)(fTimeRange-fTimePad)) { ValidIndices[t]=false; continue; }
-    if(energies[t]>Thr){ continue; }
-
-    MeanEnergy+=energies[t];    
-    numberofvalidtiles++;
-  }
-  //MeanEnergy/=(numberofvalidtiles*1.00270710469359381);//correct gaussian bias 3sigma
-  MeanEnergy/=((double)numberofvalidtiles/0.954499736104);//correct gaussian bias 2sigma
-  
-  // get energies
-  for(int t=0; t<fNumberOfTiles; t++){
-    if(!ValidIndices[t]) continue;
-    energies[t]=sqrt(2.0*energies[t]/MeanEnergy);// energies is now SNRs
-  }
-
-  */
   return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////
 double Oqplane::UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold){
-  
+////////////////////////////////////////////////////////////////////////////////////
+  //cout<<aThreshold<<endl;
   double MeanEnergy=0, RMSEnergy=0;
   int numberofvalidtiles=0;
   for(int t=0; t<GetBandNtiles(aBandIndex); t++){
       
-    // edge selection (GWOLLUM conventions)
-    //if(fTime[t]-fDuration/2.0<(double)fTimePad) continue;
-    //if(fTime[t]>(double)(fTimeRange-fTimePad)) continue;
+    if(GetTileTime(t,aBandIndex)<-GetTimeRange()/4.0) continue;
+    if(GetTileTime(t,aBandIndex)>GetTimeRange()/4.0) break;
     if(aEnergies[t]>aThreshold) continue;
-      
     MeanEnergy+=aEnergies[t];    
     RMSEnergy+=aEnergies[t]*aEnergies[t];    
     numberofvalidtiles++;
   }
-  MeanEnergy/=(double)numberofvalidtiles;
-  RMSEnergy/=(double)numberofvalidtiles;
-  RMSEnergy-=(MeanEnergy*MeanEnergy);
-  RMSEnergy=sqrt(fabs(RMSEnergy));
-  aThreshold = MeanEnergy + 2.0 * RMSEnergy;// 2-sigma threshold
+  if(numberofvalidtiles){
+    MeanEnergy/=(double)numberofvalidtiles;
+    RMSEnergy/=(double)numberofvalidtiles;
+    RMSEnergy-=(MeanEnergy*MeanEnergy);
+    RMSEnergy=sqrt(fabs(RMSEnergy));
+    aThreshold = MeanEnergy + 2.0 * RMSEnergy;// 2-sigma threshold
+    MeanEnergy/=0.954499736104;//correct gaussian bias 2sigma
+  }
 
-  //MeanEnergy/=(numberofvalidtiles*1.00270710469359381);//correct gaussian bias 3sigma
-  MeanEnergy/=((double)numberofvalidtiles/0.954499736104);//correct gaussian bias 2sigma
   return MeanEnergy;
 }
-
-/*
-////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK){
-    cerr<<"Oqplane::GetTriggers: the Oqplane object is corrupted"<<endl;
-    return false;
-  }
-  for(int f=0; f<fNumberOfRows; f++){
-    if(!freqrow[f]->GetTriggers(aTriggers,aDataRe,aDataIm,aTimeStart,aExtraTimePadMin)){
-      cerr<<"Oqplane::GetTriggers: the frequency row "<<f<<" has failed to produce triggers"<<endl;
-      return false;
-    }
-  }
-  return true;
-}
-*/
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Oqplane::SetPower(Spectrum *aSpec){

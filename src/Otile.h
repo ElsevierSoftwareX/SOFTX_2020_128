@@ -66,6 +66,10 @@ class Otile: public GwollumPlot {
    */
   bool SetPower(Spectrum *aSpec);
 
+  bool ProjectData(double *aDataRe, double *aDataIm);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad=0, const int aRightTimePad=0, const int aT0=0);
+  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows);
+
   /**
    * Saves triggers above SNR threshold.
    * A complex data vector is projected onto all Q-planes. The tiles are populated with the SNR values. A trigger is defined as a tile with a SNR value above the threshold defined in Otile(). This trigger is added to the Triggers object with the <a href="../../Main/convention.html#triggers">GWOLLUM convention</a> with the following parameters:
@@ -113,14 +117,9 @@ class Otile: public GwollumPlot {
   double GetQ(const int qindex);
 
   /**
-   * Returns class status.
-   */
-  inline bool GetStatus(void){ return status_OK; };
-
-  /**
    * Returns the number of Q planes
    */
-  inline int GetNQPlanes(void){ return (int)fQs.size(); };
+  inline int GetNQPlanes(void){ return (int)Qs.size(); };
 
   /**
    * Returns a given Q plane.
@@ -141,38 +140,19 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
-  /**
-   * Prints detailed parameters of tiling structure.
-   */
-  void PrintInfo(void);
+  inline double GetTimeRange(void) { return maps[0]->GetXaxis()->GetXmax()-maps[0]->GetXaxis()->GetXmin(); };
+
 
  private:
 
-  // STATUS
-  bool status_OK;              ///< class status
   int fVerbosity;              ///< verbosity level
+  TH2D **maps;                 ///< maps
+  vector <double> Qs;          ///< vector of Qs
+  Oqplane **qplanes;           ///< Q planes
 
-  // PARAMETERS
-  int fTimeRange;              ///< duration of analysis [s]
-  int fTimePad;                ///< time pad [s]
-  double fQMin,                ///< Q min
-    fQMax;                     ///< Q max
-  double fFrequencyMin,        ///< frequency min [Hz]
-    fFrequencyMax;             ///< frequency max [Hz]
-  int fSampleFrequency;        ///< sampling frequency [Hz]
-  double fSNRThreshold;        ///< SNR Threshold
-  double fMaximumMismatch;     ///< fractional loss in squared signal energy due to mismatch
-
-  // DERIVED PARAMETERS
-  double fMismatchStep;        ///< maximum mismatch between neighboring tiles
-
-  // Q-PLANES
-  Oqplane **qplanes;///< q-plane objects
-  vector <double> fQs;         ///< vector of Qs
-  int fNumberOfTiles;          ///< total number of tiles (all Q-planes)
-  
-  bool CheckParameters(void);  ///< check the validity of the parameters
-  
+  void MakeTiling(void);       /// fill tiling from Q planes
+  void SetTileContent(const double t1, const double f1, const double t2, const double f2, const double content);
+    
   ClassDef(Otile,0)  
 };
 

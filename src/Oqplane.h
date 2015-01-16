@@ -12,86 +12,72 @@
 using namespace std;
 
 /**
- * Create a frequency row in a time-frequency Q-plane.
- * This class was designed to create and use a frequency row defined by a central frequency and a Q value to build time-frequency Q-planes. This class is private and can only be used by the Oqplane class.
- *
- * \author    Florent Robinet
- */
-/*
-class FreqRow {
-
- public:
-  friend class Oqplane;  ///< friendly class
-  
- private:
-  
-  FreqRow(const int aTimeRange, 
-	  const int aTimePad, 
-	  const int aSampleFrequency, 
-	  const double aF, 
-	  const double aQ, 
-	  const double aMismatchStep, 
-	  const double aSNRThreshold);
-  virtual ~FreqRow(void);
-
-  double* GetSNRs(double *aDataRe, double *aDataIm);// Get SNRs in FD
-  bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aStartTime, const int aExtraTimePadMin=0);
-  inline void SetPower(const double aPower){ fPower=aPower; };
-  
-  // PARAMETERS
-  double fF;                ///< central frequency [Hz]
-  double fQ;                ///< Q of the plane
-  int fTimeRange;           ///< duration of analysis [s]
-  int fTimePad;             ///< time pad [s]
-  int fSampleFrequency;     ///< sample frequency of input data [Hz]
-  double fMismatchStep;     ///< maximum mismatch between neighboring tile
-  double fSNRThreshold;     ///< SNR Threshold
-
-  // DERIVED PARAMETERS
-  double fBandWidth;        ///< f-row tile bandwidth
-  double fDuration;         ///< f-row tile duration
-
-  // F-ROW
-  vector <double> fTime;    ///< vector of central times
-  int fNumberOfTiles;       ///< number of time tiles
-  bool *ValidIndices;       ///< energy indices to keep
-  double fPower;            ///< power of the f-row
-
-  // Q-TRANSFORM
-  vector <double> fWindow;  ///< bi square window function
-  vector <double> fWindowFrequency; ///< window frequencies
-  vector <int> fDataIndices;///< vector of data indices to inverse fourier transform
-  int fZeroPadLength;       ///< number of zeros to append to windowed data
-  fft *offt;                ///< row fft
-};
-
-*/
-/**
  * Create a time-frequency Q-plane.
- * This class was designed to create and use a time-frequency Q-plane defined by a Q value. This class is private and can only be used by the Otile class.
+ * This class was designed to create and use a time-frequency Q-plane defined by a Q value. This class is entirely private and can only be used through the Otile class.
  *
  * \author    Florent Robinet
  */
 class Oqplane {
 
  public:
-  friend class Otile;  ///< friendly class
+  friend class Otile;  ///< Friendly class
 
  private:
   
+  // constructor - destructor
   Oqplane(const double aQ, 
 	  const int aSampleFrequency, 
 	  const int aTimeRange, 
 	  const double aFrequencyMin, 
 	  const double aFrequencyMax, 
 	  const double aMismatchStep);
- 
   virtual ~Oqplane(void);
 
   bool ProjectData(double *aDataRe, double *aDataIm);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad=0, const int aRightTimePad=0, const int aT0=0);
+  inline TH2D* GetMap(void){ return qplane; };
 
-  bool SetTileContent(const int aTimeTileIndex, const int aFrequencyTileIndex, const double aContent);
-  bool SetTileContent(const double aTime, const double aFrequency, const double aContent);
+  // GETS
+  inline double GetTimeRange(void) { return qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin(); };
+  //inline const Double_t* GetBands(void) { return qplane->GetYaxis()->GetXbins()->GetArray(); };
+  inline int GetNBands(void) { return qplane->GetNbinsY(); };
+  inline int GetBandNtiles(const int aBandIndex) { return qplane->GetNbinsX()/bandMultiple[aBandIndex]; };
+
+  inline double GetTileSNR(const int aTimeTileIndex, const int aFrequencyTileIndex){    
+    return qplane->GetBinContent(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1,aFrequencyTileIndex+1);
+  };
+  inline double GetTileAmplitude(const int aTimeTileIndex, const int aFrequencyTileIndex){    
+    return GetTileSNR(aTimeTileIndex,aFrequencyTileIndex)*sqrt(bandPower[aFrequencyTileIndex]);
+  };
+  inline double GetTileTime(const int aTimeTileIndex, const int aFrequencyTileIndex){
+    return qplane->GetXaxis()->GetBinCenter(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  };
+  inline double GetTileTimeStart(const int aTimeTileIndex, const int aFrequencyTileIndex){
+    return qplane->GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  };
+  inline double GetTileTimeEnd(const int aTimeTileIndex, const int aFrequencyTileIndex){
+    return qplane->GetXaxis()->GetBinUpEdge(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1);
+  };
+  inline double GetTileWidth(const int aTimeTileIndex, const int aFrequencyTileIndex){
+    return qplane->GetXaxis()->GetBinWidth(aTimeTileIndex*bandMultiple[aFrequencyTileIndex]+1)*bandMultiple[aFrequencyTileIndex];
+  };
+  inline double GetBandFrequency(const int aBandIndex){ 
+    return qplane->GetYaxis()->GetBinCenterLog(aBandIndex+1);
+  };
+  inline double GetBandStart(const int aBandIndex){ 
+    return qplane->GetYaxis()->GetBinLowEdge(aBandIndex+1);
+  };
+  inline double GetBandEnd(const int aBandIndex){ 
+    return qplane->GetYaxis()->GetBinUpEdge(aBandIndex+1);
+  };
+  inline double GetBandWidth(const int aBandIndex){ 
+    return qplane->GetYaxis()->GetBinWidth(aBandIndex+1);
+  };
+  
+  // SETS
+  void SetTileSNR(const int aTimeTileIndex, const int aBandIndex, const double aSNR);
+  void SetTileSNR(const double aTime, const double aFrequency, const double aSNR);
+
   void PrintParameters(void); ///< print plane parameters
   double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
 
@@ -102,10 +88,6 @@ class Oqplane {
     return;
   }
 
-  inline int GetNBands(void) { return qplane->GetNbinsY(); };
-  inline int GetBandNtiles(const int aBandIndex) { return qplane->GetNbinsX()/bandMultiple[aBandIndex]; };
-  inline double GetBandFrequency(const int aBandIndex) { return qplane->GetYaxis()->GetBinCenter(aBandIndex+1); };
-  inline double GetTimeRange(void) { return qplane->GetXaxis()->GetXmax()-qplane->GetXaxis()->GetXmin(); };
 
     
   //bool GetTriggers(MakeTriggers *aTriggers, double *aDataRe, double *aDataIm, const int aTimeStart, const int aExtraTimePadMin=0);
@@ -114,9 +96,7 @@ class Oqplane {
   // PARAMETERS
   double Q;                         ///< Q value
   double QPrime;                    ///< Q prime = Q / sqrt(11)
-  double SampleFrequency;           ///< sampling frequency
-  double MismatchStep;              ///< maximum mismatch between neighboring tiles
-
+ 
   // Q-PLANE
   TH2D *qplane;                     ///< Q plane
   int Ntiles;                       ///< number of tiles in the plane

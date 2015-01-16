@@ -165,7 +165,7 @@ class Omicron {
    * Projects whitened data onto the tiles and fills output structures.
    * Instead of calling specific output functions, like ExtractTriggers() or MakeMaps(), this function automatically produce the data products requested to be saved to disk (see WriteOutput())
    */
-  bool Project(void);
+  bool ProjectAndSave(void);
   
   /**
    * Writes output to disk.
@@ -178,7 +178,7 @@ class Omicron {
    *
    * Note that this function writes the data product no matter if they were previously built or not (see  ExtractTriggers(), MakeMaps() or WriteOutput())
    */
-  bool WriteOutput(void);
+  //bool WriteOutput(void);
   
   /**
    * Projects conditioned data onto the tiles and fills the Triggers structure.
@@ -202,7 +202,7 @@ class Omicron {
    * @param aQ vector of Q values corresponding to each map
    * @param aQmap pointer to an array of Q-maps vor each Q values
    */
-  bool WriteMaps(const vector <double>& aQ = vector<double>(), TH2D **aQmap=NULL);
+  //bool WriteMaps(const vector <double>& aQ = vector<double>(), TH2D **aQmap=NULL);
 
   /**
    * To be documented.
@@ -214,7 +214,7 @@ class Omicron {
    * Create a html report for a scan.
    * @param aScanDir path to scan directory
    */
-  bool ScanReport(const string aScanDir="");
+  //bool ScanReport(const string aScanDir="");
 
 
   /**
@@ -253,7 +253,8 @@ class Omicron {
   inline int GetSampleFrequency(void){return fSampleFrequency;};
  
   /**
-   * Prints a message with a timer.
+   * Prints a formatted message with a timer.
+   * @param aMessage message to print
    */
   void PrintMessage(const string aMessage);
 
@@ -346,13 +347,15 @@ class Omicron {
   double **dataRe;              ///< conditioned data (Re)
   double **dataIm;              ///< conditioned data (Im)
 
+  // OUTPUT
+  void SaveTriggers(void);          ///< save triggers
+
   // SCANS
-  TH2D **Qmap;                  ///< set of Q-maps
-  TH2D **Qmap_full;             ///< combined Q-maps
-  int *loudest_qmap;            ///< Q-map containing the loudest tile
+  //TH2D **Qmap_full;             ///< combined Q-maps
+  //int *loudest_qmap;            ///< Q-map containing the loudest tile
   string fScandir;              ///< latest scan directory
-  bool MakeMaps(const int aNseg);
-  void MakeFullMaps(const int aNq, TH2D **aQmap);
+  //bool MakeMaps(const int aNseg);
+  //void MakeFullMaps(const int aNq, TH2D **aQmap);
 
   // MISC
   GwollumPlot *GPlot;           ///< Gwollum plots

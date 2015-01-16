@@ -138,7 +138,7 @@ int main (int argc, char* argv[]){
       if(!O->LoadData(&dvector,&dsize)) continue;
       
       // condition data vector
-      res=O->ConditionVector(dsize, dvector);
+      res=O->Condition(dsize, dvector);
       if(res<0){
 	delete dvector;
 	return 3;// fatal
@@ -149,17 +149,14 @@ int main (int argc, char* argv[]){
       }
       delete dvector;// not needed anymore
 
-      // build output
-      if(!O->MakeOutput()) continue;
-           
-      // save output on disk
-      if(!O->WriteOutput()) continue;
+      // project data
+      if(!O->ProjectAndSave()) continue;
     }
   }
     
   O->PrintMessage("Omicron processing is over");
 
-  O->ScanReport();
+  //O->ScanReport();
   O->PrintMessage("Omicron report is over");
 
   // prints summary
