@@ -143,7 +143,7 @@ class Otile: public GwollumPlot {
  private:
 
   int fVerbosity;              ///< verbosity level
-  TH2D *tilemap;               ///< maps: 0=combined, then individual Qplanes
+  Omap *tilemap;               ///< maps: 0=combined, then individual Qplanes
   Oqplane **qplanes;           ///< Q planes
   int nq;                      ///< number of q planes
 

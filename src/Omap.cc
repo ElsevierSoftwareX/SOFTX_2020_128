@@ -70,6 +70,33 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+void Omap::SetBins(const int aNf, const double aFrequencyMin, const double aFrequencyMax,
+		   const int aNt, const int aTimeRange){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // frequency bands
+  double FrequencyLogStep = log(aFrequencyMax/aFrequencyMin) / (double)aNf;
+  double *fbins = new double [aNf+1];
+  for(int f=0; f<=aNf; f++) fbins[f] = aFrequencyMin * exp((double)f*FrequencyLogStep);
+
+  // number of time bins
+  double *tbins = new double [aNt+1];
+  for(int t=0; t<=aNt; t++) tbins[t] = -(double)aTimeRange/2.0 + (double)t/(double)aNt*(double)aTimeRange;
+
+  // set binning
+  TH1::SetBins(aNt,tbins, aNf,fbins);
+  delete fbins;
+  delete tbins;
+
+  // band variables
+  delete bandMultiple;
+  bandMultiple   = new int [GetNBands()];
+  for(int f=0; f<GetNBands(); f++) bandMultiple[f] = 1;
+  Ntiles=GetNBands()*aNt;
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 void Omap::SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart = aTimeTileIndex * bandMultiple[aBandIndex];
@@ -84,5 +111,21 @@ void Omap::SetTileDisplay(){
   for(int f=0; f<GetNbinsY(); f++)
     for(int t=0; t<GetNbinsX(); t++)
       SetBinContent(t+1,f+1,50*((t/bandMultiple[f])%2));
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Omap::Intersect(Omap *aMap){
+////////////////////////////////////////////////////////////////////////////////////
+
+  for(int f=0; f<aMap->GetNBands(); f++){
+    
+    for(int t=0; t<aMap->GetBandNtiles(f); t++){
+      
+      
+
+    }
+  }
+
   return;
 }

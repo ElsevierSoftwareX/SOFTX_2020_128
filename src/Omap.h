@@ -31,6 +31,12 @@ class Omap: public TH2D {
   void SetBins(const double aQ, const double aFrequencyMin, const double aFrequencyMax,
 	       const int aTimeRange, const double aMismatchStep);
 
+  void SetBins(const int aNf, const double aFrequencyMin, const double aFrequencyMax,
+	       const int aNt, const int aTimeRange);
+
+  void Intersect(Omap *aMap);
+
+
  inline double GetTimeRange(void){ 
     return GetXaxis()->GetXmax()-GetXaxis()->GetXmin(); 
   };

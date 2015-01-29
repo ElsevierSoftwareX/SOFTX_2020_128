@@ -61,26 +61,11 @@ Otile::Otile(const int aTimeRange,
   FrequencyMin=qplanes[0]->GetFrequencyMin();
   FrequencyMax=qplanes[nq-1]->GetFrequencyMax();
 
-  // frequency binning
-  int nfbins = 1000;// FIXME
-  double *fbins = new double [nfbins+1];
-  for(int b=0; b<=nfbins; b++) fbins[b] = FrequencyMin * exp((double)b/(double)nfbins*log(FrequencyMax/FrequencyMin));
-
-  // create combined tiling
-  tilemap = new TH2D("Otiling","Otiling",
-		     qplanes[0]->GetBandNtiles(qplanes[0]->GetNBands()-1),-(double)TimeRange/2.0,(double)TimeRange/2.0,
-		     nfbins,fbins);
-  delete fbins;
-  tilemap->GetXaxis()->SetTitle("Time [s]");
-  tilemap->GetYaxis()->SetTitle("Frequency [Hz]");
-  tilemap->GetZaxis()->SetTitle("SNR");
-  tilemap->GetXaxis()->SetLabelSize(0.045);
-  tilemap->GetYaxis()->SetLabelSize(0.045);
-  tilemap->GetZaxis()->SetLabelSize(0.045);
-  tilemap->GetXaxis()->SetTitleSize(0.045);
-  tilemap->GetYaxis()->SetTitleSize(0.045);
-  tilemap->GetZaxis()->SetTitleSize(0.045);
-  tilemap->GetZaxis()->SetRangeUser(1,50);
+  // create combined tiling (FIXME)
+  tilemap = new Omap();
+  tilemap->SetName("Otiling");
+  tilemap->SetTitle("Otiling");
+  tilemap->SetBins(1000,FrequencyMin,FrequencyMax,qplanes[0]->GetBandNtiles(qplanes[0]->GetNBands()-1),TimeRange);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
