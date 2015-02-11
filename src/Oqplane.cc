@@ -122,7 +122,8 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
 
     // fill triggers
     for(int t=tstart; t<tend; t++){
-      if(GetTileContent(t,f)<aSNRThr) continue;
+      if(!GetTileTag(t,f)) continue; // apply down-tiling
+      if(GetTileContent(t,f)<aSNRThr) continue;// apply SNR threshold
       tiletime=GetTileTime(t,f)+(double)aT0;
       if(!aTriggers->AddTrigger(tiletime,
 				GetBandFrequency(f),
@@ -206,8 +207,10 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     meanenergy=UpdateThreshold(f,energies,Thr);
     
     // fill tile content
-    for(int t=0; t<GetBandNtiles(f); t++)
+    for(int t=0; t<GetBandNtiles(f); t++){
       SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy));
+      SetTileTag(t,f,1.0);
+    }
 
     delete energies;
   }

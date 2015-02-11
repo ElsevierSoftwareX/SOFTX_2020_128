@@ -38,10 +38,18 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, maps, injections, monitoring, etc.
+   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
-   * The Omicron class offers wrapping functions (see Process(), Scan(), ScanTriggers()) where every analysis steps are included. Omicron can also be used step-by-step for tailored applications (like a low-latency searches where data are provided sequentially when they are available).
+   * After initialization, the Omicron functions should be called sequentially to perform the analysis. Here is a typical sequence:
+   * - InitSegments() defines the data segments to process.
+   * - MakeDirectories() creates a specific directory tree for the output 
+(optional).
+   * - NewChunk() loads a new chunk of data (loop #1).
+   * - NewChannel() loads a new channel (loop #2).
+   * - LoadData() loads the data vector for this chunk and this channel from FFL file (in loop #1/2)
+   * - Condition() conditions data vector (in loop #1/2)
+   * - Project() projects data onto the tiles (in loop #1/2)
    * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
@@ -56,63 +64,29 @@ class Omicron {
 
 
   /**
-   * Runs the full trigger analysis of data segments.
-   * This function runs the Omicron algorithm over the data defined by the input segments. The data are segmented, conditioned, projected on the tiling structure and resulting triggers are saved on disk. This function calls the following sequence of Omicron functions:
-   * - InitSegments() to load the segments to process
-   * - MakeDirectories() to create the output directory structure
-   * - NewChunk() to walk through the chunks
-   * - NewChannel() to walk through the channels
-   * - LoadData() to load a data vector
-   * - ConditionVector() to condition the data vector
-   * - ExtractTriggers() to project data onto the tiles and fill the Triggers structure
-   * - WriteTriggers() to save triggers on disk
-   *
-   * This function is only available if a FFL structure has been previously declared.
-   * @param aSeg Segments to process.
-   */
-  //bool Process(Segments *aSeg);
-
-  /**
-   * Runs the full scan analysis of a GPS time.
-   * This function runs the Omicron algorithm over the data defined by a central time. The data are conditioned, projected on the tiling structure and resulting maps are saved on disk. This function calls the following sequence of Omicron functions:
-   * - InitSegments() to load the chunk to process
-   * - MakeDirectories() to create the output directory structure
-   * - NewChunk() to load the chunk
-   * - NewChannel() to walk through the channels
-   * - LoadData() to load a data vector
-   * - ConditionVector() to condition the data vector
-   * - MakeMaps() to project data onto the tiles and fill the maps
-   * - WriteMaps() to save maps on disk
-   *
-   * This function is only available if a FFL structure has been previously declared.
-   * @param aTimeCenter central time of the maps
-   */
-  //bool Scan(const double aTimeCenter);
-
-  /**
    * Initializes the segments to process.
-   * This function should always be called before any type of processing. This function can also be used to introduce a time offset (for the plots only!).
+   * This function should always be called before any type of processing. This function can also be used to introduce a time offset (for graphical plots only!).
    * 
    * WARNING: the input Segments object is not copied, only the pointer is used. This means that the Segments structure pointed by aSeg should not be modified or deleted before the end of the processing.
    * @param aSeg pointer to the input Segments structure
-   * @param aTimeOffset time offset to define a new time origin for the plots
+   * @param aTimeOffset time offset to define a new time origin for the graphical plots
    */
   bool InitSegments(Segments *aSeg, const double aTimeOffset=0.0);
 
   /**
-   * Modifies the output directory structure.
+   * Creates a specific directory tree for the output.
    * Two directory structures are possible:
-   * - [path_to_outdir]/aGPS/[channel_name] if aGPS is not 0
-   * - [path_to_outdir]/[channel_name] if aGPS is 0
+   * - [path_to_outdir]/aId/[channel_name] if aId is not 0
+   * - [path_to_outdir]/[channel_name] if aId is 0
    *
    * where [path_to_outdir] is the output directory specified by the user in the option file and [channel_name] is the channel name being processed.
    * 
    * The GPS value is rounded to the ms digit.
    *
    * If this function is never called, all the output is dumped in the output directory specified by the user in the option file.
-   * @param aGPS GPS time
+   * @param aId directory id
    */
-  bool MakeDirectories(const double aGPS = 0);
+  bool MakeDirectories(const int aId = 0);
 
   /**
    * Loads a new chunk.
@@ -124,29 +98,28 @@ class Omicron {
 
   /**
    * Loads a new channel.
-   * The channels defined in the option file are loaded incrementally. If this function is called after the last channel, false is returned and the channel sequence is reset: the next call will load the first channel.
-   * This function should be called before any data processing.
+   * The channels defined in the option file are loaded incrementally. If this function is called after the last channel, false is returned and the channel sequence is reset: the next call will load the first channel again.
    */
   bool NewChannel(void);
 
   /**
    * Loads a data vector.
-   * The data vector of the current channel and the current chunk is loaded. If requested, the injection channel is added to the vector. This function loads the data from the frames listed in the FFL. The FFL option is therefore mandatory.
+   * The data vector of the current channel and the current chunk is loaded. If requested in the option file, the injection channel is added to the vector. This function loads the data from the frames listed in the FFL. The FFL option is therefore mandatory to use this function.
    * It is the user's responsibility to delete the returned data vector.
    *
    * If this function fails, a pointer to NULL is returned.
-   * @param aDataVector pointer to the returned data vector
-   * @param aDataVector sample size of the returned data vector
+   * @param aDataVector pointer to the data vector
+   * @param aSize sample size of the data vector
    */
   bool LoadData(double **aDataVector, int *aSize);
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data are conditioned with this funtion. The input data chunk is first re-sampled and highpassed. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Tukey-windowed, Fourier-transformed and normalized by the ASD.
+   * Before projecting the data onto the tiles, the data are conditioned with this funtion. The input data chunk is first resampled and highpassed. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Tukey-windowed, Fourier-transformed and normalized by the ASD.
    *
    * IMPORTANT: The input vector size MUST MATCH the current chunk size loaded with NewChunk(). NO check is performed against that!
    *
-   * If the returned integer value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning ran into some errors but the Omicron object is still valid. If it is 0, the conditioning ended correctly. The error code is the following:
+   * If the returned value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning failed but the Omicron object is still valid for further use. If it is 0, the conditioning ended correctly. The error code is the following:
    * - -1 = the Omicron object is corrupted.
    * - -2 = the frequency parameters update of the Sample object failed.
    * -  0 = OK
@@ -163,59 +136,25 @@ class Omicron {
   
   /**
    * Projects whitened data onto the tiles and fills output structures.
-   * Instead of calling specific output functions, like ExtractTriggers() or MakeMaps(), this function automatically produce the data products requested to be saved to disk (see WriteOutput())
+   * The data vector is subdivided into subsegments. Subsegments are Tukey-windowed, Fourier-transformed and normalized by the ASD. Finally, sub-segments are projected onto the tiling structure.
+   *
+   * In this function, the trigger structure is also filled with tiles above SNR threshold. If requested, the maps are written to disk.
    */
-  bool ProjectAndSave(void);
+  bool Project(void);
   
   /**
    * Writes output to disk.
-   * The output data products are selected by the user in the option file.
-   * - the chunk triggers: triggers are saved if the the number of triggers is below the limit specified in the option file.
-   * - the chunk maps
-   * - the chunk time-series
-   * - the chunk ASD
-   * - the chunk PSD
+   * The output data products selected by the user in the option file are written to disk.
    *
-   * Note that this function writes the data product no matter if they were previously built or not (see  ExtractTriggers(), MakeMaps() or WriteOutput())
+   * Note that maps are written in the Project() function as they are built at the segment scale, not at the chunk scale.
    */
-  //bool WriteOutput(void);
+  bool WriteOutput(void);
   
   /**
-   * Projects conditioned data onto the tiles and fills the Triggers structure.
-   * The Triggers stucture is then sorted (by tstart) and the clustering algorithm is applied if requested.
-   * This function returns the current number of triggers in memory. A negative value is returned if this function fails.
+   * Prints a progress report of the processing.
    */
-  //int ExtractTriggers(void);
+  void PrintStatusInfo(void);
   
-  
-  /**
-   * Writes current maps to disk.
-   * The maps built with MakeMaps() are saved to disk with the formats defined in Omicron(). When graphical formats are selected, an additional file is saved on disk: '[channel]_mapsummary.root'. This file contains a TTree summarizing the properties of the maps.
-   *
-   * In addition to maps, some complementary plots are also saved (graphical formats only):
-   * - SNR vs. time for the frequency where the SNR is maximal
-   * - SNR vs. frequency for the time where the SNR is maximal
-   * 
-   * This function can also be used with an external set of Q-maps. In this case, additional information must be given in arguments:
-   * @param aChNumber channel number of the current Q-maps (always required)
-   * @param aTimeCenter GPS time where to set the time origin
-   * @param aQ vector of Q values corresponding to each map
-   * @param aQmap pointer to an array of Q-maps vor each Q values
-   */
-  //bool WriteMaps(const vector <double>& aQ = vector<double>(), TH2D **aQmap=NULL);
-
-  /**
-   * To be documented.
-   * @param aTimeCenter central time of the maps
-   */
-  //bool ScanTriggers(const double aTimeCenter);
-
-  /**
-   * Create a html report for a scan.
-   * @param aScanDir path to scan directory
-   */
-  //bool ScanReport(const string aScanDir="");
-
 
   /**
    * Returns the segments associated to the trigger time coverage.
@@ -259,11 +198,6 @@ class Omicron {
   void PrintMessage(const string aMessage);
 
   /**
-   * Prints a progress report of the processing.
-   */
-  void PrintStatusInfo(void);
-  
-  /**
    * Returns class status.
    */
   inline bool GetStatus(void){ return status_OK; };
@@ -290,7 +224,6 @@ class Omicron {
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
   string fMaindir;              ///< main output directory
-  vector <string> fOutdir;      ///< output directories per channel
   vector <string> fChannels;    ///< list of channel names
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
@@ -307,12 +240,11 @@ class Omicron {
   int fWindowMax;               ///< maximal window value
   string ffftplan;              ///< fft plan
   double fSNRThreshold;         ///< SNR Threshold
-  int fNtriggerMax;             ///< trigger limit
+  int fTileDown;                ///< tile-down flag
   vector <string> fClusterAlgo; ///< clustering modes
   double fcldt;                 ///< clustering dt
   int fVerbosity;               ///< verbosity level
   string fOutFormat;            ///< output format
-  string fStyle;                ///< plotting style
   string fOutProducts;          ///< output products
   string fWriteMode;            ///< write mode
 
@@ -323,8 +255,8 @@ class Omicron {
   int *chan_ctr;                ///< number of times a channel was loaded
   int *chan_data_ctr;           ///< number of times a channel was found data
   int *chan_cond_ctr;           ///< number of times a channel was conditioned
-  int *chan_wmaps_ctr;          ///< number of times a channel's maps were saved
-  int *chan_wtrig_ctr;          ///< number of times a channel's triggers were saved
+  int *chan_proj_ctr;           ///< number of times a channel was projected
+  int *chan_write_ctr;          ///< number of times a channel's triggers were saved
 
   // COMPONENTS
   Odata *dataseq;               ///< data sequence
@@ -348,20 +280,14 @@ class Omicron {
   double **dataIm;              ///< conditioned data (Im)
 
   // OUTPUT
-  void SaveTriggers(void);          ///< save triggers
-
-  // SCANS
-  //TH2D **Qmap_full;             ///< combined Q-maps
-  //int *loudest_qmap;            ///< Q-map containing the loudest tile
-  string fScandir;              ///< latest scan directory
-  //bool MakeMaps(const int aNseg);
-  //void MakeFullMaps(const int aNq, TH2D **aQmap);
+  string maindir;               ///< output main directory
+  vector <string> outdir;       ///< output directories per channel
+  void SaveTriggers(void);      ///< save triggers
 
   // MISC
   GwollumPlot *GPlot;           ///< Gwollum plots
   void SaveAPSD(const string type="PSD");    ///< Save current PSD
   void SaveTS(void);///< Save current chunk time series
-  bool *first_save;             ///< flags the first save
   void PrintASCIIlogo(void);    ///< print ascii logo
 
   ClassDef(Omicron,0)  

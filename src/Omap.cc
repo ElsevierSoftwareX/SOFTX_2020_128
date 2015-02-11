@@ -100,7 +100,7 @@ void Omap::SetBins(const int aNf, const double aFrequencyMin, const double aFreq
 void Omap::SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart = aTimeTileIndex * bandMultiple[aBandIndex];
-  int tend=tstart+bandMultiple[aBandIndex];
+  int tend   = tstart+bandMultiple[aBandIndex];
   for(int t=tstart; t<tend; t++) SetBinContent(t+1,aBandIndex+1,aContent);
   return;
 }
@@ -114,18 +114,3 @@ void Omap::SetTileDisplay(){
   return;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-void Omap::Intersect(Omap *aMap){
-////////////////////////////////////////////////////////////////////////////////////
-
-  for(int f=0; f<aMap->GetNBands(); f++){
-    
-    for(int t=0; t<aMap->GetBandNtiles(f); t++){
-      
-      
-
-    }
-  }
-
-  return;
-}

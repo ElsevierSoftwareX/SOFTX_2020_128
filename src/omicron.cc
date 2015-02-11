@@ -29,13 +29,14 @@ int main (int argc, char* argv[]){
     cerr<<"|__ runs the Omicron algorithm over one single chunk of data"<<endl;
     cerr<<"    centered on a GPS time."<<endl; 
     cerr<<endl;
-    cerr<<"In all cases, the user must must provide an option file listing"<<endl;
-    cerr<<"the Omicron parameters."<<endl;
+    cerr<<">>> In all cases, the user must must provide an option file listing"<<endl;
+    cerr<<"    the Omicron parameters."<<endl;
+    cerr<<">>> In all cases, the GPS times must be integer values"<<endl;
     cerr<<endl;
    return 1;
   }
 
-  double gps=0.0;
+  int gps=0;
   int start;
   int stop;
   Segments *segments;
@@ -73,7 +74,7 @@ int main (int argc, char* argv[]){
 
   //****** CASE3: central time
   else if(atoi(argv[1])>700000000){
-    gps=atof(argv[1]);
+    gps=atoi(argv[1]);
     optionfile=(string)argv[2];
 
     // empty segment object
@@ -89,7 +90,7 @@ int main (int argc, char* argv[]){
 
   // check that the option file exists
   if(!IsTextFile(optionfile)){
-    cerr<<argv[0]<<": The option file "<<optionfile<<" cannot be found."<<endl;
+    cerr<<"omicron: The option file "<<optionfile<<" cannot be found."<<endl;
     delete segments;
     return -1;
   }
@@ -97,7 +98,7 @@ int main (int argc, char* argv[]){
   // init omicron
   Omicron *O = new Omicron(optionfile);
   if(!O->GetStatus()){
-    cerr<<argv[0]<<": The Omicron object is corrupted."<<endl;
+    cerr<<"omicron: The Omicron object is corrupted."<<endl;
     delete segments;
     delete O;
     return -2;
@@ -107,7 +108,7 @@ int main (int argc, char* argv[]){
 
   // update for CASE3
   if(!segments->GetLiveTime())
-    segments->AddSegment((int)gps-O->GetChunkDuration()/2,(int)gps+O->GetChunkDuration()/2);
+    segments->AddSegment(gps-O->GetChunkDuration()/2,gps+O->GetChunkDuration()/2);
 
   // locals
   int dsize;
@@ -117,27 +118,25 @@ int main (int argc, char* argv[]){
   // channel list
   vector <string> Channels = O->GetChannelList();
 
-  // init segments
+  // init segments CHECKED
   if(!O->InitSegments(segments, gps)) return 1;
 
-  // create trigger directories
+  // create trigger directories CHECKED
   if(!O->MakeDirectories(gps)) return 2;
 
   O->PrintMessage("Start looping over chunks and channels");
 
-  // loop over chunks
+  // loop over chunks CHECKED
   while(O->NewChunk()){
       
-    if(O->GetVerbosity()) O->PrintMessage("");
-
-    // new channels
+    // new channels CHECKED
     while(O->NewChannel()){
       
-      // get data vector
+      // get data vector CHECKED
       dvector=NULL; dsize=0;
       if(!O->LoadData(&dvector,&dsize)) continue;
       
-      // condition data vector
+      // condition data vector CHECKED
       res=O->Condition(dsize, dvector);
       if(res<0){
 	delete dvector;
@@ -149,9 +148,13 @@ int main (int argc, char* argv[]){
       }
       delete dvector;// not needed anymore
 
-      // project data
-      if(!O->ProjectAndSave()) continue;
+      // project data CHECKED
+      if(!O->Project()) continue;
+
+      // write chunk outputs CHECKED
+      if(!O->WriteOutput()) continue;
     }
+
   }
     
   O->PrintMessage("Omicron processing is over");

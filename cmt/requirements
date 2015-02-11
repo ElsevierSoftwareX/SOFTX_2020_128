@@ -35,7 +35,7 @@ alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
-document rootcint OmicronDict Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDef.h
+document rootcling OmicronDict Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDef.h
 
 #### libraries generation
 macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTime -lRootUtils -lCUtils -lTriggers" 

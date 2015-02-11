@@ -148,23 +148,19 @@ bool Omicron::ReadOptions(void){
   //*****************************
 
   //***** SNR Threshold *****
-  if(!io->GetOpt("TRIGGER","SNRTHRESHOLD", fSNRThreshold)){
-    cout<<"Omicron::ReadOptions: No SNR threshold (TRIGGER/SNRTHRESHOLD)            --> set default: 8"<<endl;
+  if(!io->GetOpt("PARAMETER","SNRTHRESHOLD", fSNRThreshold)){
+    cout<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 8"<<endl;
     fSNRThreshold=8.0;
   }
   //*****************************
   
-  //***** set trigger limit *****
-  double ratemax;
-  if(io->GetOpt("TRIGGER","RATEMAX", ratemax)) fNtriggerMax=(int)ceil(ratemax*fChunkDuration);
-  else{
-    if(!io->GetOpt("TRIGGER","NMAX", fNtriggerMax)){
-      cout<<"Omicron::ReadOptions: No trigger limit (TRIGGER/NMAX)                      --> set default: 100 Hz"<<endl;
-      fNtriggerMax=fChunkDuration*1000;
-    }
+  //***** Down-tiling *****
+  if(!io->GetOpt("PARAMETER","DOWNTILING", fTileDown)){
+    cout<<"Omicron::ReadOptions: No downtiling option (PARAMETER/DOWNTILING)          --> set default: YES"<<endl;
+    fTileDown=1;
   }
   //*****************************
-
+  
   //***** set verbosity *****
   if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=1;
   //*****************************
@@ -185,13 +181,6 @@ bool Omicron::ReadOptions(void){
   if(!fClusterAlgo[1].compare("noroot")) fWriteMode="UNPROC";
   else fWriteMode="ALL";
   if(!io->GetOpt("TRIGGER","CLUSTERDT", fcldt)) fcldt=0.1;
-  //*****************************
-
-  //***** set plotting style ***** 
-  if(!io->GetOpt("OUTPUT","PLOTSTYLE", fStyle)){
-    cout<<"Omicron::ReadOptions: No plotting style (OUTPUT/PLOTSTYLE)                 --> set default: GWOLLUM"<<endl;
-    fStyle="GWOLLUM";
-  }
   //*****************************
 
   //***** set output products *****

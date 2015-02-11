@@ -34,7 +34,6 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_OVERLAPDURATION"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");     fOptionType.push_back("d");
   fOptionName.push_back("omicron_TRIGGER_SNRTHRESHOLD");      fOptionType.push_back("d");
-  fOptionName.push_back("omicron_TRIGGER_NMAX");              fOptionType.push_back("i");
   fOptionName.push_back("omicron_TRIGGER_CLUSTERING");        fOptionType.push_back("s");
   fOptionName.push_back("omicron_TRIGGER_CLUSTERDT");         fOptionType.push_back("d");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
@@ -44,8 +43,12 @@ Omicron::Omicron(const string aOptionFile){
   // read option file
   status_OK=ReadOptions();
 
+  // output directory
+  maindir=fMaindir;
+  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
+  
   // init plotting
-  GPlot = new GwollumPlot ("Omicron",fStyle);
+  GPlot = new GwollumPlot ("Omicron");
 
   // init process monitoring
   if(fVerbosity) cout<<"Omicron::Omicron: init monitoring..."<<endl;
@@ -57,27 +60,28 @@ Omicron::Omicron(const string aOptionFile){
   chan_ctr       = new int       [(int)fChannels.size()];
   chan_data_ctr  = new int       [(int)fChannels.size()];
   chan_cond_ctr  = new int       [(int)fChannels.size()];
-  chan_wmaps_ctr = new int       [(int)fChannels.size()];
-  chan_wtrig_ctr = new int       [(int)fChannels.size()];
+  chan_proj_ctr  = new int       [(int)fChannels.size()];
+  chan_write_ctr = new int       [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     outSegments[c]    = new Segments();
     chan_ctr[c]       = 0;
     chan_data_ctr[c]  = 0;
     chan_cond_ctr[c]  = 0;
-    chan_wmaps_ctr[c] = 0;
-    chan_wtrig_ctr[c] = 0;
+    chan_proj_ctr[c]  = 0;
+    chan_write_ctr[c] = 0;
   }
   
   // init FFL
   FFL=NULL;
   if(fFflFile.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: init FFL..."<<endl;
-    FFL = new ffl(fFflFile, fStyle, fVerbosity);
-    status_OK*=FFL->DefineTmpDir(fMaindir);
+    FFL = new ffl(fFflFile, "GWOLLUM", fVerbosity);
+    status_OK*=FFL->DefineTmpDir(maindir);
     status_OK*=FFL->LoadFrameFile();
   }
     
   // adjust default parameters using input data
+  // FIXME: this sucks!
   AdjustParameters();
 
   // init data containers
@@ -96,12 +100,10 @@ Omicron::Omicron(const string aOptionFile){
   // init Streams
   if(fVerbosity) cout<<"Omicron::Omicron: init Streams..."<<endl;
   streams = new Streams* [(int)fChannels.size()];
-  first_save = new bool [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     streams[c] = new Streams(fChannels[c], fVerbosity);
     status_OK*=streams[c]->GetStatus();
     streams[c]->MakeLVDetector();// just an attempt
-    first_save[c]=true;
   }
   
   // init Sample
@@ -111,18 +113,14 @@ Omicron::Omicron(const string aOptionFile){
   // init Spectrum
   if(fVerbosity) cout<<"Omicron::Omicron: init Spectra..."<<endl;
   int psdsize;
-  if(fFreqRange[0]>=1.0) psdsize = fSampleFrequency; // 0.5Hz binning
-  else{
-    psdsize = 10*(int)floor((double)fSampleFrequency/fFreqRange[0]);// over-binning (factor 20)
-    int nextpowerof2=(int)floor(log(psdsize)/log(2));
-    psdsize=(int)pow(2.0,(double)nextpowerof2);
-  }
+  if(fFreqRange[0]>=1.0) 
+    psdsize = fSampleFrequency; // 0.5Hz binning
+  else
+    psdsize=NextPowerOfTwo(10.0*floor((double)fSampleFrequency/fFreqRange[0]));// over-binning (>factor 20)
+  
   spectrum = new Spectrum(fSampleFrequency,psdsize,0,fVerbosity);
   status_OK*=spectrum->GetStatus();
 
-  // default output directory
-  for(int c=0; c<(int)fChannels.size(); c++) fOutdir.push_back(fMaindir);
-  fScandir="";// used for scans
 
   // init Triggers
   if(fVerbosity) cout<<"Omicron::Omicron: init Triggers..."<<endl;
@@ -130,9 +128,8 @@ Omicron::Omicron(const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++){
     
     // init triggers object
-    triggers[c] = new MakeTriggers(fOutdir[c],fChannels[c],fOutFormat,fVerbosity);
-    triggers[c]->SetNtriggerMax(fNtriggerMax);// maximum number of triggers per file
-    
+    triggers[c] = new MakeTriggers(outdir[c],fChannels[c],fOutFormat,fVerbosity);
+       
     // set clustering parameters
     status_OK*=triggers[c]->SetClusterDeltaT(fcldt);
         
@@ -155,12 +152,11 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fOverlapDuration);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fNtriggerMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo[0]+"_"+fClusterAlgo[1]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fcldt);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo[0]+"_"+fClusterAlgo[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fcldt);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fOutProducts);
     triggers[c]->SetMprocessname("Omicron");
     triggers[c]->SetMstreamname(streams[c]->GetName());
     triggers[c]->SetMdetindex(streams[c]->GetDetIndex());
@@ -170,31 +166,6 @@ Omicron::Omicron(const string aOptionFile){
   if(fVerbosity) cout<<"Omicron::Omicron: init Tile..."<<endl;
   tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fVerbosity);
   
-  // init full maps
-  /*
-  Qmap_full = new TH2D* [(int)fWindows.size()];
-  int nfbins; ostringstream tmpstream;
-  if(fFreqRange[0]>=1) nfbins = (int)fabs(fFreqRange[1]-fFreqRange[0])+1;
-  else nfbins = 500;
-  double *f_bin = new double [nfbins+1];
-  for(int f=0; f<nfbins+1; f++) f_bin[f]=fFreqRange[0]*pow(10,f*log10(fFreqRange[1]/fFreqRange[0])/nfbins);
-  for(int w=0; w<(int)fWindows.size(); w++){
-    tmpstream<<"map_"<<fWindows[w];
-    Qmap_full[w] = new TH2D(tmpstream.str().c_str(),tmpstream.str().c_str(),1000,-(double)fWindows[w]/2.0,+(double)fWindows[w]/2.0,nfbins,f_bin);
-    tmpstream.str(""); tmpstream.clear();
-    Qmap_full[w]->GetXaxis()->SetTitle("Time [s]");
-    Qmap_full[w]->GetYaxis()->SetTitle("Frequency [Hz]");
-    Qmap_full[w]->GetZaxis()->SetTitle("SNR");
-    Qmap_full[w]->GetXaxis()->SetTitleOffset(1.1);
-    Qmap_full[w]->GetXaxis()->SetLabelSize(0.045);
-    Qmap_full[w]->GetYaxis()->SetLabelSize(0.045);
-    Qmap_full[w]->GetXaxis()->SetTitleSize(0.045);
-    Qmap_full[w]->GetYaxis()->SetTitleSize(0.045);
-    Qmap_full[w]->GetZaxis()->SetTitleSize(0.05);
-  }
-  delete f_bin;
-  loudest_qmap = new int [(int)fWindows.size()];
-  */
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -205,8 +176,8 @@ Omicron::~Omicron(void){
   delete chan_ctr;
   delete chan_data_ctr;
   delete chan_cond_ctr;
-  delete chan_wmaps_ctr;
-  delete chan_wtrig_ctr;
+  delete chan_proj_ctr;
+  delete chan_write_ctr;
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
     delete sample[c];
@@ -223,19 +194,15 @@ Omicron::~Omicron(void){
   if(FFL!=NULL) delete FFL;
   delete dataseq;
   delete tile;
-  //for(int w=0; w<(int)fWindows.size(); w++) delete Qmap_full[w];
-  //delete Qmap_full;
-  //delete loudest_qmap;
   delete GPlot;
   delete ChunkVect;
   delete SegVect;
   delete TukeyWindow;
   delete offt;
-  delete first_save;
 
   fOptionName.clear();
   fOptionType.clear();
-  fOutdir.clear();
+  outdir.clear();
   fChannels.clear();
   fInjChan.clear();
   fInjFact.clear();
@@ -267,16 +234,13 @@ bool Omicron::InitSegments(Segments *aSeg, const double aTimeOffset){
 
   if(fVerbosity) cout<<"Omicron::InitSegments: initiate data segments..."<<endl;
 
-  // update time offset
-  timeoffset = aTimeOffset;
-
   // input segment monitor
   // (try to optimize the update of inSegments)
   if(inSegments->GetLiveTime()&&aSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
     inSegments->Append(aSeg);
-  else{
+  else
     for(int s=0; s<aSeg->GetNsegments(); s++) inSegments->AddSegment(aSeg->GetStart(s),aSeg->GetEnd(s));
-  }
+  
 
   // data structure
   if(!dataseq->SetSegments(aSeg)){
@@ -284,7 +248,7 @@ bool Omicron::InitSegments(Segments *aSeg, const double aTimeOffset){
     return false;
   }
 
-  // update FFL
+  // update channel list
   if(FFL!=NULL){
     if(!FFL->ExtractChannels(aSeg->GetStart(0))){
       cerr<<"Omicron::InitSegments: cannot update FFL info."<<endl;
@@ -305,35 +269,36 @@ bool Omicron::InitSegments(Segments *aSeg, const double aTimeOffset){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::MakeDirectories(const double aGPS){
+bool Omicron::MakeDirectories(const int aId){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::MakeDirectories: the Omicron object is corrupted"<<endl;
     return false;
   }
 
-  if(fVerbosity) cout<<"Omicron::MakeDirectories: make directory structure..."<<endl;
-  fOutdir.clear();
+  if(fVerbosity) cout<<"Omicron::MakeDirectories: make specific directory structure..."<<endl;
+  outdir.clear();
   ostringstream tmpstream;
 
-  if(!aGPS){// basic trigger directories
+  // Main dir
+  if(!aId){// single level
     for(int c=0; c<(int)fChannels.size(); c++){
-      fOutdir.push_back(fMaindir+"/"+fChannels[c]);
-      if(fVerbosity>1) cout<<"\t- "<<fOutdir[c]<<endl;
-      system(("mkdir -p "+fOutdir[c]).c_str());
-      triggers[c]->SetOutputDirectory(fOutdir[c]);
+      maindir=fMaindir;
+      outdir.push_back(maindir+"/"+fChannels[c]);
     }
   }
-  else{
-    tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aGPS;
-    fScandir=tmpstream.str();
+  else{// two level
+    tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aId;
+    maindir=tmpstream.str();
     tmpstream.clear(); tmpstream.str("");
-    for(int c=0; c<(int)fChannels.size(); c++){
-      fOutdir.push_back(fScandir+"/"+fChannels[c]);
-      if(fVerbosity>1) cout<<"\t- "<<fOutdir[c]<<endl;
-      system(("mkdir -p "+fOutdir[c]).c_str());
-      triggers[c]->SetOutputDirectory(fOutdir[c]);
-    }
+  }
+
+  // channel dir
+  for(int c=0; c<(int)fChannels.size(); c++){
+    outdir.push_back(maindir+"/"+fChannels[c]);
+    if(fVerbosity>1) cout<<"\t- "<<outdir[c]<<endl;
+    system(("mkdir -p "+outdir[c]).c_str());
+    triggers[c]->SetOutputDirectory(outdir[c]);
   }
 
   return true;
@@ -350,7 +315,7 @@ bool Omicron::NewChunk(void){
   // load new chunk
   if(fVerbosity) cout<<"Omicron::NewChunk: load a new chunk..."<<endl;
   if(!dataseq->NewChunk()) return false;
-  if(fVerbosity>1) cout<<"\tchunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<" is loaded"<<endl;
+  if(fVerbosity>1) cout<<"\t- chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<" is loaded"<<endl;
 
   chunk_ctr++;// one more chunk
   return true;
@@ -371,11 +336,11 @@ bool Omicron::NewChannel(void){
   // last channel
   if(chanindex==(int)fChannels.size()){
     chanindex=-1;
-    if(fVerbosity>1) cout<<"\tno more channels to load"<<endl;
+    if(fVerbosity>1) cout<<"\t- no more channels to load"<<endl;
     return false; 
   }
 
-  if(fVerbosity>1) cout<<"\tchannel "<<fChannels[chanindex]<<" is loaded"<<endl;
+  if(fVerbosity>1) cout<<"\t- channel "<<fChannels[chanindex]<<" is loaded"<<endl;
   chan_ctr[chanindex]++;
   return true;
 }
@@ -385,10 +350,12 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::LoadData: the Omicron object is corrupted"<<endl;
+    aDataVector=NULL; *aSize=0;
     return false;
   }
   if(FFL==NULL){
     cerr<<"Omicron::LoadData: this function can only be used with a valid FFL object"<<endl;
+    aDataVector=NULL; *aSize=0;
     return false;
   }
 
@@ -403,6 +370,7 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
   // cannot retrieve data
   if(*aSize<=0){
     cerr<<"Omicron::LoadData: cannot retrieve data ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+    aDataVector=NULL; *aSize=0;
     return false;
   }
   
@@ -484,7 +452,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::ProjectAndSave(void){
+bool Omicron::Project(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::Project: the Omicron object is corrupted"<<endl;
@@ -497,70 +465,64 @@ bool Omicron::ProjectAndSave(void){
   int segsize=dataseq->GetSegmentDuration()*fSampleFrequency;
   int ovsize=dataseq->GetOverlapDuration()*fSampleFrequency;
   for(int s=0; s<dataseq->GetNSegments(); s++){
-    
+    if(fVerbosity>1) cout<<"\t- subsegment "<<dataseq->GetSegmentTimeStart(s)<<"-"<<dataseq->GetSegmentTimeEnd(s)<<endl;
+
     // fill segment vector (time-domain) and apply tukey window
+    if(fVerbosity>2) cout<<"\t\t- fill subsegment"<<endl;
     for(int i=0; i<segsize; i++)
       SegVect[i] = ChunkVect[s*(segsize-ovsize)+i] * TukeyWindow[i];
     
-    // whiten data
+    // get whiten data
+    if(fVerbosity>2) cout<<"\t\t- whiten subsegment"<<endl;
     if(!Whiten(&(dataRe[s]), &(dataIm[s]))) return false;
     
     // project data
-    if(!tile->ProjectData(dataRe[s], dataIm[s])){
+    if(fVerbosity>2) cout<<"\t\t- project subsegment"<<endl;
+    if(!tile->ProjectData(dataRe[s], dataIm[s], fTileDown)){
       delete dataRe[s];
       delete dataIm[s];
       return false;
     }
 
-    // save triggers
-    if(fOutProducts.find("triggers")!=string::npos){
-      if(!triggers[chanindex]->GetMaxFlag()){
-	tile->SaveTriggers(triggers[chanindex],
-			   fSNRThreshold,
-			   dataseq->GetCurrentOverlapDuration()-dataseq->GetOverlapDuration()/2,
-			   dataseq->GetOverlapDuration()/2,
-			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
-      }
-    }
-
-    // save maps
-    if(fOutProducts.find("maps")!=string::npos){
-      tile->SaveMaps(fOutdir[chanindex],
-		     fChannels[chanindex],
-		     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-		     fOutFormat,fWindows);
-    }
-
     delete dataRe[s];
     delete dataIm[s];
+
+    // save triggers
+    if(fOutProducts.find("triggers")!=string::npos){
+      if(fVerbosity>2) cout<<"\t\t- save triggers"<<endl;
+      if(!tile->SaveTriggers(triggers[chanindex],
+			     fSNRThreshold,
+			     dataseq->GetCurrentOverlapDuration()-dataseq->GetOverlapDuration()/2,
+			     dataseq->GetOverlapDuration()/2,
+			     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2)
+	 ) return false;
+    }
+
+    // write maps on disk
+    if(fOutProducts.find("maps")!=string::npos){
+      if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
+      tile->SaveMaps(outdir[chanindex],
+		     fChannels[chanindex],
+		     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+		     fOutFormat,fWindows,fSNRThreshold);
+    }
+
+
   }
 
-  // write triggers
-  if(fOutProducts.find("triggers")!=string::npos){
-    
-    // don't save if max flag
-    if(triggers[chanindex]->GetMaxFlag()){
-      cerr<<"Omicron::ProjectAndSave: the number of triggers is maxed-out, do not save chunk ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
-      triggers[chanindex]->Reset();
-    }
-    else{      
+  chan_proj_ctr[chanindex]++;
+  return true;
+}
 
-      // sort triggers
-      triggers[chanindex]->SortTriggers();
-  
-      // clustering if any
-      if(fClusterAlgo[0].compare("none")){
-	triggers[chanindex]->Clusterize(fClusterAlgo[0]);
-      }
-
-      // write triggers on disk
-      if(triggers[chanindex]->Write(fWriteMode).compare("none")){
-	chan_wtrig_ctr[chanindex]++;
-	outSegments[chanindex]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);// FIXME: what about maps?
-      }
-    }
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::WriteOutput(void){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::WriteOutput: the Omicron object is corrupted"<<endl;
+    return false;
   }
-  
+  if(fVerbosity) cout<<"Omicron::WriteOutput: write chunk output..."<<endl;
+
   //*** ASD
   if(fOutProducts.find("asd")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write ASD..."<<endl;
@@ -579,6 +541,24 @@ bool Omicron::ProjectAndSave(void){
     SaveTS();
   }
 
+  //*** triggers
+  if(fOutProducts.find("triggers")!=string::npos){
+    if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
+
+    // sort triggers
+    triggers[chanindex]->SortTriggers();
+    
+    // clustering if any
+    if(fClusterAlgo[0].compare("none")) triggers[chanindex]->Clusterize(fClusterAlgo[0]);
+    
+    // write triggers to disk
+    if(!triggers[chanindex]->Write(fWriteMode).compare("none"))
+      cerr<<"Omicron::WriteOutput: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+    
+  }
+
+  chan_write_ctr[chanindex]++;
+  outSegments[chanindex]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);// FIXME: known bug with the timing (last chunk)
   return true;
 }
 
@@ -587,28 +567,23 @@ void Omicron::PrintStatusInfo(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
   cout<<"\n************* Omicron status info *************"<<endl;
-  cout<<"requested start         = "<<inSegments->GetStart(0)<<endl;
-  cout<<"requested end           = "<<inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
-  cout<<"requested livetime      = "<<inSegments->GetLiveTime()<<"s"<<endl;
+  cout<<"requested start         = "<<(int)inSegments->GetStart(0)<<endl;
+  cout<<"requested end           = "<<(int)inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
+  cout<<"requested livetime      = "<<(int)inSegments->GetLiveTime()<<"s"<<endl;
   cout<<"number of loaded chunks = "<<chunk_ctr<<endl;
 
   for(int c=0; c<(int)fChannels.size(); c++){
     cout<<"\n*** "<<fChannels[c]<<endl;
-    if(outSegments[c]->GetNsegments()){
-      cout<<"start_out           = "<<outSegments[c]->GetStart(0)<<endl;
-      cout<<"end_out             = "<<outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
-      cout<<"trigger livetime    = "<<outSegments[c]->GetLiveTime()<<"s ("<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100<<"%)"<<endl;
-    }
-    else{
-      cout<<"start_out             = -1"<<endl;
-      cout<<"end_out               = -1"<<endl;
-      cout<<"processed livetime    = "<<"0s (0%)"<<endl;
-    }
     cout<<"number of calls                = "<<chan_ctr[c]<<endl;
     cout<<"number of data calls           = "<<chan_data_ctr[c]<<endl;
     cout<<"number of conditioning calls   = "<<chan_cond_ctr[c]<<endl;
-    cout<<"number of output map sets      = "<<chan_wmaps_ctr[c]<<endl;
-    cout<<"number of output trigger files = "<<chan_wtrig_ctr[c]<<endl;
+    cout<<"number of projection calls     = "<<chan_proj_ctr[c]<<endl;
+    cout<<"number of write calls          = "<<chan_write_ctr[c]<<endl;
+    if(outSegments[c]->GetNsegments()){
+      cout<<"start_out           = "<<(int)outSegments[c]->GetStart(0)<<endl;
+      cout<<"end_out             = "<<(int)outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
+      cout<<"trigger livetime    = "<<(int)outSegments[c]->GetLiveTime()<<"s ("<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100<<"%)"<<endl;
+    }
   }
   cout<<"***********************************************\n"<<endl;
 
@@ -715,11 +690,9 @@ void Omicron::SaveAPSD(const string type){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    if(first_save[chanindex]){
-      fpsd=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"RECREATE");
-      first_save[chanindex]=false;
-    }
-    else fpsd=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"UPDATE");
+    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type<<".root";
+    fpsd=new TFile((ss.str()).c_str(),"RECREATE");
+    ss.str(""); ss.clear();
     fpsd->cd();
     GAPSD->Write();
     fpsd->Close();
@@ -737,13 +710,8 @@ void Omicron::SaveAPSD(const string type){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      if(!type.compare("ASD")) ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_asd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
-      else ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_psd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"."<<form[f];
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
-      ss.str(""); ss.clear();
-      if(!type.compare("ASD")) ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_asd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"th."<<form[f];
-      else ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_psd_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"th."<<form[f];
-      GPlot->Print(ss.str(),0.5);
       ss.str(""); ss.clear();
     }
   }
@@ -787,11 +755,9 @@ void Omicron::SaveTS(void){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
-    if(first_save[chanindex]){
-      fdata=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"RECREATE");
-      first_save[chanindex]=false;
-    }
-    else fdata=new TFile((fOutdir[chanindex]+"/"+fChannels[chanindex]+"_data.root").c_str(),"UPDATE");
+    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_ts.root";
+    fdata=new TFile((ss.str()).c_str(),"RECREATE");
+    ss.str(""); ss.clear();
     fdata->cd();
     GDATA->Write();
     fdata->Close();
@@ -824,11 +790,8 @@ void Omicron::SaveTS(void){
     for(int w=(int)fWindows.size()-1; w>=0; w--){
       GDATA->GetXaxis()->SetLimits(tcenter-(double)fWindows[w]/2.0,tcenter+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
-	ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_ts_dt"<<fWindows[w]<<"."<<form[f];
+	ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
-	ss.str(""); ss.clear();
-	ss<<fOutdir[chanindex]<<"/"<<fChannels[chanindex]<<"_tsth_dt"<<fWindows[w]<<"."<<form[f];
-	GPlot->Print(ss.str(),0.5);
 	ss.str(""); ss.clear();
       }
     }

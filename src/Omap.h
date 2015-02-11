@@ -34,8 +34,6 @@ class Omap: public TH2D {
   void SetBins(const int aNf, const double aFrequencyMin, const double aFrequencyMax,
 	       const int aNt, const int aTimeRange);
 
-  void Intersect(Omap *aMap);
-
 
  inline double GetTimeRange(void){ 
     return GetXaxis()->GetXmax()-GetXaxis()->GetXmin(); 
@@ -54,6 +52,9 @@ class Omap: public TH2D {
   };
   inline int GetNBands(void){ 
     return GetNbinsY();
+  };
+  inline int GetBandIndex(const double aFrequency){
+    return GetYaxis()->FindBin(aFrequency)-1;
   };
   inline double GetBandFrequency(const int aBandIndex){ 
     return GetYaxis()->GetBinCenterLog(aBandIndex+1);
@@ -76,14 +77,17 @@ class Omap: public TH2D {
   inline double GetTileContent(const int aTimeTileIndex, const int aBandIndex){    
     return GetBinContent(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
   };
-  inline double GetTileTime(const int aTimeTileIndex, const int aBandIndex){
-    return GetXaxis()->GetBinCenter(aTimeTileIndex*bandMultiple[aBandIndex]+1);
+  inline double GetTileTag(const int aTimeTileIndex, const int aBandIndex){    
+    return GetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
   };
   inline double GetTileTimeStart(const int aTimeTileIndex, const int aBandIndex){
     return GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
   };
   inline double GetTileTimeEnd(const int aTimeTileIndex, const int aBandIndex){
-    return GetXaxis()->GetBinUpEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
+    return GetXaxis()->GetBinUpEdge((aTimeTileIndex+1)*bandMultiple[aBandIndex]);
+  };
+  inline double GetTileTime(const int aTimeTileIndex, const int aBandIndex){
+    return GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+bandMultiple[aBandIndex]/2+1);
   };
   inline int GetTimeTileIndex(const int aBandIndex, const double aTime){
     return (int)floor((aTime-GetTimeMin())/GetTileDuration(aBandIndex));
@@ -91,6 +95,10 @@ class Omap: public TH2D {
 
   // SETS
   void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent);
+  inline void SetTileTag(const int aTimeTileIndex, const int aBandIndex, const double aTag){
+    SetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1,aTag);
+  };
+
   void SetTileDisplay(void);
  
   int Ntiles;                       ///< number of tiles in the plane

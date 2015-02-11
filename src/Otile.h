@@ -96,14 +96,17 @@ class Otile: public GwollumPlot {
    * Projects a data vector onto the Q planes.
    * A complex data vector is projected onto all the Q-planes. The tiles are populated with the resulting SNR values.
    *
+   * If requested, tiles are de-activated if they overlap (in time or frequency) another tile. This process is call down-tiling.
+   *
    * IMPORTANT: the input data vector must the right size, i.e. SampleFrequency/2 as defined in the constructor. No check will be performed!
    * @param aDataRe real part of the data vector (frequency domain)
    * @param aDataIm imaginary part of the data vector (frequency domain)
+   * @param aTileDown apply down-tiling if set to true
    */
-  bool ProjectData(double *aDataRe, double *aDataIm);
+  bool ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown=true);
 
   /**
-   * Saves tiles above a SNR threshold in a MakeTriggers structure.
+   * Saves active tiles above a SNR threshold in a MakeTriggers structure.
    * The triggers Segments are also saved follwing the GWOLLUM convention for triggers. A padding can be provided to NOT saved triggers on the plane edges. The planes are always centered on 0. A T0 must therefore be provided.
    * @param aTriggers MakeTriggers object
    * @param aSNRThr SNR threshold
@@ -116,13 +119,16 @@ class Otile: public GwollumPlot {
   /**
    * Saves the maps for each Q-planes in output files.
    * The maps are saved in output files.
+   * An addition map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
+   * Maps are not saved if the maximum SNR is below threshold.
    * @param aOutdir output directory path
    * @param aName name identifier
    * @param aT0 plane central time
    * @param aFormat output format string
    * @param aWindows list of time windows
+   * @param aSNRThr SNR threshold
    */
-  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows);
+  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0);
 
   /**
    * Computes a set of Q values.
@@ -133,23 +139,16 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
-  
-  /**
-   * Returns the tiling time range.
-   */
-  inline double GetTimeRange(void){ return tilemap->GetXaxis()->GetXmax()-tilemap->GetXaxis()->GetXmin(); };
-
-
  private:
 
   int fVerbosity;              ///< verbosity level
-  Omap *tilemap;               ///< maps: 0=combined, then individual Qplanes
   Oqplane **qplanes;           ///< Q planes
   int nq;                      ///< number of q planes
+  int TimeRange;
 
-  //void MakeTiling(void);       /// fill tiling from Q planes
-  //void SetTileContent(const double t1, const double f1, const double t2, const double f2, const double content);
-    
+  TH2D* MakeFullMap(const int aTimeRange); ///< make full map
+  void TileDown(void);                     ///< tile-down
+
   ClassDef(Otile,0)  
 };
 
