@@ -116,7 +116,7 @@ int main (int argc, char* argv[]){
   int res;
   
   // channel list
-  vector <string> Channels = O->GetChannelList();
+  vector <string> Channels = O->GetChannels();
 
   // init segments CHECKED
   if(!O->InitSegments(segments, gps)) return 1;
@@ -162,7 +162,7 @@ int main (int argc, char* argv[]){
   //O->ScanReport();
   O->PrintMessage("Omicron report is over");
 
-  // prints summary
+  // prints summary report
   O->PrintStatusInfo();
   
   // cleaning  

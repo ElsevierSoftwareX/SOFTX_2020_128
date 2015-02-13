@@ -126,7 +126,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const in
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr){
+bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr, const bool aThumb){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!IsDirectory(aOutdir)){
     cerr<<"Otile::SaveMaps: the directory "<<aOutdir<<" is missing"<<endl;
@@ -205,6 +205,11 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
 	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str());
 	  tmpstream.clear(); tmpstream.str("");
+	  if(aThumb){ //thumbnail
+	    tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"th."<<form[f];
+	    Print(tmpstream.str(),0.55);
+	    tmpstream.clear(); tmpstream.str("");
+	  }
 	}
       }
 
@@ -243,6 +248,11 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
 	tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());
 	tmpstream.clear(); tmpstream.str("");
+	if(aThumb){ //thumbnail
+	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"th."<<form[f];
+	  Print(tmpstream.str(),0.55);
+	  tmpstream.clear(); tmpstream.str("");
+	}
       }
     
       delete fullmap;

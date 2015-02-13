@@ -39,7 +39,7 @@ document rootcling OmicronDict Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDe
 
 #### libraries generation
 macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTime -lRootUtils -lCUtils -lTriggers" 
-library Omicron -no_prototypes -no_static Odata.cc Omap.cc Oqplane.cc Otile.cc Oparameters.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+library Omicron -no_prototypes -no_static Odata.cc Omap.cc Oqplane.cc Otile.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"

@@ -93,7 +93,7 @@ Omicron::Omicron(const string aOptionFile){
   ChunkVect   = new double [fChunkDuration*fSampleFrequency];
   SegVect     = new double [fSegmentDuration*fSampleFrequency];
   TukeyWindow = GetTukeyWindow(fSegmentDuration*fSampleFrequency,fOverlapDuration*fSampleFrequency);
-  offt = new fft(fSegmentDuration*fSampleFrequency,"FFTW_"+ffftplan);
+  offt = new fft(fSegmentDuration*fSampleFrequency,"FFTW_ESTIMATE");
   dataRe = new double* [dataseq->GetNSegments()];
   dataIm = new double* [dataseq->GetNSegments()];
   
@@ -172,6 +172,7 @@ Omicron::Omicron(const string aOptionFile){
 Omicron::~Omicron(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>1) cout<<"Omicron::~Omicron"<<endl;
+  if(status_OK&&fOutProducts.find("html")!=string::npos) MakeHtml(); // print final html report
   delete inSegments;
   delete chan_ctr;
   delete chan_data_ctr;
@@ -200,6 +201,9 @@ Omicron::~Omicron(void){
   delete TukeyWindow;
   delete offt;
 
+  mapcenter.clear();
+  chunkstart.clear();
+  chunkstop.clear();
   fOptionName.clear();
   fOptionType.clear();
   outdir.clear();
@@ -501,12 +505,26 @@ bool Omicron::Project(void){
     // write maps on disk
     if(fOutProducts.find("maps")!=string::npos){
       if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
-      tile->SaveMaps(outdir[chanindex],
-		     fChannels[chanindex],
-		     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-		     fOutFormat,fWindows,fSNRThreshold);
+      if(fOutProducts.find("html")==string::npos) 
+	tile->SaveMaps(outdir[chanindex],
+		       fChannels[chanindex],
+		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+		       fOutFormat,fWindows,fSNRThreshold,false);
+      else
+	tile->SaveMaps(outdir[chanindex],
+		       fChannels[chanindex],
+		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+		       fOutFormat,fWindows,fSNRThreshold,true);
     }
 
+    // save info for html report
+    if(fOutProducts.find("html")!=string::npos&&!chanindex){
+      mapcenter.push_back(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
+      if(!s){
+	chunkstart.push_back(dataseq->GetChunkTimeStart()); 
+	chunkstop.push_back(dataseq->GetChunkTimeEnd());
+      }
+    }
 
   }
 
@@ -522,7 +540,7 @@ bool Omicron::WriteOutput(void){
     return false;
   }
   if(fVerbosity) cout<<"Omicron::WriteOutput: write chunk output..."<<endl;
-
+ 
   //*** ASD
   if(fOutProducts.find("asd")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write ASD..."<<endl;
@@ -588,19 +606,6 @@ void Omicron::PrintStatusInfo(void){
   cout<<"***********************************************\n"<<endl;
 
   return;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetTriggerSegments(TH1D *aThr, const double aInfValue){
-////////////////////////////////////////////////////////////////////////////////////
-  Segments* empty = new Segments();
-  if(!status_OK){
-    cerr<<"Omicron::GetTriggerSegments: the Omicron object is corrupted"<<endl;
-    return empty;
-  }
-  delete empty;
-
-  return triggers[chanindex]->GetTriggerSegments(aThr,aInfValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -733,14 +738,13 @@ void Omicron::SaveTS(void){
   GDATA->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
-  for(int i=0; i<fSampleFrequency*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i*(double)(fSampleFrequency)-timeoffset,ChunkVect[i]);
+  for(int i=0; i<fSampleFrequency*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i/(double)(fSampleFrequency)-timeoffset,ChunkVect[i]);
      
   // cosmetics
   GPlot->SetLogx(0);
   GPlot->SetLogy(0);
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
-  GPlot->Draw(GDATA,"APL");
   GDATA->GetHistogram()->SetXTitle("Time [s]");
   GDATA->GetHistogram()->SetYTitle("Amplitude [?]");
   GDATA->SetTitle((fChannels[chanindex]+": amplitude time series").c_str());
@@ -751,6 +755,8 @@ void Omicron::SaveTS(void){
   GDATA->GetYaxis()->SetLabelSize(0.045);
   GDATA->GetXaxis()->SetTitleSize(0.045);
   GDATA->GetYaxis()->SetTitleSize(0.045);
+  
+  GPlot->Draw(GDATA,"APL");
 
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
@@ -802,55 +808,3 @@ void Omicron::SaveTS(void){
   return;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-double* Omicron::GetTukeyWindow(const int aSize, const int aFractionSize){
-////////////////////////////////////////////////////////////////////////////////////
-
-  int FracSize_2=aFractionSize/2;
-  double *Window = new double [aSize];
-  
-  double factor = TMath::Pi()/(double)FracSize_2;
-
-  for (int i=0; i<FracSize_2; i++)
-    Window[i] = 0.5*(1+TMath::Cos(factor*(double)(i-FracSize_2)));
-  for (int i=FracSize_2; i<aSize-FracSize_2; i++)
-    Window[i] = 1.0;
-  for (int i=aSize-FracSize_2; i<aSize; i++)
-    Window[i] = 0.5*(1+TMath::Cos(factor*(double)(i-aSize+FracSize_2)));
- 
-  return Window;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////
-void Omicron::PrintASCIIlogo(void){
-////////////////////////////////////////////////////////////////////////////////////
-
-  cout<<endl;
-  cout<<endl;
-  cout<<"############################################################################"<<endl;
-  cout<<"############################################################################"<<endl;
-  cout<<endl;
-  cout<<"          ██████╗ ███╗   ███╗██╗ ██████╗██████╗  ██████╗ ███╗   ██╗"<<endl;
-  cout<<"         ██╔═══██╗████╗ ████║██║██╔════╝██╔══██╗██╔═══██╗████╗  ██║"<<endl;
-  cout<<"         ██║   ██║██╔████╔██║██║██║     ██████╔╝██║   ██║██╔██╗ ██║"<<endl;
-  cout<<"         ██║   ██║██║╚██╔╝██║██║██║     ██╔══██╗██║   ██║██║╚██╗██║"<<endl;
-  cout<<"         ╚██████╔╝██║ ╚═╝ ██║██║╚██████╗██║  ██║╚██████╔╝██║ ╚████║"<<endl;
-  cout<<"          ╚═════╝ ╚═╝     ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"<<endl;
-  cout<<"                                                               V1R4"<<endl;
-  cout<<"############################################################################"<<endl;
-  cout<<"############################################################################"<<endl;
-  cout<<endl;
-  cout<<endl;
-
-  return;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-void Omicron::PrintMessage(const string aMessage){
-////////////////////////////////////////////////////////////////////////////////////
-  time ( &timer );
-  ptm = gmtime ( &timer );
-  cout<<"\n("<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) [+"<<timer-timer_start<<"s]: "<<aMessage<<endl;
-  return;
-}

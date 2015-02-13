@@ -136,15 +136,6 @@ bool Omicron::ReadOptions(void){
       break;
     }
   }
-  fWindowMax=1;
-  for(int w=0; w<(int)fWindows.size(); w++) if(fWindows[w]>fWindowMax) fWindowMax=fWindows[w];
-  //*****************************
-
-  //***** set fftplan *****
-  if(!io->GetOpt("PARAMETER","FFTPLAN", ffftplan)){
-    cout<<"Omicron::ReadOptions: No FFT plan threshold (PARAMETER/FFTPLAN)            --> set default: ESTIMATE"<<endl;
-    ffftplan="ESTIMATE";
-  }
   //*****************************
 
   //***** SNR Threshold *****
@@ -173,14 +164,14 @@ bool Omicron::ReadOptions(void){
   //*****************************
 
   //***** set clustering *****
-  if(!io->GetOpt("TRIGGER","CLUSTERING", fClusterAlgo)){
+  if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
     cout<<"Omicron::ReadOptions: No clustering (TRIGGER/CLUSTERING)                   --> set default: none"<<endl;
     fClusterAlgo.push_back("none"); fClusterAlgo.push_back("all");
   }
   if(fClusterAlgo.size()==1) fClusterAlgo.push_back("all");
   if(!fClusterAlgo[1].compare("noroot")) fWriteMode="UNPROC";
   else fWriteMode="ALL";
-  if(!io->GetOpt("TRIGGER","CLUSTERDT", fcldt)) fcldt=0.1;
+  if(!io->GetOpt("PARAMETER","CLUSTERDT", fcldt)) fcldt=0.1;
   //*****************************
 
   //***** set output products *****

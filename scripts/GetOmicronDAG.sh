@@ -7,6 +7,9 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
+echo "This tool is currently not available"
+exit 1
+
 printhelp(){
     echo ""
     echo "Usage:"

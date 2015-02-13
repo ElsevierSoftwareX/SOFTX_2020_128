@@ -128,7 +128,7 @@ class Otile: public GwollumPlot {
    * @param aWindows list of time windows
    * @param aSNRThr SNR threshold
    */
-  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0);
+  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.

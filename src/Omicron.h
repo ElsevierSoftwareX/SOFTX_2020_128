@@ -11,7 +11,6 @@
 #include "Spectrum.h"
 #include "Sample.h"
 #include "MakeTriggers.h"
-#include "EventMap.h"
 #include "TMath.h"
 #include "Otile.h"
 #include "Odata.h"
@@ -24,7 +23,7 @@ using namespace std;
  * Process data with the Omicron algorithm.
  * An introduction to Omicron is available: <a href="../../Friends/omicron.html">Omicron introduction</a>
  *
- * This class was designed to offer various ways to run Omicron methods; either step-by step or in a all-in-one way. If the algorithm remains the same, Omicron provides two different outputs: triggers or maps. The triggers corresponds to tiles with a SNR value above a given threshold . The maps are a time-frequency decomposition of the input signal. Triggers are produced with the Process() method while maps are obtained with the Scan() method.
+ * This class was designed to offer various methods to conduct an Omicron analysis.
  *
  * \author Florent Robinet
  */
@@ -41,7 +40,7 @@ class Omicron {
    * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
-   * After initialization, the Omicron functions should be called sequentially to perform the analysis. Here is a typical sequence:
+   * After initialization, the Omicron methods should be called sequentially to perform the analysis. Here is a typical sequence:
    * - InitSegments() defines the data segments to process.
    * - MakeDirectories() creates a specific directory tree for the output 
 (optional).
@@ -50,6 +49,7 @@ class Omicron {
    * - LoadData() loads the data vector for this chunk and this channel from FFL file (in loop #1/2)
    * - Condition() conditions data vector (in loop #1/2)
    * - Project() projects data onto the tiles (in loop #1/2)
+   * - WriteOutput() writes output data productes to disk (in loop #1/2)
    * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
@@ -160,16 +160,16 @@ class Omicron {
    * Returns the segments associated to the trigger time coverage.
    * See Triggers::GetTriggerSegments().
    *
-   * NOTE: This function should be called somewhere after ExtractTriggers() and before WriteTriggers() so the triggers are present in memory.
+   * NOTE: This function should be called somewhere after Project() and before WriteOutput() while the triggers are present in memory.
    * @param aThr threshold object
    * @param aInfValue value above which the threshold is considered infinite
    */
   Segments* GetTriggerSegments(TH1D *aThr=NULL, const double aInfValue=1e20);
   
   /**
-   * Returns list of channels to process.
+   * Returns list of channels.
    */
-  inline vector <string> GetChannelList(void){return fChannels;};
+  inline vector <string> GetChannels(void){return fChannels;};
 
   /**
    * Returns chunk duration [s].
@@ -237,8 +237,6 @@ class Omicron {
   int fOverlapDuration;         ///< overlap duration
   double fMismatchMax;          ///< maximum mismatch
   vector <int> fWindows;        ///< scan windows
-  int fWindowMax;               ///< maximal window value
-  string ffftplan;              ///< fft plan
   double fSNRThreshold;         ///< SNR Threshold
   int fTileDown;                ///< tile-down flag
   vector <string> fClusterAlgo; ///< clustering modes
@@ -249,14 +247,17 @@ class Omicron {
   string fWriteMode;            ///< write mode
 
   // PROCESS MONITORING
-  Segments *inSegments;         ///< cumulative requested segments
-  Segments **outSegments;       ///< segments currently written on disk
+  Segments *inSegments;         ///< requested segments
+  Segments **outSegments;       ///< segments currently processed
   int chunk_ctr;                ///< number of loaded chunks
   int *chan_ctr;                ///< number of times a channel was loaded
   int *chan_data_ctr;           ///< number of times a channel was found data
   int *chan_cond_ctr;           ///< number of times a channel was conditioned
   int *chan_proj_ctr;           ///< number of times a channel was projected
   int *chan_write_ctr;          ///< number of times a channel's triggers were saved
+  vector <int> mapcenter;       ///< save map centers (only for html)
+  vector <int> chunkstart;      ///< chunk start for html plots (only for html)
+  vector <int> chunkstop;       ///< chunk stop for html plots (only for html)
 
   // COMPONENTS
   Odata *dataseq;               ///< data sequence
@@ -267,12 +268,13 @@ class Omicron {
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
 
-  // RAW DATA
+  // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
   double *SegVect;              ///< subsegment raw data (time domain)
   
   // CONDITIONING
-  bool Whiten(double **aDataRe, double **aDataIm); ///< whiten data vector
+  bool Whiten(double **aDataRe, 
+	      double **aDataIm);///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
@@ -282,12 +284,12 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   vector <string> outdir;       ///< output directories per channel
-  void SaveTriggers(void);      ///< save triggers
+  void SaveAPSD(const string type="PSD");///< Save current PSD/ASD
+  void SaveTS(void);            ///< Save current chunk time series
+  void MakeHtml(void);          ///< make html report
 
   // MISC
   GwollumPlot *GPlot;           ///< Gwollum plots
-  void SaveAPSD(const string type="PSD");    ///< Save current PSD
-  void SaveTS(void);///< Save current chunk time series
   void PrintASCIIlogo(void);    ///< print ascii logo
 
   ClassDef(Omicron,0)  
