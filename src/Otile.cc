@@ -126,11 +126,11 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const in
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr, const bool aThumb){
+double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr, const bool aThumb){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!IsDirectory(aOutdir)){
     cerr<<"Otile::SaveMaps: the directory "<<aOutdir<<" is missing"<<endl;
-    return false;
+    return -1.0;
   }
   if(!aWindows.size()) aWindows.push_back(TimeRange);
    
@@ -138,12 +138,18 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
   ostringstream tmpstream;
 
   // apply SNR threshold
+  double snrmax=-1, snr;
   int n=0;
-  for(int q=0; q<nq; q++)
+  for(int q=0; q<nq; q++){
+    qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
+    snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());
     if(qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin())<aSNRThr) n++;
+    if(snr>snrmax) snrmax=snr;
+    qplanes[q]->GetXaxis()->UnZoom();
+  }
   if(n==nq){
     if(fVerbosity) cout<<"Otile::SaveMaps: maps "<<aName<<" are below SNR threshold -> do not save"<<endl;
-    return true;
+    return snrmax;
   }
 
   // open root file
@@ -207,7 +213,7 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
 	  tmpstream.clear(); tmpstream.str("");
 	  if(aThumb){ //thumbnail
 	    tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"th."<<form[f];
-	    Print(tmpstream.str(),0.55);
+	    Print(tmpstream.str(),0.5);
 	    tmpstream.clear(); tmpstream.str("");
 	  }
 	}
@@ -250,7 +256,7 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
 	tmpstream.clear(); tmpstream.str("");
 	if(aThumb){ //thumbnail
 	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"th."<<form[f];
-	  Print(tmpstream.str(),0.55);
+	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}
       }
@@ -259,7 +265,7 @@ bool Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, co
     }
   }
 
-  return true;
+  return snrmax;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

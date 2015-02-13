@@ -120,15 +120,17 @@ class Otile: public GwollumPlot {
    * Saves the maps for each Q-planes in output files.
    * The maps are saved in output files.
    * An addition map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
-   * Maps are not saved if the maximum SNR is below threshold.
+   * Maps are not saved if the maximum SNR within the <u>first</u> window time range is below threshold.
+   * The returned value is the maximum SNR value within the <u>first</u> window time range. -1.0 is returned if this function fails.
    * @param aOutdir output directory path
    * @param aName name identifier
    * @param aT0 plane central time
    * @param aFormat output format string
    * @param aWindows list of time windows
    * @param aSNRThr SNR threshold
+   * @param aThumb also produce thumbnails if set to true
    */
-  bool SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0, const bool aThumb=false);
+  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.

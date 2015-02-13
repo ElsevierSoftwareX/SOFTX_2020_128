@@ -255,6 +255,7 @@ class Omicron {
   int *chan_cond_ctr;           ///< number of times a channel was conditioned
   int *chan_proj_ctr;           ///< number of times a channel was projected
   int *chan_write_ctr;          ///< number of times a channel's triggers were saved
+  double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
   vector <int> mapcenter;       ///< save map centers (only for html)
   vector <int> chunkstart;      ///< chunk start for html plots (only for html)
   vector <int> chunkstop;       ///< chunk stop for html plots (only for html)
@@ -291,6 +292,9 @@ class Omicron {
   // MISC
   GwollumPlot *GPlot;           ///< Gwollum plots
   void PrintASCIIlogo(void);    ///< print ascii logo
+  const string colorcode[17] = {"#1b02e6","#0220e6","#0257e6","#028ee6","#01c5e6","#01e6cf","#01e698","#01e660","#01e629","#10e601","#7fe601","#b6e601","#e6de00","#e6a600","#e66f00","#e63800","#e60000"};
+  string GetColorCode(const double aSNRratio);
+
 
   ClassDef(Omicron,0)  
 };

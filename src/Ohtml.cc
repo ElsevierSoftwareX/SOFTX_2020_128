@@ -84,13 +84,21 @@ void Omicron::MakeHtml(void){
 
   // channel index
   report<<"<h2>Channel index</h2>"<<endl;
+  report<<"<table><tr>"<<endl;
+  for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
+  report<<"<td>glitch strength</td>"<<endl;
+  report<<"</tr></table>"<<endl;
+
   report<<"<table class=\"omicronindex\">"<<endl;
+  string colcode;
   for(int c=0; c<(int)fChannels.size(); c++){
-    if(!(c%8)) report<<"  <tr>"<<endl;
-    report<<"    <td><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
-    if(!((c+1)%8)) report<<"  </tr>"<<endl;
+    colcode="";
+    if(fSNRThreshold>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold)/fSNRThreshold);
+    if(!(c%9)) report<<"  <tr>"<<endl;
+    report<<"    <td bgcolor=\""<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
+    if(!((c+1)%9)) report<<"  </tr>"<<endl;
   }
-  for(int c=0; c<8-((int)fChannels.size())%8; c++) report<<"    <td></td>"<<endl;
+  for(int c=0; c<9-((int)fChannels.size())%9; c++) report<<"    <td></td>"<<endl;
   report<<"  </tr>"<<endl;
   report<<"</table>"<<endl;
   report<<"<hr />"<<endl;
@@ -112,10 +120,13 @@ void Omicron::MakeHtml(void){
     report<<"</table>"<<endl;
   
     // Plot links
-    if(form.compare("")){
+    if(form.compare("") && (fOutProducts.find("timeseries")!=string::npos ||
+			    fOutProducts.find("asd")!=string::npos ||
+			    fOutProducts.find("psd")!=string::npos)
+       ){
       report<<"Plots:"<<endl;
       report<<"<table class=\"omicronsummary\">"<<endl;
-
+      
       // time-series
       if(form.compare("")&&fOutProducts.find("timeseries")!=string::npos){
 	for(int w=0; w<(int)fWindows.size(); w++){
@@ -126,7 +137,7 @@ void Omicron::MakeHtml(void){
 	  report<<"  </tr>"<<endl;
 	}
       }
-
+      
       // ASD
       if(form.compare("")&&fOutProducts.find("asd")!=string::npos){
 	report<<"  <tr><td>ASD:</td>"<<endl;
@@ -135,7 +146,7 @@ void Omicron::MakeHtml(void){
 	}
 	report<<"  </tr>"<<endl;
       }
-
+      
       // PSD
       if(form.compare("")&&fOutProducts.find("psd")!=string::npos){
 	report<<"  <tr><td>PSD:</td>"<<endl;
@@ -173,16 +184,21 @@ void Omicron::MakeHtml(void){
 	}
 	report<<"  </tr>"<<endl;
       }
+      if(sfirst<0)// below SNR threshold
+	report<<"<tr><td>Below threshold (SNR &lt; "<<fSNRThreshold<<")</td></tr>"<<endl;
+
       report<<"</table>"<<endl;
 
       // add window plots
-      if(sfirst>=0)
-      report<<"<table class=\"omicron\">"<<endl;
-      report<<"  <tr>"<<endl;
-      for(int w=0; w<(int)fWindows.size(); w++)
-	report<<"    <td><a id=\"a_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" src=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<fChannels[c]<<" map dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
-      report<<"  </tr>"<<endl;
-      report<<"</table>"<<endl;
+      if(sfirst>=0){
+	report<<"<table class=\"omicron\">"<<endl;
+	report<<"  <tr>"<<endl;
+	for(int w=0; w<(int)fWindows.size(); w++)
+	  report<<"    <td><a id=\"a_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" src=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<fChannels[c]<<" map dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
+	report<<"  </tr>"<<endl;
+	report<<"</table>"<<endl;
+      }
+      
     }
 
     report<<"<hr />"<<endl;

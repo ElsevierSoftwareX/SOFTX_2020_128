@@ -69,3 +69,13 @@ Segments* Omicron::GetTriggerSegments(TH1D *aThr, const double aInfValue){
   return triggers[chanindex]->GetTriggerSegments(aThr,aInfValue);
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+string Omicron::GetColorCode(const double aSNRratio){
+////////////////////////////////////////////////////////////////////////////////////
+  if(aSNRratio<=0) return "";
+  double inc = 0.1;
+
+  if(aSNRratio>=17.0*inc) return colorcode[16];// saturation
+
+  return colorcode[((int)floor(aSNRratio/inc))%17];
+}

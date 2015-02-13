@@ -62,6 +62,7 @@ Omicron::Omicron(const string aOptionFile){
   chan_cond_ctr  = new int       [(int)fChannels.size()];
   chan_proj_ctr  = new int       [(int)fChannels.size()];
   chan_write_ctr = new int       [(int)fChannels.size()];
+  chan_mapsnrmax = new double    [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     outSegments[c]    = new Segments();
     chan_ctr[c]       = 0;
@@ -69,6 +70,7 @@ Omicron::Omicron(const string aOptionFile){
     chan_cond_ctr[c]  = 0;
     chan_proj_ctr[c]  = 0;
     chan_write_ctr[c] = 0;
+    chan_mapsnrmax[c] = 0.0;
   }
   
   // init FFL
@@ -179,6 +181,7 @@ Omicron::~Omicron(void){
   delete chan_cond_ctr;
   delete chan_proj_ctr;
   delete chan_write_ctr;
+  delete chan_mapsnrmax;
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
     delete sample[c];
@@ -503,18 +506,20 @@ bool Omicron::Project(void){
     }
 
     // write maps on disk
+    double snr;
     if(fOutProducts.find("maps")!=string::npos){
       if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
       if(fOutProducts.find("html")==string::npos) 
-	tile->SaveMaps(outdir[chanindex],
+	snr=tile->SaveMaps(outdir[chanindex],
 		       fChannels[chanindex],
 		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
 		       fOutFormat,fWindows,fSNRThreshold,false);
       else
-	tile->SaveMaps(outdir[chanindex],
+	snr=tile->SaveMaps(outdir[chanindex],
 		       fChannels[chanindex],
 		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
 		       fOutFormat,fWindows,fSNRThreshold,true);
+      if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
     }
 
     // save info for html report
