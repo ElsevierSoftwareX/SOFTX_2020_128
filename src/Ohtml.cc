@@ -82,13 +82,33 @@ void Omicron::MakeHtml(void){
   report<<"<hr />"<<endl;
   report<<endl;
 
+  // search parameters
+  report<<"<h2>Parameters</h2>"<<endl;
+  report<<"<table class=\"omicron\">"<<endl;
+  report<<"  <tr><td>Timing:</td><td> chunks of "<<fChunkDuration<<" sec, divided into "<<(fChunkDuration-fOverlapDuration)/(fSegmentDuration-fOverlapDuration)<<" sub-segments of "<<fSegmentDuration<<" sec, overlapping by "<<fOverlapDuration<<" sec</td></tr>"<<endl;
+  report<<"  <tr><td>Sampling frequency:</td><td>"<<fSampleFrequency<<" Hz</td></tr>"<<endl;
+  report<<"  <tr><td>Frequency range:</td><td>"<<fFreqRange[0]<<" &rarr; "<<fFreqRange[1]<<" Hz</td></tr>"<<endl;
+  report<<"  <tr><td>Q range:</td><td>"<<fQRange[0]<<" &rarr; "<<fQRange[1]<<"</td></tr>"<<endl;
+  report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<fMismatchMax*100<<" %</td></tr>"<<endl;
+  report<<"  <tr><td>SNR threshold:</td><td>SNR &gt; "<<fSNRThreshold<<"</td></tr>"<<endl;
+  report<<"  <tr><td>Tile-down:</td><td>";
+  if(fTileDown) report<<"YES";
+  else report<<"NO";
+  report<<"</td></tr>"<<endl;
+  if(fClusterAlgo[0].compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo[0]<<", dt = "<<fcldt<<" sec</td></tr>"<<endl;
+  else report<<"  <tr><td>Trigger clustering:</td><td>NONE</td></tr>"<<endl;
+  report<<"</table>"<<endl;
+  report<<"<hr />"<<endl;
+  report<<endl;
+
   // channel index
   report<<"<h2>Channel index</h2>"<<endl;
-  report<<"<table><tr>"<<endl;
-  for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
-  report<<"<td>glitch strength</td>"<<endl;
-  report<<"</tr></table>"<<endl;
-
+  if(fOutProducts.find("maps")!=string::npos){  
+    report<<"<table><tr>"<<endl;
+    for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
+    report<<"<td>glitch strength</td>"<<endl;
+    report<<"</tr></table>"<<endl;
+  }
   report<<"<table class=\"omicronindex\">"<<endl;
   string colcode;
   for(int c=0; c<(int)fChannels.size(); c++){
@@ -114,9 +134,9 @@ void Omicron::MakeHtml(void){
     report<<"<table class=\"omicronsummary\">"<<endl;
     report<<"  <tr><td>Number of calls [load/data/condition/projection/write]:</td><td>"<<chan_ctr[c]<<"/"<<chan_data_ctr[c]<<"/"<<chan_cond_ctr[c]<<"/"<<chan_proj_ctr[c]<<"/"<<chan_write_ctr[c]<<"</td></tr>"<<endl;
     report<<"  <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
-    report<<"  <tr><td>Full output:</td><td><a href=\"./"<<fChannels[c]<<"\">data products</a></td></tr>"<<endl;
     outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
     report<<"  <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
+    report<<"  <tr><td>Output:</td><td><a href=\"./"<<fChannels[c]<<"\">./"<<fChannels[c]<<"</a></td></tr>"<<endl;
     report<<"</table>"<<endl;
   
     // Plot links

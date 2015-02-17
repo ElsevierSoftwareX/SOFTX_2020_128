@@ -10,10 +10,16 @@ Omicron::Omicron(const string aOptionFile){
 ////////////////////////////////////////////////////////////////////////////////////
   PrintASCIIlogo();
   gErrorIgnoreLevel = 3000;
+  status_OK=true;
 
   // init timer
   time ( &timer );
   timer_start=timer;
+
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  //--------------                OPTIONS                 --------------
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  if(fVerbosity) cout<<"Omicron::Omicron: init options..."<<endl;
 
   // input
   fOptionFile=aOptionFile;
@@ -41,66 +47,22 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");           fOptionType.push_back("s");
 
   // read option file
-  status_OK=ReadOptions();
+  ReadOptions();
 
-  // output directory
-  maindir=fMaindir;
-  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
-  
-  // init plotting
-  GPlot = new GwollumPlot ("Omicron");
-
-  // init process monitoring
-  if(fVerbosity) cout<<"Omicron::Omicron: init monitoring..."<<endl;
-  chanindex      = -1;
-  timeoffset     = 0.0;
-  inSegments     = new Segments();
-  outSegments    = new Segments* [(int)fChannels.size()];
-  chunk_ctr      = 0;
-  chan_ctr       = new int       [(int)fChannels.size()];
-  chan_data_ctr  = new int       [(int)fChannels.size()];
-  chan_cond_ctr  = new int       [(int)fChannels.size()];
-  chan_proj_ctr  = new int       [(int)fChannels.size()];
-  chan_write_ctr = new int       [(int)fChannels.size()];
-  chan_mapsnrmax = new double    [(int)fChannels.size()];
-  for(int c=0; c<(int)fChannels.size(); c++){
-    outSegments[c]    = new Segments();
-    chan_ctr[c]       = 0;
-    chan_data_ctr[c]  = 0;
-    chan_cond_ctr[c]  = 0;
-    chan_proj_ctr[c]  = 0;
-    chan_write_ctr[c] = 0;
-    chan_mapsnrmax[c] = 0.0;
-  }
-  
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  //--------------               INPUT DATA               --------------
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // init FFL
-  FFL=NULL;
+  FFL=NULL; // no input data
   if(fFflFile.compare("none")){
-    if(fVerbosity) cout<<"Omicron::Omicron: init FFL..."<<endl;
+    if(fVerbosity) cout<<"Omicron::Omicron: init ffl..."<<endl;
     FFL = new ffl(fFflFile, "GWOLLUM", fVerbosity);
-    status_OK*=FFL->DefineTmpDir(maindir);
+    status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
   }
-    
-  // adjust default parameters using input data
-  // FIXME: this sucks!
-  AdjustParameters();
-
-  // init data containers
-  if(fVerbosity) cout<<"Omicron::Omicron: init data container and procedures..."<<endl;
-  dataseq = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
-  fChunkDuration=dataseq->GetChunkDuration();
-  fSegmentDuration=dataseq->GetSegmentDuration();
-  fOverlapDuration=dataseq->GetOverlapDuration();
-  ChunkVect   = new double [fChunkDuration*fSampleFrequency];
-  SegVect     = new double [fSegmentDuration*fSampleFrequency];
-  TukeyWindow = GetTukeyWindow(fSegmentDuration*fSampleFrequency,fOverlapDuration*fSampleFrequency);
-  offt = new fft(fSegmentDuration*fSampleFrequency,"FFTW_ESTIMATE");
-  dataRe = new double* [dataseq->GetNSegments()];
-  dataIm = new double* [dataseq->GetNSegments()];
-  
-  // init Streams
-  if(fVerbosity) cout<<"Omicron::Omicron: init Streams..."<<endl;
+   
+  // data Streams
+  if(fVerbosity) cout<<"Omicron::Omicron: init data streams..."<<endl;
   streams = new Streams* [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     streams[c] = new Streams(fChannels[c], fVerbosity);
@@ -108,34 +70,28 @@ Omicron::Omicron(const string aOptionFile){
     streams[c]->MakeLVDetector();// just an attempt
   }
   
-  // init Sample
+  // data Sample
+  if(fVerbosity) cout<<"Omicron::Omicron: init data sampling..."<<endl;
   sample = new Sample* [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++) sample[c] = new Sample(0);
-  
-  // init Spectrum
-  if(fVerbosity) cout<<"Omicron::Omicron: init Spectra..."<<endl;
-  int psdsize;
-  if(fFreqRange[0]>=1.0) 
-    psdsize = fSampleFrequency; // 0.5Hz binning
-  else
-    psdsize=NextPowerOfTwo(10.0*floor((double)fSampleFrequency/fFreqRange[0]));// over-binning (>factor 20)
-  
-  spectrum = new Spectrum(fSampleFrequency,psdsize,0,fVerbosity);
-  status_OK*=spectrum->GetStatus();
 
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  //--------------                 OUTPUT                 --------------
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-  // init Triggers
-  if(fVerbosity) cout<<"Omicron::Omicron: init Triggers..."<<endl;
-  triggers    = new MakeTriggers* [(int)fChannels.size()];
+  // output directory
+  maindir=fMaindir;
+  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
+  
+  // plotting
+  GPlot = new GwollumPlot ("Omicron");
+
+  // triggers
+  if(fVerbosity) cout<<"Omicron::Omicron: init triggers..."<<endl;
+  triggers = new MakeTriggers* [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
-    
-    // init triggers object
     triggers[c] = new MakeTriggers(outdir[c],fChannels[c],fOutFormat,fVerbosity);
-       
-    // set clustering parameters
-    status_OK*=triggers[c]->SetClusterDeltaT(fcldt);
-        
-    // set metadata
+    triggers[c]->SetClusterDeltaT(fcldt);
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fMaindir);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
@@ -163,9 +119,66 @@ Omicron::Omicron(const string aOptionFile){
     triggers[c]->SetMstreamname(streams[c]->GetName());
     triggers[c]->SetMdetindex(streams[c]->GetDetIndex());
   }
+
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  //--------------                INTERNALS               --------------
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+  // process monitoring
+  if(fVerbosity) cout<<"Omicron::Omicron: init process monitors..."<<endl;
+  chanindex      = -1;
+  timeoffset     = 0.0;
+  inSegments     = new Segments();
+  outSegments    = new Segments* [(int)fChannels.size()];
+  chunk_ctr      = 0;
+  chan_ctr       = new int       [(int)fChannels.size()];
+  chan_data_ctr  = new int       [(int)fChannels.size()];
+  chan_cond_ctr  = new int       [(int)fChannels.size()];
+  chan_proj_ctr  = new int       [(int)fChannels.size()];
+  chan_write_ctr = new int       [(int)fChannels.size()];
+  chan_mapsnrmax = new double    [(int)fChannels.size()];
+  for(int c=0; c<(int)fChannels.size(); c++){
+    outSegments[c]    = new Segments();
+    chan_ctr[c]       = 0;
+    chan_data_ctr[c]  = 0;
+    chan_cond_ctr[c]  = 0;
+    chan_proj_ctr[c]  = 0;
+    chan_write_ctr[c] = 0;
+    chan_mapsnrmax[c] = 0.0;
+  }
   
-  // init tiles
-  if(fVerbosity) cout<<"Omicron::Omicron: init Tile..."<<endl;
+  // data sequence
+  if(fVerbosity) cout<<"Omicron::Omicron: init data sequence..."<<endl;
+  dataseq          = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
+  fChunkDuration   = dataseq->GetChunkDuration();
+  fSegmentDuration = dataseq->GetSegmentDuration();
+  fOverlapDuration = dataseq->GetOverlapDuration();
+
+  // adjust plot time windows
+  if(!fWindows.size()) fWindows.push_back(fSegmentDuration-fOverlapDuration);
+  std::sort(fWindows.begin(), fWindows.end());
+
+  // data container
+  if(fVerbosity) cout<<"Omicron::Omicron: init data container..."<<endl;
+  ChunkVect   = new double [fChunkDuration*fSampleFrequency];
+  SegVect     = new double [fSegmentDuration*fSampleFrequency];
+  TukeyWindow = GetTukeyWindow(fSegmentDuration*fSampleFrequency,fOverlapDuration*fSampleFrequency);
+  offt        = new fft(fSegmentDuration*fSampleFrequency,"FFTW_ESTIMATE");
+  dataRe      = new double* [dataseq->GetNSegments()];
+  dataIm      = new double* [dataseq->GetNSegments()];
+  
+  // data Spectrum
+  if(fVerbosity) cout<<"Omicron::Omicron: init data spectrum..."<<endl;
+  int psdsize;
+  if(fFreqRange[0]>=1.0) 
+    psdsize = fSampleFrequency; // 0.5Hz binning
+  else
+    psdsize=NextPowerOfTwo(10.0*floor((double)fSampleFrequency/fFreqRange[0]));// over-binning (>factor 20)
+  spectrum = new Spectrum(fSampleFrequency,psdsize,0,fVerbosity);
+  status_OK*=spectrum->GetStatus();
+
+  // tiling
+  if(fVerbosity) cout<<"Omicron::Omicron: init tiling..."<<endl;
   tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],fSampleFrequency,fMismatchMax,fVerbosity);
   
 }

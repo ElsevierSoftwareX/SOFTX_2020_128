@@ -59,7 +59,7 @@ int main (int argc, char* argv[]){
   }
 
   //****** CASE2: segment file
-  else if(IsTextFile(argv[1])){
+  else if(atoi(argv[1])<700000000&&IsTextFile(argv[1])){
     segmentfile=(string)argv[1];
     optionfile=(string)argv[2];
 
@@ -76,7 +76,6 @@ int main (int argc, char* argv[]){
   else if(atoi(argv[1])>700000000){
     gps=atoi(argv[1]);
     optionfile=(string)argv[2];
-
     // empty segment object
     segments = new Segments();
   }

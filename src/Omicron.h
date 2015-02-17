@@ -218,33 +218,32 @@ class Omicron {
   double timeoffset;            ///< current time offset
 
   // PARAMETERS
-  bool ReadOptions(void);       ///< to parse option card
+  void ReadOptions(void);       ///< to parse option card
   void AdjustParameters(void);  ///< adjust default parameters
   string fOptionFile;           ///< option file name
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
-  string fMaindir;              ///< main output directory
-  vector <string> fChannels;    ///< list of channel names
-  vector <string> fInjChan;     ///< injection channel names
-  vector <double> fInjFact;     ///< injection factors
   string fFflFile;              ///< path to FFL file
-  string fTrigDir;              ///< path to trigger directory
-  int fSampleFrequency;         ///< sampling frequency of input data
-  vector <double> fFreqRange;   ///< frequency range
-  vector <double> fQRange;      ///< Q range
+  vector <string> fChannels;    ///< list of channel names
+  int fSampleFrequency;         ///< working sampling frequency
+  string fMaindir;              ///< main output directory
+  int fVerbosity;               ///< verbosity level
+  string fOutProducts;          ///< output products
+  string fOutFormat;            ///< output format
   int fChunkDuration;           ///< chunk duration (varies!)
   int fSegmentDuration;         ///< segment duration
   int fOverlapDuration;         ///< overlap duration
+  vector <double> fFreqRange;   ///< frequency range
+  vector <double> fQRange;      ///< Q range
   double fMismatchMax;          ///< maximum mismatch
-  vector <int> fWindows;        ///< scan windows
   double fSNRThreshold;         ///< SNR Threshold
-  int fTileDown;                ///< tile-down flag
   vector <string> fClusterAlgo; ///< clustering modes
   double fcldt;                 ///< clustering dt
-  int fVerbosity;               ///< verbosity level
-  string fOutFormat;            ///< output format
-  string fOutProducts;          ///< output products
   string fWriteMode;            ///< write mode
+  int fTileDown;                ///< tile-down flag
+  vector <int> fWindows;        ///< scan windows
+  vector <string> fInjChan;     ///< injection channel names
+  vector <double> fInjFact;     ///< injection factors
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments

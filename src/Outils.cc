@@ -32,7 +32,7 @@ void Omicron::PrintMessage(const string aMessage){
 ////////////////////////////////////////////////////////////////////////////////////
   time ( &timer );
   ptm = gmtime ( &timer );
-  cout<<"\n("<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) [+"<<timer-timer_start<<"s]: "<<aMessage<<endl;
+  cout<<">>>>>>>>>> ("<<setfill('0')<<setw(2)<<ptm->tm_hour<<":"<<setfill('0')<<setw(2)<<ptm->tm_min<<":"<<setfill('0')<<setw(2)<<ptm->tm_sec<<" (UTC) [+"<<timer-timer_start<<"s]: "<<aMessage<<" <<<<<<<<<<"<<endl;
   return;
 }
 
