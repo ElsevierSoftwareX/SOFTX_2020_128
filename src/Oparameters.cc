@@ -88,12 +88,12 @@ void Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: No search chunk duration (PARAMETER/CHUNKDURATION)   --> set default: 512s"<<endl;
     fChunkDuration=0;// will be updated by Odata
   }
-  if(!io->GetOpt("PARAMETER","BLOCKDURATION", fSegmentDuration)){
-    cerr<<"Omicron::ReadOptions: No search block duration (PARAMETER/BLOCKDURATION)   --> set default: 64s"<<endl;
+  if(!io->GetOpt("PARAMETER","SEGMENTDURATION", fSegmentDuration)){
+    cerr<<"Omicron::ReadOptions: No search segment duration (PARAMETER/SEGMENTDURATION)   --> set default: 64s"<<endl;
     fSegmentDuration=0;// will be updated by Odata
   }
   if(!io->GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration)){
-    cerr<<"Omicron::ReadOptions: No search block duration (PARAMETER/OVERLAPDURATION) --> set default: 8s"<<endl;
+    cerr<<"Omicron::ReadOptions: No search overlap duration (PARAMETER/OVERLAPDURATION) --> set default: 8s"<<endl;
     fOverlapDuration=0;// will be updated by Odata
   }
   //*****************************
@@ -145,7 +145,7 @@ void Omicron::ReadOptions(void){
   
   //***** set clustering *****
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
-    cerr<<"Omicron::ReadOptions: No clustering (TRIGGER/CLUSTERING)                   --> set default: none"<<endl;
+    cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                   --> set default: none"<<endl;
     fClusterAlgo.push_back("none"); fClusterAlgo.push_back("all");
   }
   if(fClusterAlgo.size()==1) fClusterAlgo.push_back("all");
@@ -155,8 +155,8 @@ void Omicron::ReadOptions(void){
   //*****************************
   
   //***** Down-tiling *****
-  if(!io->GetOpt("PARAMETER","DOWNTILING", fTileDown)){
-    cerr<<"Omicron::ReadOptions: No downtiling option (PARAMETER/DOWNTILING)          --> set default: NO"<<endl;
+  if(!io->GetOpt("PARAMETER","TILEDOWN", fTileDown)){
+    cerr<<"Omicron::ReadOptions: No downtiling option (PARAMETER/TILEDOWN)            --> set default: NO"<<endl;
     fTileDown=0;
   }
   //*****************************
