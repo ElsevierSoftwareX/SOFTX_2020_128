@@ -4,6 +4,8 @@
 #include "Omicron.h"
 
 ClassImp(Omicron)
+  
+const string Omicron::colorcode[17] = {"#1b02e6","#0220e6","#0257e6","#028ee6","#01c5e6","#01e6cf","#01e698","#01e660","#01e629","#10e601","#7fe601","#b6e601","#e6de00","#e6a600","#e66f00","#e63800","#e60000"};
 
 ////////////////////////////////////////////////////////////////////////////////////
 Omicron::Omicron(const string aOptionFile){ 
