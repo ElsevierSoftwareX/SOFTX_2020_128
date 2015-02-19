@@ -120,7 +120,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const in
   }
 
   // save segments
-  aTriggers->AddSegment((double)aT0-TimeRange/2.0+(double)aLeftTimePad,(double)aT0+TimeRange/2.0-(double)aRightTimePad);
+  aTriggers->AddSegment((double)(aT0-TimeRange/2+aLeftTimePad),(double)(aT0+TimeRange/2-aRightTimePad));
   
   return true;
 }

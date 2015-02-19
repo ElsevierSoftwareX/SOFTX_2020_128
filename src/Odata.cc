@@ -107,7 +107,12 @@ bool Odata::NewChunk(void){
   
   // test chunk against segments and update chunk if necessary
   while(!TestChunk());
+  
+  // overlap with previous chunk
   OverlapDurationCurrent-=ChunkStart;
+
+  // correct if we start a new segment
+  OverlapDurationCurrent=TMath::Max(OverlapDuration,OverlapDurationCurrent);
 
   // end of data segments --> stop
   if(seg>=fSegments->GetNsegments()){

@@ -152,7 +152,7 @@ void Omicron::MakeHtml(void){
 	for(int w=0; w<(int)fWindows.size(); w++){
 	  report<<"  <tr><td>Raw time series ("<<fWindows[w]<<"s):</td>"<<endl;
 	  for(int s=0; s<(int)chunkstart.size(); s++){
-	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<(chunkstart[s]+chunkstop[s])/2<<"</a></td>"<<endl;
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
 	  }
 	  report<<"  </tr>"<<endl;
 	}
@@ -162,7 +162,7 @@ void Omicron::MakeHtml(void){
       if(form.compare("")&&fOutProducts.find("asd")!=string::npos){
 	report<<"  <tr><td>ASD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<(chunkstart[s]+chunkstop[s])/2<<"</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
 	}
 	report<<"  </tr>"<<endl;
       }
@@ -171,7 +171,7 @@ void Omicron::MakeHtml(void){
       if(form.compare("")&&fOutProducts.find("psd")!=string::npos){
 	report<<"  <tr><td>PSD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<(chunkstart[s]+chunkstop[s])/2<<"</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
 	}
 	report<<"  </tr>"<<endl;
       }
@@ -236,197 +236,3 @@ void Omicron::MakeHtml(void){
   return;
 }
 
-/*
-
-  // report directory: default or user-defined
-  string reportdir = aScanDir;
-  if(!reportdir.compare("")) reportdir=fScandir;
-
-  // check that the report directory exists
-  if(!IsDirectory(reportdir)){
-    cerr<<"Omicron::ScanReport: missing scan directory "<<reportdir<<endl;
-    return false;
-  }
-  
-  // scan channel directories
-  vector <string> chanfull, chan;
-  vector <bool> chanOK;
-  if(!ListDirectories(reportdir,chanfull)){
-    cerr<<"Omicron::ScanReport: no channel directories in "<<reportdir<<endl;
-    return false;
-  }
-
-  // remove incomplete directories
-  for(int c=0; c<(int)chanfull.size(); c++){
-    if(!IsBinaryFile(reportdir+"/"+chanfull[c]+"/"+chanfull[c]+"_mapsummary.root")){
-      chanOK.push_back(false);
-    }
-    else{
-      chan.push_back(chanfull[c]);
-      chanOK.push_back(true);
-    }
-  }
-  if(!chan.size()){
-    cerr<<"Omicron::ScanReport: no scan to display"<<endl;
-    return false;
-  }
-
-  // get map configuration (first channel)
-  ostringstream tmpstream;
-  TTree *MS;
-  double map_gpsref, map_q, map_gpsmax, map_freqmax, map_snrmax, snrtest;
-  int map_win, map_winref, wintest, map_nq, map_nwin, map_nformat, mtest, map_wstart, map_wstop;
-  string *map_format=0, winset_full, formatset_full;
-  vector<double> qset;
-  vector<int> winset;
-  vector<string> formatset;
-  TFile sumfile((reportdir+"/"+chan[0]+"/"+chan[0]+"_mapsummary.root").c_str());
-  if(sumfile.IsZombie()){
-    cerr<<"Omicron::ScanReport: no channel summary in "<<reportdir<<"/"<<chan[0]<<endl;
-    return false;
-  }
-  MS=(TTree*)sumfile.Get("mapsummary");
-  if(!MS->GetEntries()){
-    cerr<<"Omicron::ScanReport: no scan material "<<reportdir<<"/"<<chan[0]<<endl;
-    delete MS;
-    sumfile.Close();   
-    return false;
-  }
-  MS->SetBranchAddress("gps_center",&map_gpsref);
-  MS->SetBranchAddress("gps_whitening_start",&map_wstart);
-  MS->SetBranchAddress("gps_whitening_stop",&map_wstop);
-  MS->SetBranchAddress("nQ",&map_nq);
-  MS->SetBranchAddress("nwindow",&map_nwin);
-  MS->SetBranchAddress("window",&map_winref);
-  MS->SetBranchAddress("nformat",&map_nformat);
-  MS->GetEntry(0);
-  MS->SetBranchAddress("window",&map_win);
-  tmpstream<<"[";
-  for(int m=0; m<map_nwin*map_nformat; m+=map_nformat){
-    MS->GetEntry(m);
-    if(m) tmpstream<<",";
-    winset.push_back(map_win);
-    tmpstream<<"'"<<map_win<<"'";
-  }
-  tmpstream<<"]";
-  winset_full=tmpstream.str();
-  tmpstream.str(""); tmpstream.clear();
-  MS->SetBranchAddress("format",&map_format);
-  tmpstream<<"[";
-  for(int m=0; m<map_nformat; m++){
-    MS->GetEntry(m);
-    if(m) tmpstream<<",";
-    formatset.push_back(*map_format);
-    tmpstream<<"'"<<*map_format<<"'";
-  }
-  tmpstream<<"]";
-  formatset_full=tmpstream.str();
-  tmpstream.str(""); tmpstream.clear();
-
-  delete MS;
-  sumfile.Close();
-
-  // timing
-  tm utc;
-  GPSToUTC (&utc, (int)map_gpsref);
-
-  // import material
-  system(("cp -f ${GWOLLUM_DOC}/style.css "+reportdir).c_str());
-  system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+reportdir+"/icon.gif").c_str());
-  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif "+reportdir).c_str());
-  system(("cp -f ${OMICRON_HTML}/template/comparison_mode.html "+reportdir).c_str());
-
-  
-
-  // channel index
-  report<<"<h2>Scanned channels:</h2>"<<endl;
-  report<<"<table class=\"omiscan\">"<<endl;
-  for(int c=0; c<(int)chanfull.size(); c++){
-    if(c%4==0) report<<"  <tr>";
-    if(chanOK[c]) report<<"<td><a href=\"#"<<chanfull[c]<<"\">"<<chanfull[c]<<"</a></td>";
-    else report<<"<td>"<<chanfull[c]<<"</td>";
-    if((c+1)%4==0) report<<"  </tr>"<<endl;
-  }
-  for(int c=0; c<((int)chanfull.size())%4; c++){
-    report<<"<td></td>";
-    if(c==((int)chanfull.size())%4-1) report<<"</tr>"<<endl;
-  }
-  report<<"</table>"<<endl;
-  
-  // loop over channel directories
-  for(int c=0; c<(int)chan.size(); c++){
-    
-    // get summary tree
-    TFile sumfile((reportdir+"/"+chan[c]+"/"+chan[c]+"_mapsummary.root").c_str());
-    if(sumfile.IsZombie()){
-      cerr<<"Omicron::ScanReport: no channel summary in "<<reportdir<<"/"<<chan[c]<<endl;
-      continue;
-    }
-    MS=(TTree*)sumfile.Get("mapsummary");
-    MS->SetBranchAddress("Q",&map_q);
-    MS->SetBranchAddress("window",&map_win);
-    MS->SetBranchAddress("gps_loudest",&map_gpsmax);
-    MS->SetBranchAddress("freq_loudest",&map_freqmax);
-    MS->SetBranchAddress("snr_loudest",&map_snrmax);
-
-    // get loudest tile over the first window
-    for(int m=0; m<MS->GetEntries(); m++){
-      MS->GetEntry(m);
-      if(!m){
-	wintest=map_win;
-	snrtest=map_snrmax;
-	mtest=m;
-	qset.push_back(map_q);	
-	continue;
-      }
-      if(map_win!=wintest) continue;
-      if(map_snrmax>snrtest){
-	snrtest=map_snrmax;
-	mtest=m;
-      }
-      if(map_q!=qset.back()) qset.push_back(map_q);
-    }	
-    MS->GetEntry(mtest);
-
-    // print loudest tile
-    report<<"<table class=\"omiscan\">"<<endl;
-    report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\"><a name=\""<<chan[c]<<"\"></a><h2>"<<chan[c]<<"</h2>"<<endl;
-    report<<"      Loudest tile in &plusmn;"<<wintest/2.0<<"s: GPS="<<setprecision(3)<<fixed<<map_gpsmax<<", f="<<map_freqmax<<"Hz, Q="<<map_q<<", <b>SNR="<<map_snrmax<<"</b></td></tr>"<<endl;
-    
-    // print time series menu    
-    report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\">Time series: <a href=\"javascript:showImage('"<<chan[c]<<"', 'ts', "<<winset_full<<", "<<formatset_full<<");\">raw</a></td></tr>"<<endl;
-
-    // print map menu    
-    report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\">Maps: ";
-    for(int q=0; q<(int)qset.size(); q++)
-      report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'mapQ"<<q<<"', "<<winset_full<<", "<<formatset_full<<");\">Q="<<setprecision(3)<<fixed<<qset[q]<<"</a> / ";
-    report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'map', "<<winset_full<<", "<<formatset_full<<");\">full</a></td></tr>"<<endl;
-  
-    // print other menu    
-    report<<"  <tr><td colspan=\""<<map_nwin*map_nformat<<"\">Misc: ";
-    report<<"<a href=\"javascript:showSingleImage('"<<chan[c]<<"', 'asd_"<<map_wstart<<"_"<<map_wstop<<"', '"<<winset[0]<<"', "<<formatset_full<<");\">ASD</a> / ";
-    report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'projt', "<<winset_full<<", "<<formatset_full<<");\">SNR(time)</a> / "<<endl;
-    report<<"<a href=\"javascript:showImage('"<<chan[c]<<"', 'projf', "<<winset_full<<", "<<formatset_full<<");\">SNR(frequency)</a> / "<<endl;
-    if(IsBinaryFile(chan[c]+"/"+chan[c]+"_data.root")) report<<"<a href=\"./"<<chan[c]<<"/"<<chan[c]<<"_data.root\">Scan data</a>"<<endl;
-    report<<"</td></tr>"<<endl;
-
-    // print images
-    report<<"  <tr>"<<endl;
-    for(int w=0; w<map_nwin; w++)
-      for(int f=0; f<map_nformat; f++)
-	report<<"    <td><a id=\"a_"<<chan[c]<<"_dt"<<winset[w]<<"_"<<formatset[f]<<"\" href=\"./"<<chan[c]<<"/"<<chan[c]<<"_map_dt"<<winset[w]<<"."<<formatset[f]<<"\"><img id=\"img_"<<chan[c]<<"_dt"<<winset[w]<<"_"<<formatset[f]<<"\" src=\"./"<<chan[c]<<"/"<<chan[c]<<"_mapth_dt"<<winset[w]<<"."<<formatset[f]<<"\" alt=\""<<chan[c]<<"_map\" /></a></td>"<<endl;
-    report<<"  </tr>"<<endl;
-
-    qset.clear();
-    delete MS;
-    sumfile.Close();
-    report<<"</table>"<<endl;
-    report<<"<hr />"<<endl;
-  }
-
-
-
-  return true;
-}
-
-*/

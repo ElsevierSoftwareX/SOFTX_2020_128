@@ -35,11 +35,11 @@ alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
-document rootcling OmicronDict Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDef.h
+document rootcling OmicronDict Oplot.h Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDef.h
 
 #### libraries generation
 macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTime -lRootUtils -lCUtils -lTriggers" 
-library Omicron -no_prototypes -no_static Odata.cc Omap.cc Oqplane.cc Otile.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+library Omicron -no_prototypes -no_static Oplot.cc Odata.cc Omap.cc Oqplane.cc Otile.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
@@ -47,7 +47,7 @@ macro_append Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
 
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
-#application omiplot omiplot.cc
-#alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
+application omiplot omiplot.cc
+alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
 
 
