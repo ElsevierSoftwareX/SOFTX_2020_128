@@ -9,7 +9,6 @@
 #include "ffl.h"
 #include "Streams.h"
 #include "Spectrum.h"
-#include "Sample.h"
 #include "MakeTriggers.h"
 #include "TMath.h"
 #include "Otile.h"
@@ -126,9 +125,10 @@ class Omicron {
    * -  1 = the input vector is null
    * -  2 = the input vector is empty
    * -  3 = the input vector is flat
-   * -  4 = the vector transformation failed (resampling+highpassing)
-   * -  5 = the spectrum could not be computed
-   * -  6 = the tiling could not be normalized
+   * -  4 = the native frequency is not compatible with frequency settings.
+   * -  5 = the vector transformation failed (resampling+highpassing)
+   * -  6 = the spectrum could not be computed
+   * -  7 = the tiling could not be normalized
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
@@ -261,7 +261,6 @@ class Omicron {
 
   // COMPONENTS
   Odata *dataseq;               ///< data sequence
-  Sample **sample;              ///< sampling structures
   Streams **streams;            ///< streams
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
