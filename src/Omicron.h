@@ -4,13 +4,7 @@
 #ifndef __Omicron__
 #define __Omicron__
 
-#include "GwollumPlot.h"
 #include "IO.h"
-#include "ffl.h"
-#include "Streams.h"
-#include "Spectrum.h"
-#include "MakeTriggers.h"
-#include "TMath.h"
 #include "Otile.h"
 #include "Odata.h"
 #include "Date.h"
@@ -261,7 +255,6 @@ class Omicron {
 
   // COMPONENTS
   Odata *dataseq;               ///< data sequence
-  Streams **streams;            ///< streams
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure

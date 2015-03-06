@@ -86,7 +86,7 @@ void Omicron::MakeHtml(void){
   report<<"<h2>Parameters</h2>"<<endl;
   report<<"<table class=\"omicron\">"<<endl;
   report<<"  <tr><td>Timing:</td><td> chunks of "<<fChunkDuration<<" sec, divided into "<<(fChunkDuration-fOverlapDuration)/(fSegmentDuration-fOverlapDuration)<<" sub-segments of "<<fSegmentDuration<<" sec, overlapping by "<<fOverlapDuration<<" sec</td></tr>"<<endl;
-  report<<"  <tr><td>Sampling frequency:</td><td>"<<streams[0]->GetWorkingFrequency()<<" Hz</td></tr>"<<endl;
+  report<<"  <tr><td>Sampling frequency:</td><td>"<<triggers[0]->GetWorkingFrequency()<<" Hz</td></tr>"<<endl;
   report<<"  <tr><td>Frequency range:</td><td>"<<fFreqRange[0]<<" &rarr; "<<fFreqRange[1]<<" Hz</td></tr>"<<endl;
   report<<"  <tr><td>Q range:</td><td>"<<fQRange[0]<<" &rarr; "<<fQRange[1]<<"</td></tr>"<<endl;
   report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<fMismatchMax*100<<" %</td></tr>"<<endl;

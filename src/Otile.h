@@ -5,7 +5,6 @@
 #define __Otile__
 
 #include "Oqplane.h"
-#include "GwollumPlot.h"
 
 using namespace std;
 
@@ -148,8 +147,11 @@ class Otile: public GwollumPlot {
   int nq;                      ///< number of q planes
   int TimeRange;
 
-  TH2D* MakeFullMap(const int aTimeRange); ///< make full map
+  TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
   void TileDown(void);                     ///< tile-down
+
+  void ApplyOffset(TH2D *aMap, const double aOffset);
+
 
   ClassDef(Otile,0)  
 };

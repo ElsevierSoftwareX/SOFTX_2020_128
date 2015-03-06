@@ -6,7 +6,6 @@
 
 #include "MakeTriggers.h"
 #include "Spectrum.h"
-#include "FFT.h"
 #include "Omap.h"
 
 using namespace std;

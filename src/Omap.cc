@@ -11,6 +11,8 @@ Omap::Omap(): TH2D(){
   GetXaxis()->SetTitle("Time [s]");
   GetYaxis()->SetTitle("Frequency [Hz]");
   GetZaxis()->SetTitle("SNR");
+  GetXaxis()->SetNoExponent();
+  GetXaxis()->SetNdivisions(4,5,0);
   GetXaxis()->SetLabelSize(0.045);
   GetYaxis()->SetLabelSize(0.045);
   GetZaxis()->SetLabelSize(0.045);
