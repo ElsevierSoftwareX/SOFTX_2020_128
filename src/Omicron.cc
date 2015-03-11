@@ -27,23 +27,25 @@ Omicron::Omicron(const string aOptionFile){
   fOptionFile=aOptionFile;
 
   // metadata field definition
-  fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
+  fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_CHANNEL");              fOptionType.push_back("s");
+  fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
   fOptionName.push_back("omicron_INJECTION_CHANNEL");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_FACTOR");          fOptionType.push_back("d");
-  fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
-  fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
+  fOptionName.push_back("omicron_INJECTION_FILENAME");        fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_FMIN");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FMAX");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_QMIN");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_QMAX");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_CHUNKDURATION");   fOptionType.push_back("i");
-  fOptionName.push_back("omicron_PARAMETER_BLOCKDURATION");   fOptionType.push_back("i");
+  fOptionName.push_back("omicron_PARAMETER_SEGMENTDURATION"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_OVERLAPDURATION"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");     fOptionType.push_back("d");
-  fOptionName.push_back("omicron_TRIGGER_SNRTHRESHOLD");      fOptionType.push_back("d");
-  fOptionName.push_back("omicron_TRIGGER_CLUSTERING");        fOptionType.push_back("s");
-  fOptionName.push_back("omicron_TRIGGER_CLUSTERDT");         fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_SNRTHRESHOLD");    fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
+  fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_TILEDOWN");        fOptionType.push_back("i");
+  fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");           fOptionType.push_back("s");
@@ -70,15 +72,16 @@ Omicron::Omicron(const string aOptionFile){
     triggers[c]->MakeLVDetector();// just an attempt
     status_OK*=triggers[c]->SetFrequencies(fSampleFrequency,fSampleFrequency,fFreqRange[0]);// default
     triggers[c]->SetClusterizeDt(fcldt);
+
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fFflFile);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
-    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],fInjChan[c]);
-    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],"none");
-    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjFact[c]);
-    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],0.0);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fFflFile);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],triggers[c]->GetWorkingFrequency());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],triggers[c]->GetWorkingFrequency());
+    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjChan[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
+    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjFact[c]);
+    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],0.0);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFreqRange[0]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFreqRange[1]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fQRange[0]);
@@ -90,9 +93,11 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo[0]+"_"+fClusterAlgo[1]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fcldt);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutProducts);
     triggers[c]->SetMprocessname("Omicron");
   }
 
@@ -106,6 +111,17 @@ Omicron::Omicron(const string aOptionFile){
     FFL = new ffl(fFflFile, "GWOLLUM", fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
+  }
+
+  // software injection
+  inject=NULL;
+  if(fInjFile.compare("none")){
+    if(fVerbosity) cout<<"Omicron::Omicron: init software injection..."<<endl;
+    inject = new InjEct* [(int)fChannels.size()];
+    for(int c=0; c<(int)fChannels.size(); c++){
+      inject[c] = new InjEct(triggers[c],fInjFile,fVerbosity);
+      status_OK*=inject[c]->GetStatus();
+    }
   }
    
   // data Spectrum
@@ -195,6 +211,10 @@ Omicron::~Omicron(void){
   delete spectrum;
   delete triggers;
   if(FFL!=NULL) delete FFL;
+  if(inject!=NULL){
+    for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
+    delete inject;
+  }
   delete dataseq;
   delete tile;
   delete GPlot;

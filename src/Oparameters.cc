@@ -189,31 +189,13 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** software injections *****
+  if(!io->GetOpt("INJECTION","FILENAME", fInjFile)) fInjFile="none";
+  //*****************************
 
   // dump options
   if(fVerbosity>1) io->Dump(cout);
   delete io;
-
-  return;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-void Omicron::AdjustParameters(void){
-////////////////////////////////////////////////////////////////////////////////////
-
-  // guess best sampling if not provided
-  if(!fSampleFrequency){
-    fSampleFrequency=2048;
-    int sampling;
-    for(int c=0; c<(int)fChannels.size(); c++){
-      sampling=FFL->GetChannelSampling(fChannels[c]);
-      if(sampling<=0) continue;
-      if(sampling<fSampleFrequency) fSampleFrequency=sampling;
-    }
-  }
-  // still no sampling at this point -> we need one not to crash!
-  if(!fSampleFrequency) fSampleFrequency=2048;
-  
 
   return;
 }

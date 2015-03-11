@@ -8,6 +8,7 @@
 #include "Otile.h"
 #include "Odata.h"
 #include "Date.h"
+#include "InjEct.h"
 
 using namespace std;
 
@@ -213,7 +214,6 @@ class Omicron {
 
   // PARAMETERS
   void ReadOptions(void);       ///< to parse option card
-  void AdjustParameters(void);  ///< adjust default parameters
   string fOptionFile;           ///< option file name
   vector <string> fOptionName;  ///< option name (metadata)
   vector <string> fOptionType;  ///< option type (metadata)
@@ -238,6 +238,7 @@ class Omicron {
   vector <int> fWindows;        ///< scan windows
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
+  string fInjFile;              ///< injection file path
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments
@@ -259,6 +260,7 @@ class Omicron {
   ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
+  InjEct **inject;              ///< software injections
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
