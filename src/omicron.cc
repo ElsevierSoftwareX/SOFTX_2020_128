@@ -45,8 +45,8 @@ int main (int argc, char* argv[]){
 
   //**** CASE1: start and stop time
   if(argc==4){
-    start=atoi(argv[1]);
-    stop=atoi(argv[2]);
+    start=(int)round(atof(argv[1]));
+    stop=(int)round(atof(argv[2]));
     optionfile=(string)argv[3];
  
     // segment object
@@ -74,7 +74,7 @@ int main (int argc, char* argv[]){
 
   //****** CASE3: central time
   else if(atoi(argv[1])>700000000){
-    gps=atoi(argv[1]);
+    gps=(int)round(atof(argv[1]))
     optionfile=(string)argv[2];
     // empty segment object
     segments = new Segments();

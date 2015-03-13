@@ -152,7 +152,7 @@ void Omicron::MakeHtml(void){
 	for(int w=0; w<(int)fWindows.size(); w++){
 	  report<<"  <tr><td>Raw time series ("<<fWindows[w]<<"s):</td>"<<endl;
 	  for(int s=0; s<(int)chunkstart.size(); s++){
-	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
 	  }
 	  report<<"  </tr>"<<endl;
 	}
@@ -162,7 +162,7 @@ void Omicron::MakeHtml(void){
       if(form.compare("")&&fOutProducts.find("asd")!=string::npos){
 	report<<"  <tr><td>ASD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
 	}
 	report<<"  </tr>"<<endl;
       }
@@ -171,7 +171,7 @@ void Omicron::MakeHtml(void){
       if(form.compare("")&&fOutProducts.find("psd")!=string::npos){
 	report<<"  <tr><td>PSD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<chunkstart[s]/2+chunkstop[s]/2<<"</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
 	}
 	report<<"  </tr>"<<endl;
       }
