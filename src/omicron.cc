@@ -74,7 +74,7 @@ int main (int argc, char* argv[]){
 
   //****** CASE3: central time
   else if(atoi(argv[1])>700000000){
-    gps=(int)round(atof(argv[1]))
+    gps=(int)round(atof(argv[1]));
     optionfile=(string)argv[2];
     // empty segment object
     segments = new Segments();
