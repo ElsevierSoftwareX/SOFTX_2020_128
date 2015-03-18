@@ -190,7 +190,7 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   //***** software injections *****
-  if(!io->GetOpt("INJECTION","FILENAME", fInjFile)) fInjFile="none";
+  if(!io->GetOpt("INJECTION","FILENAME", fInjFilePat)) fInjFilePat="none";
   //*****************************
 
   // dump options

@@ -174,7 +174,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
   // save maps for each Q plane
   int xmax, ymax, zmax;
   for(int q=0; q<nq; q++){
-    if(fVerbosity>1) cout<<"\t- map Q"<<q<<endl;
+    if(fVerbosity>1) cout<<"\t- map Q"<<q<<" = "<<fixed<<setprecision(3)<<qplanes[q]->GetQ()<<endl;
     
     // write root
     if(aFormat.find("root")!=string::npos){

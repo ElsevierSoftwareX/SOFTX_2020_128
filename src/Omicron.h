@@ -110,21 +110,21 @@ class Omicron {
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data are conditioned with this funtion. The input data chunk is first resampled and highpassed. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Tukey-windowed, Fourier-transformed and normalized by the ASD.
+   * Before projecting the data onto the tiles, the data are conditioned with this function. The input data chunk is first resampled and highpassed. If requested in the option file, software injection waveforms are added to the data vector. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Tukey-windowed, Fourier-transformed and normalized by the ASD.
    *
    * IMPORTANT: The input vector size MUST MATCH the current chunk size loaded with NewChunk(). NO check is performed against that!
    *
    * If the returned value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning failed but the Omicron object is still valid for further use. If it is 0, the conditioning ended correctly. The error code is the following:
    * - -1 = the Omicron object is corrupted.
-   * - -2 = the frequency parameters update of the Sample object failed.
    * -  0 = OK
    * -  1 = the input vector is null
    * -  2 = the input vector is empty
    * -  3 = the input vector is flat
    * -  4 = the native frequency is not compatible with frequency settings.
    * -  5 = the vector transformation failed (resampling+highpassing)
-   * -  6 = the spectrum could not be computed
-   * -  7 = the tiling could not be normalized
+   * -  6 = simulated signals could not be injected in the data vector
+   * -  7 = the spectrum could not be computed
+   * -  8 = the tiling could not be normalized
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
@@ -239,7 +239,7 @@ class Omicron {
   vector <int> fWindows;        ///< scan windows
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
-  string fInjFile;              ///< injection file path
+  string fInjFilePat;           ///< injection file pattern
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments

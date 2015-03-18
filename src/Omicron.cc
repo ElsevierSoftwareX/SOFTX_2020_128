@@ -69,7 +69,6 @@ Omicron::Omicron(const string aOptionFile){
   triggers = new MakeTriggers* [(int)fChannels.size()];
   for(int c=0; c<(int)fChannels.size(); c++){
     triggers[c] = new MakeTriggers(outdir[c],fChannels[c],fOutFormat,fVerbosity);
-    triggers[c]->MakeLVDetector();// just an attempt
     status_OK*=triggers[c]->SetFrequencies(fSampleFrequency,fSampleFrequency,fFreqRange[0]);// default
     triggers[c]->SetClusterizeDt(fcldt);
 
@@ -81,7 +80,7 @@ Omicron::Omicron(const string aOptionFile){
     else status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
     if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjFact[c]);
     else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],0.0);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFile);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFilePat);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFreqRange[0]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFreqRange[1]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fQRange[0]);
@@ -115,11 +114,11 @@ Omicron::Omicron(const string aOptionFile){
 
   // software injection
   inject=NULL;
-  if(fInjFile.compare("none")){
+  if(fInjFilePat.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: init software injection..."<<endl;
     inject = new InjEct* [(int)fChannels.size()];
     for(int c=0; c<(int)fChannels.size(); c++){
-      inject[c] = new InjEct(triggers[c],fInjFile,fVerbosity);
+      inject[c] = new InjEct(triggers[c],fInjFilePat,fVerbosity);
       status_OK*=inject[c]->GetStatus();
     }
   }
@@ -463,14 +462,24 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // transform data vector
   if(fVerbosity>1) cout<<"\t- transform data vector..."<<endl;
   if(!triggers[chanindex]->Transform(aInVectSize, aInVect, dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 5;
+
+  // add software injections if any
+  if(inject!=NULL){
+    if(fVerbosity>1) cout<<"\t- perform injections..."<<endl;
+    if(!inject[chanindex]->Inject(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, dataseq->GetChunkTimeStart())){
+      cerr<<"Omicron::Condition: failed to inject ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+      return 6;
+
+    }
+  }
  
   // Make spectrum
   if(fVerbosity>1) cout<<"\t- make spectrum..."<<endl;
-  if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 6;
+  if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 7;
 
   // connect spectrum to tiling
   if(fVerbosity>1) cout<<"\t- connect spectrum to tiling..."<<endl;
-  if(!tile->SetPower(spectrum)) return 7;
+  if(!tile->SetPower(spectrum)) return 8;
 
   chan_cond_ctr[chanindex]++;
   return 0;

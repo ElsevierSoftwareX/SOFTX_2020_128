@@ -82,6 +82,8 @@ void Omicron::MakeHtml(void){
   report<<"<hr />"<<endl;
   report<<endl;
 
+  // FIXME: add injections
+
   // search parameters
   report<<"<h2>Parameters</h2>"<<endl;
   report<<"<table class=\"omicron\">"<<endl;
