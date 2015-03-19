@@ -1,0 +1,52 @@
+package Omicron
+
+use GWOLLUM v2r1
+
+#### LOCALS
+
+set OMICRON_HTML       "$(OMICRONROOT)/html"
+set OMICRON_PARAMETERS "$(OMICRONROOT)/parameters"
+set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
+
+set OMICRON_TRIGGERS        ""\
+    Florent		    "/home/florent/Analysis/Omicron/triggers"\
+    Cascina		    "/data/procdata/detchar/triggers/Omicron"\
+    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
+    LIGO		    "/home/detchar/Omicron/triggers"
+set OMICRON_ONLINE_TRIGGERS ""\
+    Cascina		    "/data/procdata/detchar/Omicron/online/triggers"\
+    LIGO		    "/home/detchar/Omicron/Prod/triggers"
+set OMICRON_TRIGGERS_BASE   "100000"
+
+#### for the environment
+path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
+path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
+macro_prepend RPATH "$(OMICRONROOT)/$(Omicron_tag):"
+
+include_dirs " $(OMICRONROOT)/src"
+
+#### alias scripts
+alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
+alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
+alias GetTriggerFileList   "$(OMICRONROOT)/scripts/GetTriggerFileList.sh"
+alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
+alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
+alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
+
+#### dictionaries generation
+document rootcint OmicronDict Oplot.h Odata.h Omap.h Oqplane.h Otile.h Omicron.h LinkDef.h
+
+#### libraries generation
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lInject" 
+library Omicron -no_prototypes -no_static Oplot.cc Odata.cc Omap.cc Oqplane.cc Otile.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+
+#### Applications generation
+macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
+macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
+
+application omicron omicron.cc
+alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
+application omiplot omiplot.cc
+alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
+
+
