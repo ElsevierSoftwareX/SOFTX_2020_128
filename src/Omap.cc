@@ -19,7 +19,7 @@ Omap::Omap(): TH2D(){
   GetXaxis()->SetTitleSize(0.045);
   GetYaxis()->SetTitleSize(0.045);
   GetZaxis()->SetTitleSize(0.045);
-  GetZaxis()->SetRangeUser(1,50);
+  //GetZaxis()->SetRangeUser(1,50);
   Ntiles=0;
   bandMultiple = new int[0];
 }

@@ -90,7 +90,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fOverlapDuration);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo[0]+"_"+fClusterAlgo[1]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fcldt);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
@@ -185,6 +185,7 @@ Omicron::Omicron(const string aOptionFile){
   // tiling
   if(fVerbosity) cout<<"Omicron::Omicron: init tiling..."<<endl;
   tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],triggers[0]->GetWorkingFrequency(),fMismatchMax,fVerbosity);
+  tile->SetSNRScale(fsnrscale);
   
 }
 
@@ -234,7 +235,6 @@ Omicron::~Omicron(void){
   fFreqRange.clear();
   fQRange.clear();
   fWindows.clear();
-  fClusterAlgo.clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -599,10 +599,10 @@ bool Omicron::WriteOutput(void){
     triggers[chanindex]->SortTriggers();
     
     // clustering if any
-    if(fClusterAlgo[0].compare("none")) triggers[chanindex]->Clusterize(fClusterAlgo[0]);
+    if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize(fClusterAlgo);
     
     // write triggers to disk
-    if(!triggers[chanindex]->Write(fWriteMode).compare("none"))
+    if(!triggers[chanindex]->Write().compare("none"))
       cerr<<"Omicron::WriteOutput: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
     
   }

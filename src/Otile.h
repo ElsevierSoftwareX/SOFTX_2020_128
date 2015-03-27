@@ -141,18 +141,19 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
+  inline void SetSNRScale(const int aSNRScale){ snrscale=aSNRScale; };
+
  private:
 
   int fVerbosity;              ///< verbosity level
   Oqplane **qplanes;           ///< Q planes
   int nq;                      ///< number of q planes
-  int TimeRange;
+  int TimeRange;               ///< map time range
+  int snrscale;                ///< map snr scale
 
   TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
-  void TileDown(void);                     ///< tile-down
-
+  void TileDown(void);         ///< tile-down
   void ApplyOffset(TH2D *aMap, const double aOffset);
-
 
   ClassDef(Otile,0)  
 };

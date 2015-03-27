@@ -15,6 +15,7 @@ Otile::Otile(const int aTimeRange,
  
   // Plots
   SetLogx(0); SetLogy(1); SetLogz(1);
+  snrscale=50;
 
   // save parameters
   TimeRange=(int)fabs(aTimeRange);
@@ -58,7 +59,6 @@ Otile::Otile(const int aTimeRange,
 
   // update parameters  
   TimeRange=qplanes[0]->GetTimeRange();
-
 
 }
 
@@ -206,7 +206,11 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
 	tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<qplanes[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<qplanes[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<qplanes[q]->GetBinContent(xmax,ymax);
 	AddText(tmpstream.str(), 0.01,0.01,0.03);
 	tmpstream.clear(); tmpstream.str("");
-	
+	      
+	// set vertical range
+	if(snrscale>1) qplanes[q]->GetZaxis()->SetRangeUser(1,snrscale);
+	else qplanes[q]->GetZaxis()->SetRangeUser(1,TMath::Max(zmax,5));
+
 	// save plot
 	for(int f=0; f<(int)form.size(); f++){
 	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"."<<form[f];
@@ -249,6 +253,10 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
       AddText(tmpstream.str(), 0.01,0.01,0.03);
       tmpstream.clear(); tmpstream.str("");
       
+      // set vertical range
+      if(snrscale>1) fullmap->GetZaxis()->SetRangeUser(1,snrscale);
+      else fullmap->GetZaxis()->SetRangeUser(1,TMath::Max(zmax,5));
+
       // save plot
       for(int f=0; f<(int)form.size(); f++){
 	tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"."<<form[f];

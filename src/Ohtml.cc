@@ -97,7 +97,7 @@ void Omicron::MakeHtml(void){
   if(fTileDown) report<<"YES";
   else report<<"NO";
   report<<"</td></tr>"<<endl;
-  if(fClusterAlgo[0].compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo[0]<<", dt = "<<fcldt<<" sec</td></tr>"<<endl;
+  if(fClusterAlgo.compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo<<", dt = "<<fcldt<<" sec</td></tr>"<<endl;
   else report<<"  <tr><td>Trigger clustering:</td><td>NONE</td></tr>"<<endl;
   report<<"</table>"<<endl;
   report<<"<hr />"<<endl;

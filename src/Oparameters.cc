@@ -146,11 +146,8 @@ void Omicron::ReadOptions(void){
   //***** set clustering *****
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
     cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                   --> set default: none"<<endl;
-    fClusterAlgo.push_back("none"); fClusterAlgo.push_back("all");
+    fClusterAlgo="none";
   }
-  if(fClusterAlgo.size()==1) fClusterAlgo.push_back("all");
-  if(!fClusterAlgo[1].compare("noroot")) fWriteMode="UNPROC";
-  else fWriteMode="ALL";
   if(!io->GetOpt("PARAMETER","CLUSTERDT", fcldt)) fcldt=0.1;
   //*****************************
   
@@ -163,6 +160,13 @@ void Omicron::ReadOptions(void){
   
   //***** scan windows *****
   io->GetOpt("PARAMETER","WINDOWS", fWindows);
+  //*****************************
+
+  //***** vertical scale *****
+  if(!io->GetOpt("PARAMETER","SNRSCALE", fsnrscale)){
+    cerr<<"Omicron::ReadOptions: No snr scale option (PARAMETER/SNRSCALE)             --> set default: 50"<<endl;
+    fsnrscale=50;
+  }
   //*****************************
 
 

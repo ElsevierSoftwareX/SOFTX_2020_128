@@ -232,11 +232,11 @@ class Omicron {
   vector <double> fQRange;      ///< Q range
   double fMismatchMax;          ///< maximum mismatch
   double fSNRThreshold;         ///< SNR Threshold
-  vector <string> fClusterAlgo; ///< clustering modes
+  string fClusterAlgo;          ///< clustering modes
   double fcldt;                 ///< clustering dt
-  string fWriteMode;            ///< write mode
   int fTileDown;                ///< tile-down flag
-  vector <int> fWindows;        ///< scan windows
+  vector <int> fWindows;        ///< map windows
+  int fsnrscale;                ///< map snr scale
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   string fInjFilePat;           ///< injection file pattern
