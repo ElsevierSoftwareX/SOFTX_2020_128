@@ -131,6 +131,7 @@ void Omicron::MakeHtml(void){
   for(int c=0; c<(int)fChannels.size(); c++){
 
     // processing report
+    report<<"<div class=\"omicronchannel\">"<<endl;
     report<<"<a name=\""<<fChannels[c]<<"\"></a><h2>"<<fChannels[c]<<"</h2>"<<endl;
     report<<"Processing:"<<endl;
     report<<"<table class=\"omicronsummary\">"<<endl;
@@ -223,6 +224,7 @@ void Omicron::MakeHtml(void){
       
     }
 
+    report<<"</div>"<<endl;
     report<<"<hr />"<<endl;
     report<<endl;
   }

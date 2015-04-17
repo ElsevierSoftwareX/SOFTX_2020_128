@@ -145,7 +145,7 @@ void Omicron::ReadOptions(void){
   
   //***** set clustering *****
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
-    cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                   --> set default: none"<<endl;
+    cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                 --> set default: none"<<endl;
     fClusterAlgo="none";
   }
   if(!io->GetOpt("PARAMETER","CLUSTERDT", fcldt)) fcldt=0.1;
