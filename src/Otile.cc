@@ -10,7 +10,7 @@ Otile::Otile(const int aTimeRange,
 	     const double aQMin, const double aQMax, 
 	     const double aFrequencyMin, const double aFrequencyMax, 
 	     const int aSampleFrequency, const double aMaximumMismatch, 
-	     const int aVerbosity): GwollumPlot("otile","GWOLLUM"){ 
+	     const string aPlotStyle, const int aVerbosity): GwollumPlot("otile",aPlotStyle){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
   // Plots

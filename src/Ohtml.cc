@@ -8,9 +8,9 @@ void Omicron::MakeHtml(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // import material
-  system(("cp -f ${GWOLLUM_DOC}/style.css "+maindir).c_str());
+  system(("cp -f ${OMICRON_HTML}/style/style."+fOutStyle+".css "+maindir+"/style.css").c_str());
   system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+maindir+"/icon.gif").c_str());
-  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif "+maindir).c_str());
+  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
   // select web supported image format
@@ -53,8 +53,21 @@ void Omicron::MakeHtml(void){
   report<<"  }"<<endl;
   report<<"}"<<endl;
   report<<"</script>"<<endl;
+  report<<"<script type=\"text/javascript\">"<<endl;
+  report<<"function toggle(anId) {"<<endl;
+  report<<"  node = document.getElementById(anId);"<<endl;
+  report<<"  if (node.style.visibility==\"hidden\") {"<<endl;
+  report<<"    node.style.visibility = \"visible\";"<<endl;
+  report<<"    node.style.height = \"auto\";"<<endl;
+  report<<"  }"<<endl;
+  report<<"  else {"<<endl;
+  report<<"    node.style.visibility = \"hidden\";"<<endl;
+  report<<"    node.style.height = \"0\";"<<endl;
+  report<<"  }"<<endl;
+  report<<"}"<<endl;
+  report<<"</script>"<<endl;
   report<<"</head>"<<endl;
-  report<<"<body class=\"omicron\">"<<endl;
+  report<<"<body>"<<endl;
   report<<endl;
 
   // index title
@@ -65,9 +78,10 @@ void Omicron::MakeHtml(void){
   // index summary
   report<<"<h2>Summary</h2>"<<endl;
   tm utc; int gps;
-  report<<"<table class=\"omicron\">"<<endl;
+  report<<"<table>"<<endl;
   gps=(int)inSegments->GetStart(0);
   GPSToUTC (&utc, gps);
+  report<<"  <tr><td>Omicron run by:</td><td>"<<getenv("USER")<<"</td></tr>"<<endl;
   report<<"  <tr><td>Processing Date:</td><td>"<<asctime(ptm)<<" (UTC)</td></tr>"<<endl;
   report<<"  <tr><td>Requested start:</td><td>"<<gps<<" &rarr; "<<asctime(&utc)<<" (UTC)</td></tr>"<<endl;
   gps=(int)inSegments->GetEnd(inSegments->GetNsegments()-1);
@@ -86,7 +100,7 @@ void Omicron::MakeHtml(void){
 
   // search parameters
   report<<"<h2>Parameters</h2>"<<endl;
-  report<<"<table class=\"omicron\">"<<endl;
+  report<<"<table>"<<endl;
   report<<"  <tr><td>Timing:</td><td> chunks of "<<fChunkDuration<<" sec, divided into "<<(fChunkDuration-fOverlapDuration)/(fSegmentDuration-fOverlapDuration)<<" sub-segments of "<<fSegmentDuration<<" sec, overlapping by "<<fOverlapDuration<<" sec</td></tr>"<<endl;
   report<<"  <tr><td>Sampling frequency:</td><td>"<<triggers[0]->GetWorkingFrequency()<<" Hz</td></tr>"<<endl;
   report<<"  <tr><td>Frequency range:</td><td>"<<fFreqRange[0]<<" &rarr; "<<fFreqRange[1]<<" Hz</td></tr>"<<endl;
@@ -105,7 +119,7 @@ void Omicron::MakeHtml(void){
 
   // channel index
   report<<"<h2>Channel index</h2>"<<endl;
-  if(fOutProducts.find("maps")!=string::npos){  
+  if(fOutProducts.find("maps")!=string::npos){// color scale for glitchiness
     report<<"<table><tr>"<<endl;
     for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
     report<<"<td>glitch strength</td>"<<endl;
@@ -117,7 +131,8 @@ void Omicron::MakeHtml(void){
     colcode="";
     if(fSNRThreshold>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold)/fSNRThreshold);
     if(!(c%9)) report<<"  <tr>"<<endl;
-    report<<"    <td bgcolor=\""<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
+    if(colcode.compare("")) report<<"    <td style=\"border:1px solid "<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
+    else report<<"    <td><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
     if(!((c+1)%9)) report<<"  </tr>"<<endl;
   }
   for(int c=0; c<9-((int)fChannels.size())%9; c++) report<<"    <td></td>"<<endl;
@@ -131,17 +146,26 @@ void Omicron::MakeHtml(void){
   for(int c=0; c<(int)fChannels.size(); c++){
 
     // processing report
-    report<<"<div class=\"omicronchannel\">"<<endl;
-    report<<"<a name=\""<<fChannels[c]<<"\"></a><h2>"<<fChannels[c]<<"</h2>"<<endl;
-    report<<"Processing:"<<endl;
-    report<<"<table class=\"omicronsummary\">"<<endl;
-    report<<"  <tr><td>Number of calls [load/data/condition/projection/write]:</td><td>"<<chan_ctr[c]<<"/"<<chan_data_ctr[c]<<"/"<<chan_cond_ctr[c]<<"/"<<chan_proj_ctr[c]<<"/"<<chan_write_ctr[c]<<"</td></tr>"<<endl;
-    report<<"  <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
+    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<fSNRThreshold){
+      report<<"<h2 class=\"off\"><a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold<<")</a></h2>"<<endl;
+      report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
+    }
+    else{
+      report<<"<h2 class=\"on\"><a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">"<<fChannels[c]<<"</a></h2>"<<endl;
+      report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
+    }
+    report<<"<a href=\"javascript:void(0)\" onclick=\"toggle('idproc_"<<fChannels[c]<<"')\">Processing:</a>"<<endl;
+    if(fOutProducts.find("triggers")==string::npos) report<<"<div id=\"idproc_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
+    else report<<"<div id=\"idproc_"<<fChannels[c]<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
+    report<<"  <table class=\"omicronsummary\">"<<endl;
+    report<<"    <tr><td>Number of calls [load/data/condition/projection/write]:</td><td>"<<chan_ctr[c]<<"/"<<chan_data_ctr[c]<<"/"<<chan_cond_ctr[c]<<"/"<<chan_proj_ctr[c]<<"/"<<chan_write_ctr[c]<<"</td></tr>"<<endl;
+    report<<"    <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
     outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
-    report<<"  <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
-    report<<"  <tr><td>Output:</td><td><a href=\"./"<<fChannels[c]<<"\">./"<<fChannels[c]<<"</a></td></tr>"<<endl;
-    report<<"</table>"<<endl;
-  
+    report<<"    <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
+    report<<"    <tr><td>Output:</td><td><a href=\"./"<<fChannels[c]<<"\">./"<<fChannels[c]<<"</a></td></tr>"<<endl;
+    report<<"  </table>"<<endl;
+    report<<"</div>"<<endl;
+
     // Plot links
     if(form.compare("") && (fOutProducts.find("timeseries")!=string::npos ||
 			    fOutProducts.find("asd")!=string::npos ||
@@ -151,30 +175,48 @@ void Omicron::MakeHtml(void){
       report<<"<table class=\"omicronsummary\">"<<endl;
       
       // time-series
-      if(form.compare("")&&fOutProducts.find("timeseries")!=string::npos){
+      if(fOutProducts.find("timeseries")!=string::npos){
 	for(int w=0; w<(int)fWindows.size(); w++){
 	  report<<"  <tr><td>Raw time series ("<<fWindows[w]<<"s):</td>"<<endl;
 	  for(int s=0; s<(int)chunkstart.size(); s++){
-	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	    tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form;
+	    if(IsBinaryFile(tmpstream.str()))
+	      report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsdt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	    else
+	      report<<"    <td>missing</td>"<<endl;
+
+	    tmpstream.clear(); tmpstream.str("");
 	  }
 	  report<<"  </tr>"<<endl;
 	}
       }
       
       // ASD
-      if(form.compare("")&&fOutProducts.find("asd")!=string::npos){
+      if(fOutProducts.find("asd")!=string::npos){
 	report<<"  <tr><td>ASD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form;
+	  if(IsBinaryFile(tmpstream.str()))
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	  else
+	    report<<"    <td>missing</td>"<<endl;
+	  
+	  tmpstream.clear(); tmpstream.str("");
 	}
 	report<<"  </tr>"<<endl;
       }
       
       // PSD
-      if(form.compare("")&&fOutProducts.find("psd")!=string::npos){
+      if(fOutProducts.find("psd")!=string::npos){
 	report<<"  <tr><td>PSD:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form;
+	  if(IsBinaryFile(tmpstream.str()))
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	  else
+	    report<<"    <td>missing</td>"<<endl;
+	  
+	  tmpstream.clear(); tmpstream.str("");
 	}
 	report<<"  </tr>"<<endl;
       }
@@ -207,14 +249,13 @@ void Omicron::MakeHtml(void){
 	}
 	report<<"  </tr>"<<endl;
       }
-      if(sfirst<0)// below SNR threshold
-	report<<"<tr><td>Below threshold (SNR &lt; "<<fSNRThreshold<<")</td></tr>"<<endl;
+      if(sfirst<0) report<<"<tr><td>missing</td></tr>"<<endl;
 
       report<<"</table>"<<endl;
 
       // add window plots
       if(sfirst>=0){
-	report<<"<table class=\"omicron\">"<<endl;
+	report<<"<table>"<<endl;
 	report<<"  <tr>"<<endl;
 	for(int w=0; w<(int)fWindows.size(); w++)
 	  report<<"    <td><a id=\"a_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" src=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<mapcenter[sfirst]<<"_fullmapdt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<fChannels[c]<<" map dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
@@ -230,7 +271,7 @@ void Omicron::MakeHtml(void){
   }
 
   // index footer
-  report<<"<table class=\"omicron\">"<<endl;
+  report<<"<table>"<<endl;
   report<<"  <tr><td>Author: Florent Robinet, <a href=\"mailto:robinet@lal.in2p3.fr\">robinet@lal.in2p3.fr</a></td></tr>"<<endl;
   report<<"</table>"<<endl;
   report<<"</body>"<<endl;

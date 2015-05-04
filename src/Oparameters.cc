@@ -67,13 +67,23 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   //***** set output products *****
-  if(!io->GetOpt("OUTPUT","PRODUCTS", fOutProducts)) fOutProducts="triggers";
+  if(!io->GetOpt("OUTPUT","PRODUCTS", fOutProducts)){
+    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/PRODUCTS)                 --> set default: triggers"<<endl;
+    fOutProducts="triggers";
+  }
   //*****************************
 
   //***** set output format ***** 
   if(!io->GetOpt("OUTPUT","FORMAT", fOutFormat)){
     cerr<<"Omicron::ReadOptions: No output format (OUTPUT/FORMAT)                     --> set default: root"<<endl;
     fOutFormat="root";
+  }
+  //*****************************
+
+  //***** set output style *****
+  if(!io->GetOpt("OUTPUT","STYLE", fOutStyle)){
+    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/STYLE)                    --> set default: GWOLLUM"<<endl;
+    fOutStyle="GWOLLUM";
   }
   //*****************************
 

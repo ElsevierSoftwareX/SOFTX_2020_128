@@ -38,6 +38,7 @@ class Otile: public GwollumPlot {
    * @param aFrequencyMax maximal frequency [Hz]
    * @param aSampleFrequency sampling frequency [Hz]
    * @param aMaximumMismatch maximum mismatch between tiles
+   * @param aPlotStyle plotting style
    * @param aVerbosity verbosity level
    */
   Otile(const int aTimeRange, 
@@ -47,6 +48,7 @@ class Otile: public GwollumPlot {
 	const double aFrequencyMax, 
 	const int aSampleFrequency, 
 	const double aMaximumMismatch, 
+	const string aPlotStyle="GWOLLUM", 
 	const int aVerbosity=0);
 
   /**

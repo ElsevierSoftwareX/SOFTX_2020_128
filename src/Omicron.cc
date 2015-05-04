@@ -49,6 +49,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");           fOptionType.push_back("s");
+  fOptionName.push_back("omicron_OUTPUT_STYLE");              fOptionType.push_back("s");
 
   // read option file
   ReadOptions();
@@ -62,7 +63,8 @@ Omicron::Omicron(const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
   
   // plotting
-  GPlot = new GwollumPlot ("Omicron");
+  GPlot = new GwollumPlot ("Omicron",fOutStyle);
+  fOutStyle = GPlot->GetCurrentStyle();
 
   // triggers
   if(fVerbosity) cout<<"Omicron::Omicron: init triggers..."<<endl;
@@ -97,6 +99,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutStyle);
     triggers[c]->SetMprocessname("Omicron");
   }
 
@@ -107,7 +110,7 @@ Omicron::Omicron(const string aOptionFile){
   FFL=NULL; // no input data
   if(fFflFile.compare("none")){
     if(fVerbosity) cout<<"Omicron::Omicron: init data ffl..."<<endl;
-    FFL = new ffl(fFflFile, "GWOLLUM", fVerbosity);
+    FFL = new ffl(fFflFile, fOutStyle, fVerbosity);
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
   }
@@ -184,7 +187,7 @@ Omicron::Omicron(const string aOptionFile){
 
   // tiling
   if(fVerbosity) cout<<"Omicron::Omicron: init tiling..."<<endl;
-  tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],triggers[0]->GetWorkingFrequency(),fMismatchMax,fVerbosity);
+  tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],triggers[0]->GetWorkingFrequency(),fMismatchMax,fOutStyle,fVerbosity);
   tile->SetSNRScale(fsnrscale);
   
 }

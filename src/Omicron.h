@@ -225,6 +225,7 @@ class Omicron {
   int fVerbosity;               ///< verbosity level
   string fOutProducts;          ///< output products
   string fOutFormat;            ///< output format
+  string fOutStyle;             ///< output style
   int fChunkDuration;           ///< chunk duration (varies!)
   int fSegmentDuration;         ///< segment duration
   int fOverlapDuration;         ///< overlap duration

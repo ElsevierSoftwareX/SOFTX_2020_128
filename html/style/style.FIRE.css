@@ -1,0 +1,90 @@
+/*****************************************************************/
+/*********                 DEFAULT STYLE                 *********/
+/*****************************************************************/
+body {
+    font-family:"helvetica", helvetica;
+    font-size: 13px;
+    color: white;
+    background-color: black;
+    text-align: left;
+    /*background-image:url('./logo.gif');*/
+    background-repeat:no-repeat;
+    background-position:center center;
+    background-attachment:fixed;
+}
+
+h1 {
+    font-family:"helvetica", helvetica;
+    font-size: 30px;
+    color: #FF8000;
+    text-align: left;
+}
+
+h2 {
+    font-family:"helvetica", helvetica;
+    font-size: 20px;
+    color: #FAAC58;
+    text-align: left;
+}
+
+h2.on, h2.on a {
+    font-family:"Courier New", Courier New;
+    font-size: 20px;
+    color: #FAAC58;
+    text-decoration: none;
+}
+
+h2.off, h2.off a{
+    font-family:"Courier New", Courier New;
+    font-size: 10px;
+    color: #A4A4A4;
+    text-decoration: none;
+}
+
+td {
+    font-family:"helvetica", helvetica;
+    font-size: 13px;
+    color: white;
+    text-align: left;
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+    
+a:link, a:visited {
+    font-family:"helvetica", helvetica; 
+    font-size: 13px;
+    text-decoration: underline; 
+    color: yellow;
+    text-align: left;
+}
+
+a:active, a:hover {
+    font-family:"helvetica", helvetica;
+    font-size: 13px;
+    text-decoration: underline;
+    color: red;
+    text-align: left;
+}
+
+table.omicronindex td, table.omicronindex a{
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    font-size: 9px;
+}
+
+table.omicronsummary td, table.omicronsummary a{
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    font-size: 10px;
+}
+
+body.omicron img {
+    border:2px solid;
+}
+
