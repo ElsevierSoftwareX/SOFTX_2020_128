@@ -7,7 +7,7 @@ body {
     color: black;
     background-color: #CEECF5;
     text-align: left;
-    /*background-image:url('./logo.gif');*/
+    background-image:url('./logo.gif');
     background-repeat:no-repeat;
     background-position:center center;
     background-attachment:fixed;
@@ -36,7 +36,7 @@ h2.on, h2.on a {
 
 h2.off, h2.off a{
     font-family:"Courier New", Courier New;
-    font-size: 10px;
+    font-size: 9px;
     color: black;
     text-decoration: none;
 }

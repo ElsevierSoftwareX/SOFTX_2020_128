@@ -10,7 +10,7 @@ void Omicron::MakeHtml(void){
   // import material
   system(("cp -f ${OMICRON_HTML}/style/style."+fOutStyle+".css "+maindir+"/style.css").c_str());
   system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+maindir+"/icon.gif").c_str());
-  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo_xxl.gif "+maindir+"/logo.gif").c_str());
+  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+fOutStyle+".gif "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
   // select web supported image format
@@ -31,6 +31,9 @@ void Omicron::MakeHtml(void){
   string windowset=tmpstream.str();
   tmpstream.clear(); tmpstream.str("");
 
+  // total processing time
+  time ( &timer );
+  
   // index header & scripts
   ofstream report((maindir+"/index.html").c_str());
   report<<"<html>"<<endl;
@@ -82,6 +85,7 @@ void Omicron::MakeHtml(void){
   gps=(int)inSegments->GetStart(0);
   GPSToUTC (&utc, gps);
   report<<"  <tr><td>Omicron run by:</td><td>"<<getenv("USER")<<"</td></tr>"<<endl;
+  report<<"  <tr><td>Omicron processing time:</td><td>"<<(int)(timer-timer_start)/3600<<"h, "<<((timer-timer_start)-(int)(timer-timer_start)/3600)/60<<"min</td></tr>"<<endl;
   report<<"  <tr><td>Processing Date:</td><td>"<<asctime(ptm)<<" (UTC)</td></tr>"<<endl;
   report<<"  <tr><td>Requested start:</td><td>"<<gps<<" &rarr; "<<asctime(&utc)<<" (UTC)</td></tr>"<<endl;
   gps=(int)inSegments->GetEnd(inSegments->GetNsegments()-1);
@@ -131,7 +135,7 @@ void Omicron::MakeHtml(void){
     colcode="";
     if(fSNRThreshold>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold)/fSNRThreshold);
     if(!(c%9)) report<<"  <tr>"<<endl;
-    if(colcode.compare("")) report<<"    <td style=\"border:1px solid "<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
+    if(colcode.compare("")) report<<"    <td style=\"border:2px solid "<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
     else report<<"    <td><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
     if(!((c+1)%9)) report<<"  </tr>"<<endl;
   }
@@ -147,16 +151,14 @@ void Omicron::MakeHtml(void){
 
     // processing report
     if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<fSNRThreshold){
-      report<<"<h2 class=\"off\"><a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold<<")</a></h2>"<<endl;
+      report<<"<h2 class=\"off\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold<<") <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
     else{
-      report<<"<h2 class=\"on\"><a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">"<<fChannels[c]<<"</a></h2>"<<endl;
+      report<<"<h2 class=\"on\">"<<fChannels[c]<<" <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
     }
-    report<<"<a href=\"javascript:void(0)\" onclick=\"toggle('idproc_"<<fChannels[c]<<"')\">Processing:</a>"<<endl;
-    if(fOutProducts.find("triggers")==string::npos) report<<"<div id=\"idproc_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
-    else report<<"<div id=\"idproc_"<<fChannels[c]<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
+    report<<"Processing:"<<endl;
     report<<"  <table class=\"omicronsummary\">"<<endl;
     report<<"    <tr><td>Number of calls [load/data/condition/projection/write]:</td><td>"<<chan_ctr[c]<<"/"<<chan_data_ctr[c]<<"/"<<chan_cond_ctr[c]<<"/"<<chan_proj_ctr[c]<<"/"<<chan_write_ctr[c]<<"</td></tr>"<<endl;
     report<<"    <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
@@ -164,8 +166,7 @@ void Omicron::MakeHtml(void){
     report<<"    <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
     report<<"    <tr><td>Output:</td><td><a href=\"./"<<fChannels[c]<<"\">./"<<fChannels[c]<<"</a></td></tr>"<<endl;
     report<<"  </table>"<<endl;
-    report<<"</div>"<<endl;
-
+    
     // Plot links
     if(form.compare("") && (fOutProducts.find("timeseries")!=string::npos ||
 			    fOutProducts.find("asd")!=string::npos ||
