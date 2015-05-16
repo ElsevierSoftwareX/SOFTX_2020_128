@@ -35,7 +35,7 @@ class Omap: public TH2D {
 	       const int aNt, const int aTimeRange);
 
 
- inline double GetTimeRange(void){ 
+  inline double GetTimeRange(void){ 
     return GetXaxis()->GetXmax()-GetXaxis()->GetXmin(); 
   };
   inline double GetTimeMin(void){ 
