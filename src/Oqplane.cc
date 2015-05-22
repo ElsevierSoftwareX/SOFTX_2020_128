@@ -275,7 +275,7 @@ double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
   vector <double> v;
   for(int t=tstart; t<tend; t++) v.push_back(aEnergies[t]);    
 
-  // outlier threshold eq. 5.91
+  // outlier threshold eq. 5.91 with alpha=2.0
   size_t n25 = 1*v.size() / 4;
   size_t n75 = 3*v.size() / 4;
   nth_element(v.begin(), v.begin()+n25, v.end());
@@ -293,11 +293,11 @@ double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
   }
   if(n){
     MeanEnergy/=(double)n;
-    MeanEnergy/=BIASFACT2;
+    MeanEnergy/=BIASFACT2;// bias factor for alpha=2.0
+    return MeanEnergy;
   }
-  return -1.0;
 
-  return MeanEnergy;
+  return -1.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
