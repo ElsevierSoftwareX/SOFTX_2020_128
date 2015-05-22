@@ -19,15 +19,20 @@ Omap::Omap(): TH2D(){
   GetXaxis()->SetTitleSize(0.045);
   GetYaxis()->SetTitleSize(0.045);
   GetZaxis()->SetTitleSize(0.045);
-  //GetZaxis()->SetRangeUser(1,50);
   Ntiles=0;
   bandMultiple = new int[0];
+  phase = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 Omap::~Omap(void){
 ////////////////////////////////////////////////////////////////////////////////////
   delete bandMultiple;
+  if(phase!=NULL){
+    for(int f=0; f<GetNBands(); f++) delete phase[f];
+    delete phase;
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -51,20 +56,33 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   double *tbins = new double [Nt+1];
   for(int t=0; t<=Nt; t++) tbins[t] = -(double)aTimeRange/2.0 + (double)t/(double)Nt*(double)aTimeRange;
 
+  // delete phase
+  if(phase!=NULL){
+    for(int f=0; f<GetNBands(); f++) delete phase[f];
+    delete phase;
+  }
+
   // set binning
   TH1::SetBins(Nt,tbins, Nf,fbins);
   delete fbins;
   delete tbins;
-
+ 
   // band variables
   delete bandMultiple;
   bandMultiple   = new int [GetNBands()];
   Ntiles=0;
 
+  // create phase array
+  phase = new double * [GetNBands()];
+
   for(int f=0; f<GetNBands(); f++){
+
     TimeCumulativeMismatch = (double)aTimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / aQ;
     Nt = NextPowerOfTwo(TimeCumulativeMismatch / aMismatchStep);
     bandMultiple[f] = GetNbinsX() / Nt;
+
+    phase[f] = new double [Nt];
+    for(int t=0; t<Nt; t++) phase[f][t]=-100.0;
     Ntiles+=Nt;
   }
 
@@ -85,6 +103,12 @@ void Omap::SetBins(const int aNf, const double aFrequencyMin, const double aFreq
   double *tbins = new double [aNt+1];
   for(int t=0; t<=aNt; t++) tbins[t] = -(double)aTimeRange/2.0 + (double)t/(double)aNt*(double)aTimeRange;
 
+  // delete phase
+  if(phase!=NULL){
+    for(int f=0; f<GetNBands(); f++) delete phase[f];
+    delete phase;
+  }
+
   // set binning
   TH1::SetBins(aNt,tbins, aNf,fbins);
   delete fbins;
@@ -93,23 +117,36 @@ void Omap::SetBins(const int aNf, const double aFrequencyMin, const double aFreq
   // band variables
   delete bandMultiple;
   bandMultiple   = new int [GetNBands()];
-  for(int f=0; f<GetNBands(); f++) bandMultiple[f] = 1;
+
+  // create phase array
+  phase = new double * [GetNBands()];
+
+  for(int f=0; f<GetNBands(); f++){
+    bandMultiple[f] = 1;
+    
+    phase[f] = new double [aNt];
+    for(int t=0; t<aNt; t++) phase[f][t]=-100.0;
+  }
   Ntiles=GetNBands()*aNt;
+
   return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omap::SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent){
+void Omap::SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent, const double aPhase){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart = aTimeTileIndex * bandMultiple[aBandIndex];
   int tend   = tstart+bandMultiple[aBandIndex];
-  for(int t=tstart; t<tend; t++) SetBinContent(t+1,aBandIndex+1,aContent);
+  for(int t=tstart; t<tend; t++){
+    SetBinContent(t+1,aBandIndex+1,aContent);
+    phase[aBandIndex][aTimeTileIndex]=aPhase;
+  }
   return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 void Omap::SetTileDisplay(){
-  ////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
   for(int f=0; f<GetNbinsY(); f++)
     for(int t=0; t<GetNbinsX(); t++)
       SetBinContent(t+1,f+1,50*((t/bandMultiple[f])%2));

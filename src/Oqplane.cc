@@ -133,7 +133,8 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
 				tiletime+GetTileDuration(f)/2.0,
 				GetBandFrequency(f)-GetBandWidth(f)/2.0,
 				GetBandFrequency(f)+GetBandWidth(f)/2.0,
-				GetTileAmplitude(t,f))
+				GetTileAmplitude(t,f),
+				GetTilePhase(t,f))
 	 ) return false; // max triggers
     }
   }
@@ -151,16 +152,17 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
   int i, index, dataindex, end; // indexes
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
+  double *phases;               // vector of phases
   double Thr;                   // Gaussian threshold
   double meanenergy;            // mean Gaussian energy
 
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
-
+ 
     // make working vector
     working_vector[0] = new double [GetBandNtiles(f)];
     working_vector[1] = new double [GetBandNtiles(f)];
-
+    
     // padding sizes
     ZeroPadSize = GetBandNtiles(f)-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
@@ -197,8 +199,9 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     delete working_vector[0];
     delete working_vector[1];
   
-    // get energies
+    // get energies/phases
     energies = bandFFT[f]->GetNorm2();
+    phases   = bandFFT[f]->GetPhase();
 
     // make Gaussian threshold
     Thr=1e20;
@@ -208,11 +211,12 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy));
+      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy),phases[t]);
       SetTileTag(t,f,1.0);
     }
 
     delete energies;
+    delete phases;
   }
  
   return true;

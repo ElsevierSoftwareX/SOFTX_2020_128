@@ -602,7 +602,7 @@ bool Omicron::WriteOutput(void){
     triggers[chanindex]->SortTriggers();
     
     // clustering if any
-    if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize(fClusterAlgo);
+    if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
     
     // write triggers to disk
     if(!triggers[chanindex]->Write().compare("none"))

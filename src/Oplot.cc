@@ -13,7 +13,7 @@ Oplot::Oplot(const string aPattern, const string aDirectory, const int aVerbose)
   SetSNRThresholds(TMath::Min(5.0,Msnrmin_stat),8.0,10.0,20.0);
   
   // Clusterize
-  TriggerPlot::Clusterize("TIME",1);
+  TriggerPlot::Clusterize(1);
   for(int s=0; s<4; s++) TriggerPlot::SetCollectionUseClusters(s,1);// unflagged
   TriggerPlot::SetCollectionUseClusters(4,2);// flagged
 

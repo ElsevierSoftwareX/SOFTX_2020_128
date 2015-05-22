@@ -77,6 +77,9 @@ class Omap: public TH2D {
   inline double GetTileContent(const int aTimeTileIndex, const int aBandIndex){    
     return GetBinContent(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
   };
+  inline double GetTilePhase(const int aTimeTileIndex, const int aBandIndex){    
+    return phase[aBandIndex][aTimeTileIndex];
+  };
   inline double GetTileTag(const int aTimeTileIndex, const int aBandIndex){    
     return GetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
   };
@@ -94,7 +97,7 @@ class Omap: public TH2D {
   };
 
   // SETS
-  void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent);
+  void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent, const double aPhase=-100.0);
   inline void SetTileTag(const int aTimeTileIndex, const int aBandIndex, const double aTag){
     SetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1,aTag);
   };
@@ -103,7 +106,8 @@ class Omap: public TH2D {
  
   int Ntiles;                       ///< number of tiles in the plane
   int *bandMultiple;                ///< band multiple (time resolution)
-    
+  double **phase;                   ///< tile phase array
+
   ClassDef(Omap,0)  
 };
 

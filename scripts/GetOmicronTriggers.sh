@@ -40,14 +40,9 @@ printhelp(){
     echo ""
     echo ""
     echo "CLUSTER OPTIONS"
-    echo "  -C  [TIME/TIMEFREQ]   \"TIME\" = print time-clustered triggers"
-    echo "           /NONE        \"TIMEFREQ\"  = print time-frequency-clustered triggers"
-    echo "                        \"NONE\"  = print unclustered triggers"
-    echo "                        Default = 'TIME'"
-    echo "  -T  [DELTAT]          clustering delta_t in seconds"
-    echo "                        Default = 0.1s"
-    echo "  -A  [AF]              clustering frequency asymmetry (<1)"
-    echo "                        Default = 0.05"
+    echo "  -C  [DELTAT]          clustering delta_t in seconds"
+    echo "                        = 0.0 means \"no clustering is applied\""
+    echo "                        Default = 0.1 (clustering is active)"
     echo ""
     echo "OUTPUT CONTROL"
     echo "  -r                    do not print frequency column"
@@ -58,6 +53,7 @@ printhelp(){
     echo "  -p                    print fstart column"
     echo "  -v                    print fend column"
     echo "  -m                    print amplitude column"
+    echo "  -g                    print phase column"
     echo "  -n                    do not print SNR column"
     echo "  -q                    print Q column (not available with -C option)"
     echo ""
@@ -81,9 +77,7 @@ snrmin=1           # minimum SNR
 snrmax=10000       # maximum SNR
 freqmin=1          # minimum frequency
 freqmax=10000      # maximum frequency
-cluster="TIME"     # clusters
 cluster_dt=0.1     # cluster deltat
-cluster_af=0.05    # cluster Af
 print_freq=1       # print frequency column
 print_dur=0        # print duration column
 print_bw=0         # print bandwidth column
@@ -92,6 +86,7 @@ print_te=0         # print tend column
 print_fs=0         # print fstart column
 print_fe=0         # print fend column
 print_q=0          # print Q column
+print_p=0          # print phase
 print_amp=0        # print Amplitude column
 print_snr=1        # print SNR column
 triggerfiles="NONE" # user trigger files
@@ -99,7 +94,7 @@ tmin=0             # starting time
 tmax=0             # stopping time
 
 ##### read options
-while getopts ":c:t:s:e:x:X:f:F:C:T:A:ruanojmpvqlh" opt; do
+while getopts ":c:t:s:e:x:X:f:F:C:ruanojmpvqglh" opt; do
     case $opt in
 	c)
 	    channel="$OPTARG"
@@ -126,13 +121,7 @@ while getopts ":c:t:s:e:x:X:f:F:C:T:A:ruanojmpvqlh" opt; do
 	    freqmax="$OPTARG"
 	    ;;
 	C)
-	    cluster="$OPTARG"
-	    ;;
-	T)
 	    cluster_dt="$OPTARG"
-	    ;;
-	A)
-	    cluster_af="$OPTARG"
 	    ;;
 	r)
 	    print_freq=0
@@ -163,6 +152,9 @@ while getopts ":c:t:s:e:x:X:f:F:C:T:A:ruanojmpvqlh" opt; do
 	    ;;
 	q)
 	    print_q=1
+	    ;;
+	g)
+	    print_p=1
 	    ;;
 	l)
 	    for run in $RUN_NAMES; do
@@ -231,7 +223,7 @@ fi
 
 ##### case where the trigger files are provided
 if [ ! "$triggerfiles" = "NONE" ]; then
-    printtriggers.exe "$triggerfiles" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $cluster $cluster_dt $cluster_af
+    printtriggers.exe "$triggerfiles" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_p $cluster_dt
     exit 0
 fi
 
@@ -246,7 +238,7 @@ fi
 
 ##### print triggers
 if [ ! "$OMICRON_FILELIST" = "" ]; then
-    printtriggers.exe "$OMICRON_FILELIST" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $cluster $cluster_dt $cluster_af
+    printtriggers.exe "$OMICRON_FILELIST" $tmin $tmax $snrmin $snrmax $freqmin $freqmax $print_freq $print_dur $print_bw $print_ts $print_te $print_fs $print_fe $print_snr $print_amp $print_q $print_p $cluster_dt
     exit 0
 else 
     echo "`basename $0`: Omicron triggers are not available"
