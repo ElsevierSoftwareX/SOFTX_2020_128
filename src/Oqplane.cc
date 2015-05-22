@@ -34,7 +34,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   int NyquistFrequency             = SampleFrequency/2;
   double MinimumAllowableFrequency = 50.0 * Q / (2.0 * TMath::Pi() * (double)TimeRange);
   double MaximumAllowableFrequency = (double)NyquistFrequency/(1.0 + sqrt(11.0) / Q);
-  double MinimumFrequencyStep      = 1.0 / (double)TimeRange;
+  double df                        = 1.0 / (double)TimeRange;
  
   // adjust frequency range
   if(FrequencyMin<MinimumAllowableFrequency) FrequencyMin = MinimumAllowableFrequency;
@@ -64,8 +64,9 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   bandWindowSize = new int     [GetNBands()];
 
   double windowargument;
-  double rownormalization;
+  double winnormalization;
   double ifftnormalization;
+  double delta_f;
 
   for(int f=0; f<GetNBands(); f++){
     
@@ -73,18 +74,21 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     bandPower[f]=0.0;
            
     // band fft
+    ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE");
 
-    // Gaussian window
-    bandWindowSize[f] = 2 * (int)floor(GetBandFrequency(f)/QPrime*TimeRange) + 1;
+    // Prepare window stuff
+    delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
+    bandWindowSize[f] = 2 * (int)floor(delta_f/df) + 1;
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
-    rownormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));
-    ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
+    winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26
+ 
+    // Connes window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
     for(int i=0; i<bandWindowSize[f]; i++){
-      bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * MinimumFrequencyStep;
-      windowargument=bandWindowFreq[f][i]*QPrime/GetBandFrequency(f);
-      bandWindow[f][i] = rownormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);
+      bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * df;
+      windowargument=bandWindowFreq[f][i]/delta_f;// f/delta_f
+      bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// connes window (1-x^2)^2
       bandWindowFreq[f][i]+=GetBandFrequency(f);
     }
   }
@@ -153,38 +157,49 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
   double *phases;               // vector of phases
-  double Thr;                   // Gaussian threshold
   double meanenergy;            // mean Gaussian energy
-
+  int Nt;                       // number of time tiles
+  
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
- 
+
+    // number of tiles in this row
+    Nt = GetBandNtiles(f);
+    
     // make working vector
-    working_vector[0] = new double [GetBandNtiles(f)];
-    working_vector[1] = new double [GetBandNtiles(f)];
+    working_vector[0] = new double [Nt];
+    working_vector[1] = new double [Nt];
     
     // padding sizes
-    ZeroPadSize = GetBandNtiles(f)-bandWindowSize[f];
+    ZeroPadSize = Nt-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
     RightZeroPadSize = (ZeroPadSize + 1) / 2;
 
     // fill windowed vector with zero padding
+    //
+    // |----| (bandWindowSize+1)/2 (right side)
+    //      |-------------------------------| ZeroPadSize
+    //      |---------------| RightZeroPadSize
+    //                      |---------------| LeftZeroPadSize = RightZeroPadSize + 1
+    //     (bandWindowSize-1)/2 (left side) |----|
+    //
+    // |----|---------------|---------------|----| Nt
     i=0, index=0, end=0;
-    end=GetBandNtiles(f)/2-RightZeroPadSize;
+    end=Nt/2-RightZeroPadSize;
     for(; i<end; i++){
-      index=i+GetBandNtiles(f)/2-LeftZeroPadSize;
+      index=i+Nt/2-LeftZeroPadSize;
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
       working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
       working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
     }
-    end+=LeftZeroPadSize+RightZeroPadSize;
+    end+=ZeroPadSize;
     for(; i<end; i++){
       working_vector[0][i]=0.0;
       working_vector[1][i]=0.0;
     }
-    end=GetBandNtiles(f);
+    end=Nt;
     for(; i<end; i++){
-      index=i-(LeftZeroPadSize+end/2);
+      index=i-(LeftZeroPadSize+Nt/2);
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
       working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
       working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
@@ -203,15 +218,18 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     energies = bandFFT[f]->GetNorm2();
     phases   = bandFFT[f]->GetPhase();
 
-    // make Gaussian threshold
-    Thr=1e20;
-    UpdateThreshold(f,energies,Thr);
-    //UpdateThreshold(f,energies,Thr);
-    meanenergy=UpdateThreshold(f,energies,Thr);
-    
+    // get mean energy
+    meanenergy=GetMeanEnergy(f,energies);
+    if(meanenergy<=0.0){
+      cerr<<"Oqplane::ProjectData: cannot normalize the data"<<endl;
+      delete energies;
+      delete phases;
+      return false;
+    }
+
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy),phases[t]);
+      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t]);// eq. 5.79
       SetTileTag(t,f,1.0);
     }
 
@@ -229,6 +247,7 @@ double Oqplane::UpdateThreshold(const int aBandIndex, double *aEnergies, double 
   int n=0;
   int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
   int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
+
   for(int t=tstart; t<tend; t++){
     if(aEnergies[t]>aThreshold) continue;
     MeanEnergy+=aEnergies[t];    
@@ -242,6 +261,41 @@ double Oqplane::UpdateThreshold(const int aBandIndex, double *aEnergies, double 
     aThreshold = MeanEnergy + 2.0 * RMSEnergy;// 2-sigma threshold
     MeanEnergy/=0.954499736104;//correct gaussian bias 2sigma
   }
+
+  return MeanEnergy;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // remove segment edges
+  int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
+  int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
+  vector <double> v;
+  for(int t=tstart; t<tend; t++) v.push_back(aEnergies[t]);    
+
+  // outlier threshold eq. 5.91
+  size_t n25 = 1*v.size() / 4;
+  size_t n75 = 3*v.size() / 4;
+  nth_element(v.begin(), v.begin()+n25, v.end());
+  nth_element(v.begin(), v.begin()+n75, v.end());
+  double thr = v[n75]+2.0*(v[n75]-v[n25]);
+  v.clear();
+
+  // get mean
+  double MeanEnergy=0;
+  int n=0;
+  for(int t=tstart; t<tend; t++){
+    if(aEnergies[t]>thr) continue;
+    MeanEnergy+=aEnergies[t];    
+    n++;
+  }
+  if(n){
+    MeanEnergy/=(double)n;
+    MeanEnergy/=BIASFACT2;
+  }
+  return -1.0;
 
   return MeanEnergy;
 }
@@ -273,20 +327,24 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 void Oqplane::GetPlaneNormalization(void){
 ////////////////////////////////////////////////////////////////////////////////////  
-  double coefficients[9] = {0,-2,0,22.0/3.0,0,-146.0/15.0,0,186.0/35.0,0};
+
+  //polynomial coefficients for plane normalization factor
+  double logfact = log((QPrime + 1) / (QPrime - 1));
+  double coefficients[9] = {logfact,
+			    -2.0,
+			    -4.0*logfact,
+			    22.0/3.0,
+			    6.0*logfact,
+			    -146.0/15.0,
+			    -4.0*logfact,
+			    186.0/35.0,
+			    logfact};// see eq. 5.55
 
   // for large qPrime
-  if(QPrime > 10) PlaneNormalization = 1.0; // use asymptotic value of planeNormalization
-  else{
-    //polynomial coefficients for plane normalization factor
-    coefficients[0] = log((QPrime + 1) / (QPrime - 1));
-    coefficients[2] = - 4*log((QPrime + 1) / (QPrime - 1));
-    coefficients[4] = 6*log((QPrime + 1) / (QPrime - 1));
-    coefficients[6] = - 4*log((QPrime + 1) / (QPrime - 1));
-    coefficients[8] = log((QPrime + 1) / (QPrime - 1));
+  if(QPrime > 10.0) PlaneNormalization = 1.0; // use asymptotic value of planeNormalization (Fig. 5.3)
 
-    // plane normalization factor
-    PlaneNormalization = sqrt(256 / (315 * QPrime * (
+  else{
+    PlaneNormalization = sqrt(256.0 / (315.0 * QPrime * (
 						      coefficients[0]*pow(QPrime,8)+
 						      coefficients[1]*pow(QPrime,7)+
 						      coefficients[2]*pow(QPrime,6)+
@@ -295,7 +353,7 @@ void Oqplane::GetPlaneNormalization(void){
 						      coefficients[5]*pow(QPrime,3)+
 						      coefficients[6]*pow(QPrime,2)+
 						      coefficients[7]*QPrime+
-						      coefficients[8])));
+						      coefficients[8])));// eq. 5.55
   }
 
   return;

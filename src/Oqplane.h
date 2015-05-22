@@ -8,6 +8,9 @@
 #include "Spectrum.h"
 #include "Omap.h"
 
+// eq 5.95 with alpha=2
+#define BIASFACT2 (1.0-log(4.0*3.0*3.0)/(4.0*3.0*3.0-1.0))
+
 using namespace std;
 
 /**
@@ -52,6 +55,7 @@ class Oqplane: public Omap {
   bool SetPower(Spectrum *aSpec);
 
   // INTERNAL
+  double GetMeanEnergy(const int aBandIndex, double *aEnergies);
   double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
   void GetPlaneNormalization(void);
  
@@ -61,9 +65,9 @@ class Oqplane: public Omap {
   double PlaneNormalization;        ///< plane normalization
   
   // FREQUENCY BANDS
-  int *bandWindowSize;              ///< band Gaussian window size
-  double **bandWindow;              ///< band Gaussian window
-  double **bandWindowFreq;          ///< band Gaussian window frequency
+  int *bandWindowSize;              ///< band 'Gaussian' window size
+  double **bandWindow;              ///< band 'Gaussian' window
+  double **bandWindowFreq;          ///< band 'Gaussian' window frequency
   double *bandPower;                ///< band power
   fft **bandFFT;                    ///< band fft
   
