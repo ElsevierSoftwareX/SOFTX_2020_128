@@ -229,7 +229,8 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t]);// eq. 5.79
+      if(2.0*energies[t]>meanenergy) SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t]);// eq. 5.79
+      else SetTileContent(t,f,0.0);
       SetTileTag(t,f,1.0);
     }
 

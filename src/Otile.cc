@@ -352,33 +352,32 @@ TH2D* Otile::MakeFullMap(const int aTimeRange, const double aT0){
   fullmap->GetZaxis()->SetTitleSize(0.045);
   fullmap->GetZaxis()->SetRangeUser(1,50);
 
-  int tstart, tend, fstart, fend, stop;
+  int ttstart, ttend, ffstart, ffend;
   double content;
 
   // loop over q planes
   for(int q=0; q<nq; q++){
 
     for(int f=0; f<qplanes[q]->GetNBands(); f++){
-      fstart=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandStart(f));
-      fend=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandEnd(f));
-      stop=qplanes[q]->GetTimeTileIndex(f,(double)aTimeRange/2.0);
+      ffstart=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandStart(f));
+      ffend=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandEnd(f));
 
-      for(int t=qplanes[q]->GetTimeTileIndex(f,-(double)aTimeRange/2.0); t<=stop; t++){
+      for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
 	if(!qplanes[q]->GetTileTag(t,f)) continue;
-	tstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+aT0);
-	tend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+aT0);
+	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+aT0);
+	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+aT0);
 	
 	content=qplanes[q]->GetTileContent(t,f);
 	
-	for(int tt=tstart; tt<=tend; tt++)
-	  for(int ff=fstart; ff<=fend; ff++)
+	for(int tt=ttstart; tt<=ttend; tt++)
+	  for(int ff=ffstart; ff<=ffend; ff++)
 	    if(content>fullmap->GetBinContent(tt,ff)) fullmap->SetBinContent(tt,ff,content);
 	
       }
     }
     
   }
-
+  
   return fullmap;
 }
 
