@@ -112,39 +112,37 @@ Oqplane::~Oqplane(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, 
-			   const int aLeftTimePad, const int aRightTimePad, const int aT0){
+void Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, 
+			   const double aLeftTimePad, const double aRightTimePad, const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
-  double tiletime;
   int tstart, tend;
   for(int f=0; f<GetNBands(); f++){
     
     // remove padding
-    tstart=GetTimeTileIndex(f,(double)(aLeftTimePad-GetTimeRange()/2))+1;
-    tend=GetTimeTileIndex(f,(double)(GetTimeRange()/2.0-aRightTimePad));
-    if(GetTileTime(tend,f)<(double)(GetTimeRange()/2.0-aRightTimePad)) tend++;// GWOLLUM convention
+    tstart=GetTimeTileIndex(f,-GetTimeRange()/2.0+aLeftTimePad)+1;
+    tend=GetTimeTileIndex(f,GetTimeRange()/2.0-aRightTimePad);
+    if(GetTileTime(tend,f)<GetTimeRange()/2.0-aRightTimePad) tend++;// GWOLLUM convention
 
     // fill triggers
     for(int t=tstart; t<tend; t++){
-      if(!GetTileTag(t,f)) continue; // apply down-tiling
       if(GetTileContent(t,f)<aSNRThr) continue;// apply SNR threshold
-      tiletime=GetTileTime(t,f)+(double)aT0;
-      if(!aTriggers->AddTrigger(tiletime,
-				GetBandFrequency(f),
-				GetTileContent(t,f),
-				Q,
-				tiletime-GetTileDuration(f)/2.0,
-				tiletime+GetTileDuration(f)/2.0,
-				GetBandFrequency(f)-GetBandWidth(f)/2.0,
-				GetBandFrequency(f)+GetBandWidth(f)/2.0,
-				GetTileAmplitude(t,f),
-				GetTilePhase(t,f))
-	 ) return false; // max triggers
+      if(!GetTileTag(t,f)) continue; // apply down-tiling
+      
+      aTriggers->AddTrigger(GetTileTime(t,f)+aT0,
+			    GetBandFrequency(f),
+			    GetTileContent(t,f),
+			    Q,
+			    GetTileTimeStart(t,f)+aT0,
+			    GetTileTimeEnd(t,f)+aT0,
+			    GetBandStart(f),
+			    GetBandEnd(f),
+			    GetTileAmplitude(t,f),
+			    GetTilePhase(t,f));
     }
   }
 
   // for trigger segments see Otile::SaveTriggers()
-  return true;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +219,7 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // get mean energy
     meanenergy=GetMeanEnergy(f,energies);
     if(meanenergy<=0.0){
-      cerr<<"Oqplane::ProjectData: cannot normalize the data"<<endl;
+      cerr<<"Oqplane::ProjectData: cannot normalize energies"<<endl;
       delete energies;
       delete phases;
       return false;
@@ -229,9 +227,8 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      if(2.0*energies[t]>meanenergy) SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t]);// eq. 5.79
+      if(2.0*energies[t]>meanenergy) SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t],true);// eq. 5.79
       else SetTileContent(t,f,0.0);
-      SetTileTag(t,f,1.0);
     }
 
     delete energies;
@@ -242,35 +239,10 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Oqplane::UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold){
-////////////////////////////////////////////////////////////////////////////////////
-  double MeanEnergy=0, RMSEnergy=0;
-  int n=0;
-  int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
-  int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
-
-  for(int t=tstart; t<tend; t++){
-    if(aEnergies[t]>aThreshold) continue;
-    MeanEnergy+=aEnergies[t];    
-    RMSEnergy+=aEnergies[t]*aEnergies[t];    
-    n++;
-  }
-  if(n){
-    MeanEnergy/=(double)n;
-    RMSEnergy/=(double)n;
-    RMSEnergy=sqrt(fabs(RMSEnergy-MeanEnergy*MeanEnergy));
-    aThreshold = MeanEnergy + 2.0 * RMSEnergy;// 2-sigma threshold
-    MeanEnergy/=0.954499736104;//correct gaussian bias 2sigma
-  }
-
-  return MeanEnergy;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
 double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  // remove segment edges
+  // remove segment edges (2 x 25%)
   int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
   int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
   vector <double> v;

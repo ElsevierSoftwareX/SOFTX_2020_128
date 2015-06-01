@@ -28,27 +28,24 @@ class Omap: public TH2D {
   Omap();
   virtual ~Omap(void);
 
-  void SetBins(const double aQ, const double aFrequencyMin, const double aFrequencyMax,
+  void SetBins(const double aQ,
+	       const double aFrequencyMin, const double aFrequencyMax,
 	       const int aTimeRange, const double aMismatchStep);
-
-  void SetBins(const int aNf, const double aFrequencyMin, const double aFrequencyMax,
-	       const int aNt, const int aTimeRange);
-
 
   inline double GetTimeRange(void){
     return GetXaxis()->GetBinUpEdge(GetNbinsX())-GetXaxis()->GetBinLowEdge(1); 
   };
   inline double GetTimeMin(void){ 
-    return GetXaxis()->GetXmin(); 
+    return GetXaxis()->GetBinLowEdge(1); 
   };
   inline double GetTimeMax(void){ 
-    return GetXaxis()->GetXmax(); 
+    return GetXaxis()->GetBinUpEdge(GetNbinsX()); 
   };
   inline double GetFrequencyMin(void){ 
-    return GetYaxis()->GetXmin(); 
+    return GetYaxis()->GetBinLowEdge(1); 
   };
   inline double GetFrequencyMax(void){ 
-    return GetYaxis()->GetXmax(); 
+    return GetYaxis()->GetBinUpEdge(GetNbinsY()); 
   };
   inline int GetNBands(void){ 
     return GetNbinsY();
@@ -56,7 +53,7 @@ class Omap: public TH2D {
   inline int GetBandIndex(const double aFrequency){
     return GetYaxis()->FindBin(aFrequency)-1;
   };
-  inline double GetBandFrequency(const int aBandIndex){ 
+  inline double GetBandFrequency(const int aBandIndex){
     return GetYaxis()->GetBinCenterLog(aBandIndex+1);
   };
   inline double GetBandStart(const int aBandIndex){ 
@@ -75,13 +72,13 @@ class Omap: public TH2D {
     return GetNbinsX()/bandMultiple[aBandIndex];
   };
   inline double GetTileContent(const int aTimeTileIndex, const int aBandIndex){    
-    return GetBinContent(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
+    return tilecontent[aBandIndex][aTimeTileIndex];
   };
   inline double GetTilePhase(const int aTimeTileIndex, const int aBandIndex){    
-    return phase[aBandIndex][aTimeTileIndex];
+    return tilephase[aBandIndex][aTimeTileIndex];
   };
-  inline double GetTileTag(const int aTimeTileIndex, const int aBandIndex){    
-    return GetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
+  inline double GetTileTag(const int aTimeTileIndex, const int aBandIndex){
+    return tiletag[aBandIndex][aTimeTileIndex];
   };
   inline double GetTileTimeStart(const int aTimeTileIndex, const int aBandIndex){
     return GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
@@ -90,23 +87,31 @@ class Omap: public TH2D {
     return GetXaxis()->GetBinUpEdge((aTimeTileIndex+1)*bandMultiple[aBandIndex]);
   };
   inline double GetTileTime(const int aTimeTileIndex, const int aBandIndex){
-    return GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+bandMultiple[aBandIndex]/2+1);
+    return (GetTileTimeStart(aTimeTileIndex,aBandIndex) + GetTileTimeEnd(aTimeTileIndex,aBandIndex)) / 2.0;
   };
   inline int GetTimeTileIndex(const int aBandIndex, const double aTime){
     return (int)floor((aTime-GetTimeMin())/GetTileDuration(aBandIndex));
   };
 
   // SETS
-  void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent, const double aPhase=-100.0);
-  inline void SetTileTag(const int aTimeTileIndex, const int aBandIndex, const double aTag){
-    SetBinError(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1,aTag);
+  inline void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent, const double aPhase=-100.0, const bool aTag=true){
+    tilecontent[aBandIndex][aTimeTileIndex]=aContent;
+    tilephase[aBandIndex][aTimeTileIndex]=aPhase;
+    tiletag[aBandIndex][aTimeTileIndex]=aTag;
   };
+  inline void SetTileTag(const int aTimeTileIndex, const int aBandIndex, const bool aTag){ tiletag[aBandIndex][aTimeTileIndex]=aTag; };
 
-  void SetTileDisplay(void);
- 
+  // MAPS
+  void MakeMapContent(void);
+  void MakeMapPhase(void);
+  void MakeMapDisplay(void);
+
+  
   int Ntiles;                       ///< number of tiles in the plane
   int *bandMultiple;                ///< band multiple (time resolution)
-  double **phase;                   ///< tile phase array
+  double **tilecontent;             ///< tile content array
+  double **tilephase;               ///< tile phase array
+  bool   **tiletag;                 ///< tile tag array
 
   ClassDef(Omap,0)  
 };

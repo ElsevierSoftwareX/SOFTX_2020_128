@@ -13,7 +13,7 @@ Otile::Otile(const int aTimeRange,
 	     const string aPlotStyle, const int aVerbosity): GwollumPlot("otile",aPlotStyle){ 
 ////////////////////////////////////////////////////////////////////////////////////
  
-  // Plots
+  // Plot default
   SetLogx(0); SetLogy(1); SetLogz(1);
   snrscale=50;
 
@@ -97,13 +97,14 @@ bool Otile::ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown){
     }
   }
 
+  // tile-down
   if(aTileDown) TileDown();
 
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad, const int aRightTimePad, const int aT0){
+bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const double aLeftTimePad, const double aRightTimePad, const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
@@ -115,12 +116,11 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const in
   }
 
   // save triggers for each Q plane
-  for(int p=0; p<nq; p++){
-    if(!qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0)) return false;// max triggers
-  }
-
+  for(int p=0; p<nq; p++)
+    qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0);
+  
   // save segments
-  aTriggers->AddSegment((double)(aT0-TimeRange/2+aLeftTimePad),(double)(aT0+TimeRange/2-aRightTimePad));
+  aTriggers->AddSegment(aT0-(double)(TimeRange/2)+aLeftTimePad,aT0+(double)(TimeRange/2)-aRightTimePad);
   
   return true;
 }
@@ -134,13 +134,14 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
   }
   if(!aWindows.size()) aWindows.push_back(TimeRange);
    
-  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<"..."<<endl;
+  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<aT0<<"..."<<endl;
   ostringstream tmpstream;
 
-  // apply SNR threshold
+  // make maps and apply SNR threshold
   double snrmax=-1, snr;
   int n=0;
   for(int q=0; q<nq; q++){
+    qplanes[q]->MakeMapContent();
     qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
     snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());
     if(qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin())<aSNRThr) n++;
@@ -148,7 +149,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
     qplanes[q]->GetXaxis()->UnZoom();
   }
   if(n==nq){
-    if(fVerbosity) cout<<"Otile::SaveMaps: maps "<<aName<<" are below SNR threshold -> do not save"<<endl;
+    if(fVerbosity) cout<<"Otile::SaveMaps: map "<<aName<<" (+-"<<aWindows[0]/2.0<<"s) is below SNR threshold -> do not save"<<endl;
     return snrmax;
   }
 
@@ -209,7 +210,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
 	      
 	// set vertical range
 	if(snrscale>1) qplanes[q]->GetZaxis()->SetRangeUser(1,snrscale);
-	else qplanes[q]->GetZaxis()->SetRangeUser(1,TMath::Max(zmax,5));
+	else qplanes[q]->GetZaxis()->SetRangeUser(1,TMath::Max(qplanes[q]->GetBinContent(xmax,ymax),5.0));
 
 	// save plot
 	for(int f=0; f<(int)form.size(); f++){
@@ -255,7 +256,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
       
       // set vertical range
       if(snrscale>1) fullmap->GetZaxis()->SetRangeUser(1,snrscale);
-      else fullmap->GetZaxis()->SetRangeUser(1,TMath::Max(zmax,5));
+      else fullmap->GetZaxis()->SetRangeUser(1,TMath::Max(fullmap->GetBinContent(xmax,ymax),5.0));
 
       // save plot
       for(int f=0; f<(int)form.size(); f++){
@@ -287,24 +288,37 @@ double Otile::GetQ(const int aQindex){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::DisplayTiling(const int aQindex){
+bool Otile::DrawMapTiling(const int aQindex){
 ////////////////////////////////////////////////////////////////////////////////////  
   if(aQindex<0||aQindex>=nq){
-    cerr<<"Otile::DisplayTiling: the Q-plane #"<<aQindex<<" does not exist"<<endl;
+    cerr<<"Otile::DrawMapTiling: the Q-plane #"<<aQindex<<" does not exist"<<endl;
     return false;
   }
-  qplanes[aQindex]->SetTileDisplay();
+  qplanes[aQindex]->MakeMapDisplay();
   Draw(qplanes[aQindex],"COL");
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::DrawPlane(const int aQindex){
+bool Otile::DrawMapContent(const int aQindex){
 ////////////////////////////////////////////////////////////////////////////////////  
   if(aQindex<0||aQindex>=nq){
-    cerr<<"Otile::DrawPlane: the Q-plane #"<<aQindex<<" does not exist"<<endl;
+    cerr<<"Otile::DrawMapContent: the Q-plane #"<<aQindex<<" does not exist"<<endl;
     return false;
   }
+  qplanes[aQindex]->MakeMapContent();
+  Draw(qplanes[aQindex],"COLZ");
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Otile::DrawMapPhase(const int aQindex){
+////////////////////////////////////////////////////////////////////////////////////  
+  if(aQindex<0||aQindex>=nq){
+    cerr<<"Otile::DrawMapPhase: the Q-plane #"<<aQindex<<" does not exist"<<endl;
+    return false;
+  }
+  qplanes[aQindex]->MakeMapPhase();
   Draw(qplanes[aQindex],"COLZ");
   return true;
 }
@@ -401,15 +415,14 @@ void Otile::TileDown(void){
 	content=qplanes[q]->GetTileContent(t,f);
 	tstart=qplanes[q]->GetTileTimeStart(t,f);
 	tend=qplanes[q]->GetTileTimeEnd(t,f);
-	qplanes[q]->SetTileTag(t,f,0.0);
+	qplanes[q]->SetTileTag(t,f,false);
 
 	// drill through and see if the reference tile is the winner
 	winner=true;
-	for(int qq=0; qq<nq; qq++){
+	for(int qq=0; qq<nq&&winner; qq++){
 	  if(qq==q) continue;
-	  if(!winner) break;
-	  ffstart=qplanes[qq]->GetBandIndex(fstart);
-	  ffend=qplanes[qq]->GetBandIndex(fend);
+	  ffstart=TMath::Max(qplanes[qq]->GetBandIndex(fstart),0);
+	  ffend=TMath::Min(qplanes[qq]->GetBandIndex(fend),qplanes[qq]->GetNBands()-1);
 	  for(int ff=ffstart; ff<=ffend; ff++){
 	    if(!winner) break;
 	    ttstart=qplanes[qq]->GetTimeTileIndex(ff,tstart);
@@ -424,7 +437,7 @@ void Otile::TileDown(void){
 	}
 
 	// the reference tile is a winner
-	if(winner) qplanes[q]->SetTileTag(t,f,1.0);
+	if(winner) qplanes[q]->SetTileTag(t,f,true);
 
       }
     }

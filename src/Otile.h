@@ -75,13 +75,19 @@ class Otile: public GwollumPlot {
    * Displays a canonical representation of a given Q-plane.
    * @param aQindex Q-plane index
    */
-  bool DisplayTiling(const int aQindex);
+  bool DrawMapTiling(const int aQindex);
 
   /**
    * Draws a given Q-plane.
    * @param aQindex Q-plane index
    */
-  bool DrawPlane(const int aQindex);
+  bool DrawMapContent(const int aQindex);
+
+  /**
+   * Draws phase for a given Q-plane.
+   * @param aQindex Q-plane index
+   */
+  bool DrawMapPhase(const int aQindex);
 
   /**
    * Sets the data power spectrum.
@@ -116,14 +122,14 @@ class Otile: public GwollumPlot {
    * @param aRightTimePad duration of the right padding
    * @param aT0 plane central time
    */
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const int aLeftTimePad=0, const int aRightTimePad=0, const int aT0=0);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0);
 
   /**
    * Saves the maps for each Q-planes in output files.
    * The maps are saved in output files.
-   * An addition map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
-   * Maps are not saved if the maximum SNR within the <u>first</u> window time range is below threshold.
-   * The returned value is the maximum SNR value within the <u>first</u> window time range. -1.0 is returned if this function fails.
+   * An additionnal map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
+   * Maps are not saved if the maximum SNR within the first window time range is below threshold.
+   * The returned value is the maximum SNR value within the first window time range. -1.0 is returned if this function fails.
    * @param aOutdir output directory path
    * @param aName name identifier
    * @param aT0 plane central time
@@ -132,7 +138,7 @@ class Otile: public GwollumPlot {
    * @param aSNRThr SNR threshold
    * @param aThumb also produce thumbnails if set to true
    */
-  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0, const bool aThumb=false);
+  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0.0, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.

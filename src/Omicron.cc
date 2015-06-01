@@ -529,9 +529,9 @@ bool Omicron::Project(void){
       if(fVerbosity>2) cout<<"\t\t- save triggers"<<endl;
       if(!tile->SaveTriggers(triggers[chanindex],
 			     fSNRThreshold,
-			     dataseq->GetCurrentOverlapDuration()-dataseq->GetOverlapDuration()/2,
-			     dataseq->GetOverlapDuration()/2,
-			     dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2)
+			     (double)(dataseq->GetCurrentOverlapDuration()-dataseq->GetOverlapDuration()/2),
+			     (double)(dataseq->GetOverlapDuration()/2),
+			     (double)(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2))
 	 ) return false;
     }
 

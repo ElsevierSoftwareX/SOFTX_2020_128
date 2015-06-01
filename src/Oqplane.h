@@ -37,16 +37,14 @@ class Oqplane: public Omap {
 
   void PrintParameters(void);
   bool ProjectData(double *aDataRe, double *aDataIm);
-  bool SaveTriggers(MakeTriggers *aTriggers, 
-		    const double aSNRThr, 
-		    const int aLeftTimePad=0, 
-		    const int aRightTimePad=0, 
-		    const int aT0=0);
+  void SaveTriggers(MakeTriggers *aTriggers, 
+		   const double aSNRThr, 
+		   const double aLeftTimePad=0.0, 
+		   const double aRightTimePad=0.0, 
+		   const double aT0=0);
 
   // GETS
-  inline double GetQ(void){ 
-    return Q;
-  };
+  inline double GetQ(void){ return Q; };
   inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){    
     return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
   };
@@ -56,7 +54,6 @@ class Oqplane: public Omap {
 
   // INTERNAL
   double GetMeanEnergy(const int aBandIndex, double *aEnergies);
-  double UpdateThreshold(const int aBandIndex, double *aEnergies, double &aThreshold);
   void GetPlaneNormalization(void);
  
   // Q-PLANE
