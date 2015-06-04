@@ -85,7 +85,7 @@ void Omicron::MakeHtml(void){
   gps=(int)inSegments->GetStart(0);
   GPSToUTC (&utc, gps);
   report<<"  <tr><td>Omicron run by:</td><td>"<<getenv("USER")<<"</td></tr>"<<endl;
-  report<<"  <tr><td>Omicron processing time:</td><td>"<<(int)(timer-timer_start)/3600<<"h, "<<((timer-timer_start)-(int)(timer-timer_start)/3600)/60<<"min</td></tr>"<<endl;
+  report<<"  <tr><td>Omicron processing time:</td><td>"<<(int)(timer-timer_start)/3600<<"h, "<<((int)(timer-timer_start)%3600)/60<<"min</td></tr>"<<endl;
   report<<"  <tr><td>Processing Date:</td><td>"<<asctime(ptm)<<" (UTC)</td></tr>"<<endl;
   report<<"  <tr><td>Requested start:</td><td>"<<gps<<" &rarr; "<<asctime(&utc)<<" (UTC)</td></tr>"<<endl;
   gps=(int)inSegments->GetEnd(inSegments->GetNsegments()-1);
