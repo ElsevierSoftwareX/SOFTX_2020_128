@@ -524,6 +524,32 @@ bool Omicron::Project(void){
     delete dataRe[s];
     delete dataIm[s];
 
+    // write maps on disk
+    double snr;
+    if(fOutProducts.find("maps")!=string::npos){
+      if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
+      if(fOutProducts.find("html")==string::npos) 
+	snr=tile->SaveMaps(outdir[chanindex],
+			   fChannels[chanindex],
+			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+			   fOutFormat,fWindows,fSNRThreshold,false);
+      else
+	snr=tile->SaveMaps(outdir[chanindex],
+			   fChannels[chanindex],
+			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
+			   fOutFormat,fWindows,fSNRThreshold,true);
+      if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
+    }
+    
+    // save info for html report
+    if(fOutProducts.find("html")!=string::npos&&!chanindex){
+      mapcenter.push_back(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
+      if(!s){
+	chunkstart.push_back(dataseq->GetChunkTimeStart()); 
+	chunkstop.push_back(dataseq->GetChunkTimeEnd());
+      }
+    }
+    
     // save triggers
     if(fOutProducts.find("triggers")!=string::npos){
       if(fVerbosity>2) cout<<"\t\t- save triggers"<<endl;
@@ -534,33 +560,7 @@ bool Omicron::Project(void){
 			     (double)(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2))
 	 ) return false;
     }
-
-    // write maps on disk
-    double snr;
-    if(fOutProducts.find("maps")!=string::npos){
-      if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
-      if(fOutProducts.find("html")==string::npos) 
-	snr=tile->SaveMaps(outdir[chanindex],
-		       fChannels[chanindex],
-		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-		       fOutFormat,fWindows,fSNRThreshold,false);
-      else
-	snr=tile->SaveMaps(outdir[chanindex],
-		       fChannels[chanindex],
-		       dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-		       fOutFormat,fWindows,fSNRThreshold,true);
-      if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
-    }
-
-    // save info for html report
-    if(fOutProducts.find("html")!=string::npos&&!chanindex){
-      mapcenter.push_back(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
-      if(!s){
-	chunkstart.push_back(dataseq->GetChunkTimeStart()); 
-	chunkstop.push_back(dataseq->GetChunkTimeEnd());
-      }
-    }
-
+    
   }
 
   chan_proj_ctr[chanindex]++;
