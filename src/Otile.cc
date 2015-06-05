@@ -117,7 +117,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const do
 
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)
-    qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0);
+    if(!qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0)) return false;
   
   // save segments
   aTriggers->AddSegment(aT0-(double)(TimeRange/2)+aLeftTimePad,aT0+(double)(TimeRange/2)-aRightTimePad);

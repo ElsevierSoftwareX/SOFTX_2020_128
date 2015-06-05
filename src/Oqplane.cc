@@ -112,7 +112,7 @@ Oqplane::~Oqplane(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, 
+bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, 
 			   const double aLeftTimePad, const double aRightTimePad, const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
@@ -128,21 +128,22 @@ void Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
       if(GetTileContent(t,f)<aSNRThr) continue;// apply SNR threshold
       if(!GetTileTag(t,f)) continue; // apply down-tiling
       
-      aTriggers->AddTrigger(GetTileTime(t,f)+aT0,
-			    GetBandFrequency(f),
-			    GetTileContent(t,f),
-			    Q,
-			    GetTileTimeStart(t,f)+aT0,
-			    GetTileTimeEnd(t,f)+aT0,
-			    GetBandStart(f),
-			    GetBandEnd(f),
-			    GetTileAmplitude(t,f),
-			    GetTilePhase(t,f));
+      if(!aTriggers->AddTrigger(GetTileTime(t,f)+aT0,
+				GetBandFrequency(f),
+				GetTileContent(t,f),
+				Q,
+				GetTileTimeStart(t,f)+aT0,
+				GetTileTimeEnd(t,f)+aT0,
+				GetBandStart(f),
+				GetBandEnd(f),
+				GetTileAmplitude(t,f),
+				GetTilePhase(t,f)))
+	return false;
     }
   }
 
   // for trigger segments see Otile::SaveTriggers()
-  return;
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
