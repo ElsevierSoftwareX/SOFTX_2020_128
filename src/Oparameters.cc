@@ -153,6 +153,13 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
   
+  //***** SNR Threshold *****
+  if(!io->GetOpt("PARAMETER","TILEFRACMAX", fTileFracMax)){
+    cerr<<"Omicron::ReadOptions: No trigger limit (PARAMETER/TILEFRACMAX)             --> set default: 0.5 (no limit)"<<endl;
+    fTileFracMax=0.5;
+  }
+  //*****************************
+  
   //***** set clustering *****
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
     cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                 --> set default: none"<<endl;

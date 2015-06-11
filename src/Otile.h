@@ -114,15 +114,14 @@ class Otile: public GwollumPlot {
   bool ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown=true);
 
   /**
-   * Saves active tiles above a SNR threshold in a MakeTriggers structure.
+   * Saves active tiles in a MakeTriggers structure.
    * The triggers Segments are also saved follwing the GWOLLUM convention for triggers. A padding can be provided to NOT saved triggers on the plane edges. The planes are always centered on 0. A T0 must therefore be provided.
    * @param aTriggers MakeTriggers object
-   * @param aSNRThr SNR threshold
    * @param aLeftTimePad duration of the left padding
    * @param aRightTimePad duration of the right padding
    * @param aT0 plane central time
    */
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0);
 
   /**
    * Saves the maps for each Q-planes in output files.
@@ -149,16 +148,34 @@ class Otile: public GwollumPlot {
    */
   static vector <double> ComputeQs(const double aQMin, const double aQMax, const double aMaximumMismatch);
 
+  /**
+   * Sets the maximum for the map SNR vertical scale.
+   * If the SNR value is smaller than 1, an automatic scale is used.
+   * @param aSNRScale maximal SNR value
+   */
   inline void SetSNRScale(const int aSNRScale){ snrscale=aSNRScale; };
+
+  /**
+   * Sets the tile selection for the trigger saving.
+   * This selection is applied when calling the SaveTriggers() function.
+   * @param aSNRThr SNR threshold applied to the tile content
+   * @param aTileFracMax maximum fraction of tiles to be saved (/qplane)
+   */
+  inline void SetTileSelection(const double aSNRThr, const double aTileFracMax=1){
+    TileFracMax=aTileFracMax;
+    for(int q=0; q<nq; q++) qplanes[q]->SetTileSelection(aSNRThr);
+  };
+    
 
  private:
 
-  int fVerbosity;              ///< verbosity level
-  Oqplane **qplanes;           ///< Q planes
-  int nq;                      ///< number of q planes
-  int TimeRange;               ///< map time range
-  int snrscale;                ///< map snr scale
-
+  int fVerbosity;           ///< verbosity level
+  Oqplane **qplanes;        ///< Q planes
+  int nq;                   ///< number of q planes
+  int TimeRange;            ///< map time range
+  int snrscale;             ///< map snr scale
+  double TileFracMax;       ///< max. fraction of tile to save (triggers only)
+  
   TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
   void TileDown(void);         ///< tile-down
   void ApplyOffset(TH2D *aMap, const double aOffset);

@@ -55,7 +55,11 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
 
   // set binning
   Omap::SetBins(Q,FrequencyMin,FrequencyMax,TimeRange,MismatchStep);
-
+    
+  // default trigger selection
+  SetTileSelection(2.0);
+  nTileAboveSNRThr=0;
+  
   // band variables
   bandPower      = new double  [GetNBands()];
   bandFFT        = new fft*    [GetNBands()];
@@ -72,7 +76,8 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
     // no power
     bandPower[f]=0.0;
-           
+
+            
     // band fft
     ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE");
@@ -112,7 +117,7 @@ Oqplane::~Oqplane(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, 
+bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
 			   const double aLeftTimePad, const double aRightTimePad, const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
@@ -125,7 +130,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr,
 
     // fill triggers
     for(int t=tstart; t<tend; t++){
-      if(GetTileContent(t,f)<aSNRThr) continue;// apply SNR threshold
+      if(GetTileContent(t,f)<SNRThr) continue;// apply SNR threshold
       if(!GetTileTag(t,f)) continue; // apply down-tiling
       
       if(!aTriggers->AddTrigger(GetTileTime(t,f)+aT0,
@@ -158,6 +163,10 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
   double *phases;               // vector of phases
   double meanenergy;            // mean Gaussian energy
   int Nt;                       // number of time tiles
+  double snr;                   // tile SNR
+
+  // reset
+  nTileAboveSNRThr=0;
   
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
@@ -228,7 +237,11 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
-      if(2.0*energies[t]>meanenergy) SetTileContent(t,f,sqrt(2.0*energies[t]/meanenergy-1),phases[t],true);// eq. 5.79
+      if(2.0*energies[t]>meanenergy){
+	snr=sqrt(2.0*energies[t]/meanenergy-1);
+	SetTileContent(t,f,snr,phases[t],true);// eq. 5.79
+	if(snr>=SNRThr) nTileAboveSNRThr++;
+      }
       else SetTileContent(t,f,0.0);
     }
 

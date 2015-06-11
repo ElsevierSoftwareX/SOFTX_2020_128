@@ -38,10 +38,9 @@ class Oqplane: public Omap {
   void PrintParameters(void);
   bool ProjectData(double *aDataRe, double *aDataIm);
   bool SaveTriggers(MakeTriggers *aTriggers, 
-		   const double aSNRThr, 
-		   const double aLeftTimePad=0.0, 
-		   const double aRightTimePad=0.0, 
-		   const double aT0=0);
+		    const double aLeftTimePad=0.0, 
+		    const double aRightTimePad=0.0, 
+		    const double aT0=0);
 
   // GETS
   inline double GetQ(void){ return Q; };
@@ -49,8 +48,16 @@ class Oqplane: public Omap {
     return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
   };
 
+  inline double GetTileFrac(void){    
+    return (double)nTileAboveSNRThr/(double)Ntiles;
+  }
+  
   // SETS
   bool SetPower(Spectrum *aSpec);
+  inline void SetTileSelection(const double aSNRThr){
+    SNRThr=aSNRThr;
+  };
+
 
   // INTERNAL
   double GetMeanEnergy(const int aBandIndex, double *aEnergies);
@@ -60,6 +67,10 @@ class Oqplane: public Omap {
   double Q;                         ///< Q value
   double QPrime;                    ///< Q prime = Q / sqrt(11)
   double PlaneNormalization;        ///< plane normalization
+
+  // TRIGGER SELECTION
+  double SNRThr;                    ///< SNR threshold
+  long int nTileAboveSNRThr;        ///< number of tiles above SNR thr
   
   // FREQUENCY BANDS
   int *bandWindowSize;              ///< band 'Gaussian' window size

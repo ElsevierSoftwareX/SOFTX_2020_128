@@ -59,6 +59,7 @@ Otile::Otile(const int aTimeRange,
 
   // update parameters  
   TimeRange=qplanes[0]->GetTimeRange();
+  TileFracMax=1;// save all triggers
 
 }
 
@@ -104,7 +105,7 @@ bool Otile::ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const double aLeftTimePad, const double aRightTimePad, const double aT0){
+bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, const double aRightTimePad, const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
@@ -115,9 +116,16 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aSNRThr, const do
     return false;
   }
 
+  // check tile frac selection
+  for(int p=0; p<nq; p++)
+    if(qplanes[p]->GetTileFrac()>TileFracMax){
+      cerr<<"Otile::SaveTriggers: more than "<<TileFracMax*100.0<<"% of the tile are above the SNR threshold - do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
+      return false;
+    }
+
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)
-    if(!qplanes[p]->SaveTriggers(aTriggers, aSNRThr,aLeftTimePad,aRightTimePad,aT0)) return false;
+    if(!qplanes[p]->SaveTriggers(aTriggers, aLeftTimePad,aRightTimePad,aT0)) return false;
   
   // save segments
   aTriggers->AddSegment(aT0-(double)(TimeRange/2)+aLeftTimePad,aT0+(double)(TimeRange/2)-aRightTimePad);
@@ -455,3 +463,4 @@ void Otile::ApplyOffset(TH2D *aMap, const double aOffset){
   aMap->GetXaxis()->Set((X.GetSize() - 1), X.GetArray()); // new Xbins
   return;
 }
+

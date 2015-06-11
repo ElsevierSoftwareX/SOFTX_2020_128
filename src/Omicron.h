@@ -213,7 +213,7 @@ class Omicron {
   int chanindex;                ///< current channel index
   double timeoffset;            ///< current time offset
 
-  // PARAMETERS
+  // OPTIONS
   void ReadOptions(void);       ///< to parse option card
   string fOptionFile;           ///< option file name
   vector <string> fOptionName;  ///< option name (metadata)
@@ -233,6 +233,7 @@ class Omicron {
   vector <double> fQRange;      ///< Q range
   double fMismatchMax;          ///< maximum mismatch
   double fSNRThreshold;         ///< SNR Threshold
+  double fTileFracMax;          ///< trigger max limit
   string fClusterAlgo;          ///< clustering modes
   double fcldt;                 ///< clustering dt
   int fTileDown;                ///< tile-down flag

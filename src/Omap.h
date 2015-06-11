@@ -50,6 +50,9 @@ class Omap: public TH2D {
   inline int GetNBands(void){ 
     return GetNbinsY();
   };
+  inline long int GetNTiles(void){ 
+    return Ntiles;
+  };
   inline int GetBandIndex(const double aFrequency){
     return GetYaxis()->FindBin(aFrequency)-1;
   };
@@ -107,7 +110,7 @@ class Omap: public TH2D {
   void MakeMapDisplay(void);
 
   
-  int Ntiles;                       ///< number of tiles in the plane
+  long int Ntiles;                       ///< number of tiles in the plane
   int *bandMultiple;                ///< band multiple (time resolution)
   double **tilecontent;             ///< tile content array
   double **tilephase;               ///< tile phase array

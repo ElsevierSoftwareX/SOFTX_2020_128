@@ -110,7 +110,7 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
     tiletag[f] = new bool [Nt];
     for(int t=0; t<Nt; t++) tiletag[f][t]=true;
 
-    Ntiles+=Nt;
+    Ntiles+=(long int)Nt;
   }
 
   return;
