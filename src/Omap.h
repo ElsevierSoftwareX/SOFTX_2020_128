@@ -110,7 +110,7 @@ class Omap: public TH2D {
   void MakeMapDisplay(void);
 
   
-  long int Ntiles;                       ///< number of tiles in the plane
+  long int Ntiles;                  ///< number of tiles in the plane
   int *bandMultiple;                ///< band multiple (time resolution)
   double **tilecontent;             ///< tile content array
   double **tilephase;               ///< tile phase array

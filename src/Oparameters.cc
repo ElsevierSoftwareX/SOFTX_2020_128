@@ -147,16 +147,26 @@ void Omicron::ReadOptions(void){
   //*****************************
   
   //***** SNR Threshold *****
-  if(!io->GetOpt("PARAMETER","SNRTHRESHOLD", fSNRThreshold)){
-    cerr<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 8"<<endl;
-    fSNRThreshold=8.0;
+  vector <double> v;
+  if(!io->GetOpt("PARAMETER","SNRTHRESHOLD", v)){
+    cerr<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 7"<<endl;
+    fSNRThreshold_trigger=7.0;
+    fSNRThreshold_map=7.0;
   }
+  else if(v.size()==1){
+    fSNRThreshold_trigger=v[0];
+    fSNRThreshold_map=v[0];
+  }
+  else{
+    fSNRThreshold_trigger=v[0];
+    fSNRThreshold_map=v[1];
+  }    
   //*****************************
   
-  //***** SNR Threshold *****
-  if(!io->GetOpt("PARAMETER","TILEFRACMAX", fTileFracMax)){
+  //***** Trigger Frac limit *****
+  if(!io->GetOpt("PARAMETER","TILEFRACMAX", fTriggerFracMax)){
     cerr<<"Omicron::ReadOptions: No trigger limit (PARAMETER/TILEFRACMAX)             --> set default: 0.5 (no limit)"<<endl;
-    fTileFracMax=0.5;
+    fTriggerFracMax=0.5;
   }
   //*****************************
   

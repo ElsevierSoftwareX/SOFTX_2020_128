@@ -56,9 +56,9 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // set binning
   Omap::SetBins(Q,FrequencyMin,FrequencyMax,TimeRange,MismatchStep);
     
-  // default trigger selection
-  SetTileSelection(2.0);
-  nTileAboveSNRThr=0;
+  // default snr threshold
+  SetSNRThr(2.0);
+  nTriggers=0;
   
   // band variables
   bandPower      = new double  [GetNBands()];
@@ -118,7 +118,8 @@ Oqplane::~Oqplane(void){
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
-			   const double aLeftTimePad, const double aRightTimePad, const double aT0){
+			   const double aLeftTimePad, const double aRightTimePad,
+			   const double aT0){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
   for(int f=0; f<GetNBands(); f++){
@@ -166,7 +167,7 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
   double snr;                   // tile SNR
 
   // reset
-  nTileAboveSNRThr=0;
+  nTriggers=0;
   
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
@@ -240,7 +241,7 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
       if(2.0*energies[t]>meanenergy){
 	snr=sqrt(2.0*energies[t]/meanenergy-1);
 	SetTileContent(t,f,snr,phases[t],true);// eq. 5.79
-	if(snr>=SNRThr) nTileAboveSNRThr++;
+	if(snr>=SNRThr) nTriggers++;
       }
       else SetTileContent(t,f,0.0);
     }

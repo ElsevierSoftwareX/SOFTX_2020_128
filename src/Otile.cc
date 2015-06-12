@@ -59,8 +59,9 @@ Otile::Otile(const int aTimeRange,
 
   // update parameters  
   TimeRange=qplanes[0]->GetTimeRange();
-  TileFracMax=1;// save all triggers
 
+  // set default save selection
+  SetSaveSelection();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -118,8 +119,8 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, con
 
   // check tile frac selection
   for(int p=0; p<nq; p++)
-    if(qplanes[p]->GetTileFrac()>TileFracMax){
-      cerr<<"Otile::SaveTriggers: more than "<<TileFracMax*100.0<<"% of the tile are above the SNR threshold - do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
+    if(qplanes[p]->GetTriggerFrac()>TriggerFracMax){
+      cerr<<"Otile::SaveTriggers: more than "<<TriggerFracMax*100.0<<"% of the tile are above the SNR threshold - do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
       return false;
     }
 
@@ -134,7 +135,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, con
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr, const bool aThumb){
+double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const bool aThumb){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!IsDirectory(aOutdir)){
     cerr<<"Otile::SaveMaps: the directory "<<aOutdir<<" is missing"<<endl;
@@ -151,8 +152,8 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
   for(int q=0; q<nq; q++){
     qplanes[q]->MakeMapContent();
     qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
-    snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());
-    if(qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin())<aSNRThr) n++;
+    snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());// get max
+    if(snr>SNRThr_map) n++;
     if(snr>snrmax) snrmax=snr;
     qplanes[q]->GetXaxis()->UnZoom();
   }

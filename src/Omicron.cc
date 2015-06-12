@@ -42,7 +42,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_OVERLAPDURATION"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");     fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_SNRTHRESHOLD");    fOptionType.push_back("d");
-  fOptionName.push_back("omicron_PARAMETER_TRIGGERMAX");      fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_TILEFRACMAX");     fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_TILEDOWN");        fOptionType.push_back("i");
@@ -92,8 +92,8 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fSegmentDuration);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fOverlapDuration);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fTileFracMax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold_trigger);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fTriggerFracMax);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fcldt);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fTileDown);
@@ -191,7 +191,7 @@ Omicron::Omicron(const string aOptionFile){
   if(fVerbosity) cout<<"Omicron::Omicron: init tiling..."<<endl;
   tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],triggers[0]->GetWorkingFrequency(),fMismatchMax,fOutStyle,fVerbosity);
   tile->SetSNRScale(fsnrscale);
-  tile->SetTileSelection(fSNRThreshold,fTileFracMax);
+  tile->SetSaveSelection(fSNRThreshold_map,fSNRThreshold_trigger,fTriggerFracMax);
 
 }
 
@@ -531,16 +531,16 @@ bool Omicron::Project(void){
     double snr;
     if(fOutProducts.find("maps")!=string::npos){
       if(fVerbosity>2) cout<<"\t\t- write maps"<<endl;
-      if(fOutProducts.find("html")==string::npos) 
+      if(fOutProducts.find("html")==string::npos) // need to make thumbnails
 	snr=tile->SaveMaps(outdir[chanindex],
 			   fChannels[chanindex],
 			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-			   fOutFormat,fWindows,fSNRThreshold,false);
+			   fOutFormat,fWindows,false);
       else
 	snr=tile->SaveMaps(outdir[chanindex],
 			   fChannels[chanindex],
 			   dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2,
-			   fOutFormat,fWindows,fSNRThreshold,true);
+			   fOutFormat,fWindows,true);
       if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
     }
     

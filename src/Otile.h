@@ -92,7 +92,7 @@ class Otile: public GwollumPlot {
   /**
    * Sets the data power spectrum.
    * This function must be called to compute the amplitude in a given tile: amplitude = SNR * sqrt(power).
-   * The power of a tile is given by the input power spectrum weighted by the Gaussian window.
+   * The power of a tile is given by the input power spectrum weighted by the Cone window.
    * If this function is never called, the power is set to 0. 
    *
    * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.
@@ -116,28 +116,31 @@ class Otile: public GwollumPlot {
   /**
    * Saves active tiles in a MakeTriggers structure.
    * The triggers Segments are also saved follwing the GWOLLUM convention for triggers. A padding can be provided to NOT saved triggers on the plane edges. The planes are always centered on 0. A T0 must therefore be provided.
+   *
+   * See also SetSaveSelection().
    * @param aTriggers MakeTriggers object
    * @param aLeftTimePad duration of the left padding
    * @param aRightTimePad duration of the right padding
    * @param aT0 plane central time
    */
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0.0);
 
   /**
    * Saves the maps for each Q-planes in output files.
    * The maps are saved in output files.
    * An additionnal map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
-   * Maps are not saved if the maximum SNR within the first window time range is below threshold.
+   * IMPORTANT NOTE: Maps are not saved if the maximum SNR within the first window time range is below the SNR threshold, see SetSaveSelection().
    * The returned value is the maximum SNR value within the first window time range. -1.0 is returned if this function fails.
+   *
+   * See also SetSaveSelection().
    * @param aOutdir output directory path
    * @param aName name identifier
    * @param aT0 plane central time
    * @param aFormat output format string
    * @param aWindows list of time windows
-   * @param aSNRThr SNR threshold
    * @param aThumb also produce thumbnails if set to true
    */
-  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const double aSNRThr=0.0, const bool aThumb=false);
+  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.
@@ -156,14 +159,16 @@ class Otile: public GwollumPlot {
   inline void SetSNRScale(const int aSNRScale){ snrscale=aSNRScale; };
 
   /**
-   * Sets the tile selection for the trigger saving.
-   * This selection is applied when calling the SaveTriggers() function.
-   * @param aSNRThr SNR threshold applied to the tile content
-   * @param aTileFracMax maximum fraction of tiles to be saved (/qplane)
+   * Sets a selection when saving maps and triggers.
+   * This selection is applied when calling the SaveMaps() or SaveTriggers() functions.
+   * @param aSNRThr_map when calling SaveMaps(), a map is not saved if the loudest tile is below that threshold
+   * @param aSNRThr_trigger tiles with a SNR value below that threshold are not saved when calling SaveTriggers()
+   * @param aTriggerFracMax if, for a given Qplane, the fraction of tiles with a SNR above 'aSNRThr_trigger' is larger than this value, not a single tile of all planes can be saved. In other words, SaveTriggers() will return false
    */
-  inline void SetTileSelection(const double aSNRThr, const double aTileFracMax=1){
-    TileFracMax=aTileFracMax;
-    for(int q=0; q<nq; q++) qplanes[q]->SetTileSelection(aSNRThr);
+  inline void SetSaveSelection(const double aSNRThr_map=-1.0, const double aSNRThr_trigger=2.0, const double aTriggerFracMax=1.0){
+    TriggerFracMax=aTriggerFracMax;
+    SNRThr_map=aSNRThr_map;
+    for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
     
 
@@ -174,7 +179,8 @@ class Otile: public GwollumPlot {
   int nq;                   ///< number of q planes
   int TimeRange;            ///< map time range
   int snrscale;             ///< map snr scale
-  double TileFracMax;       ///< max. fraction of tile to save (triggers only)
+  double SNRThr_map;        ///< map SNR threshold
+  double TriggerFracMax;    ///< max. fraction of tiles to save (triggers only)
   
   TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
   void TileDown(void);         ///< tile-down

@@ -110,7 +110,8 @@ void Omicron::MakeHtml(void){
   report<<"  <tr><td>Frequency range:</td><td>"<<fFreqRange[0]<<" &rarr; "<<fFreqRange[1]<<" Hz</td></tr>"<<endl;
   report<<"  <tr><td>Q range:</td><td>"<<fQRange[0]<<" &rarr; "<<fQRange[1]<<"</td></tr>"<<endl;
   report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<fMismatchMax*100<<" %</td></tr>"<<endl;
-  report<<"  <tr><td>SNR threshold:</td><td>SNR &gt; "<<fSNRThreshold<<"</td></tr>"<<endl;
+  if(fOutProducts.find("triggers")!=string::npos) report<<"  <tr><td>SNR threshold (triggers):</td><td>SNR &gt; "<<fSNRThreshold_trigger<<"</td></tr>"<<endl;
+  if(fOutProducts.find("maps")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<fSNRThreshold_map<<"</td></tr>"<<endl;
   report<<"  <tr><td>Tile-down:</td><td>";
   if(fTileDown) report<<"YES";
   else report<<"NO";
@@ -133,7 +134,7 @@ void Omicron::MakeHtml(void){
   string colcode;
   for(int c=0; c<(int)fChannels.size(); c++){
     colcode="";
-    if(fSNRThreshold>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold)/fSNRThreshold);
+    if(fSNRThreshold_map>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold_map)/fSNRThreshold_map);
     if(!(c%9)) report<<"  <tr>"<<endl;
     if(colcode.compare("")) report<<"    <td style=\"border:2px solid "<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
     else report<<"    <td><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
@@ -150,8 +151,8 @@ void Omicron::MakeHtml(void){
   for(int c=0; c<(int)fChannels.size(); c++){
 
     // processing report
-    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<fSNRThreshold){
-      report<<"<h2 class=\"off\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold<<") <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
+    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<fSNRThreshold_map){
+      report<<"<h2 class=\"off\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold_map<<") <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
     else{

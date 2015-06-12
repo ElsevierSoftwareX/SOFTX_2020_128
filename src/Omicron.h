@@ -232,8 +232,9 @@ class Omicron {
   vector <double> fFreqRange;   ///< frequency range
   vector <double> fQRange;      ///< Q range
   double fMismatchMax;          ///< maximum mismatch
-  double fSNRThreshold;         ///< SNR Threshold
-  double fTileFracMax;          ///< trigger max limit
+  double fSNRThreshold_trigger; ///< SNR Threshold for trigger
+  double fSNRThreshold_map;     ///< SNR Threshold for maps
+  double fTriggerFracMax;       ///< trigger max limit
   string fClusterAlgo;          ///< clustering modes
   double fcldt;                 ///< clustering dt
   int fTileDown;                ///< tile-down flag
