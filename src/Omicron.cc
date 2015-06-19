@@ -348,6 +348,17 @@ bool Omicron::NewChunk(void){
   if(!dataseq->NewChunk()) return false;
   if(fVerbosity>1) cout<<"\t- chunk "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<" is loaded"<<endl;
 
+  // save info for html report
+  if(fOutProducts.find("html")!=string::npos){
+    for(int s=0; s<dataseq->GetNSegments(); s++){
+      mapcenter.push_back(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
+      if(!s){
+	chunkstart.push_back(dataseq->GetChunkTimeStart()); 
+	chunkstop.push_back(dataseq->GetChunkTimeEnd());
+      }
+    }
+  }
+
   chunk_ctr++;// one more chunk
   return true;
 }
@@ -543,16 +554,7 @@ bool Omicron::Project(void){
 			   fOutFormat,fWindows,true);
       if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
     }
-    
-    // save info for html report
-    if(fOutProducts.find("html")!=string::npos&&!chanindex){
-      mapcenter.push_back(dataseq->GetSegmentTimeStart(s)+dataseq->GetSegmentDuration()/2);
-      if(!s){
-	chunkstart.push_back(dataseq->GetChunkTimeStart()); 
-	chunkstop.push_back(dataseq->GetChunkTimeEnd());
-      }
-    }
-    
+        
     // save triggers
     if(fOutProducts.find("triggers")!=string::npos){
       if(fVerbosity>2) cout<<"\t\t- save triggers"<<endl;
