@@ -6,5 +6,6 @@ log = /usr1/[USER]/omicron.log
 error = logs/omicron-$(cluster)-$(process).err
 output = logs/omicron-$(cluster)-$(process).out
 accounting_group = ligo.prod.o1.detchar.transient.omicron
+accounting_user = "accounting_group_user = florent.robinet"
 notification = never
 queue 1
