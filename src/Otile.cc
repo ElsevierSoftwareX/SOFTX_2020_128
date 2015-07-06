@@ -153,7 +153,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
     qplanes[q]->MakeMapContent();
     qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
     snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());// get max
-    if(snr>SNRThr_map) n++;
+    if(snr<SNRThr_map) n++;
     if(snr>snrmax) snrmax=snr;
     qplanes[q]->GetXaxis()->UnZoom();
   }
