@@ -97,26 +97,26 @@ fi
 # archive dagman
 if [ -e ./low/omicron.dag.dagman.out ]; then
     mv ./low/omicron.dag.dagman.out ./low/dags/omicron.${now}.dag
-    rm -f ./low/omicron.dag*
 fi
 if [ -e ./std/omicron.dag.dagman.out ]; then
     mv ./std/omicron.dag.dagman.out ./std/dags/omicron.${now}.dag
-    rm -f ./std/omicron.dag*
 fi
 if [ -e ./std2/omicron.dag.dagman.out ]; then
     mv ./std2/omicron.dag.dagman.out ./std2/dags/omicron.${now}.dag
-    rm -f ./std2/omicron.dag*
 fi
 if [ -e ./gw/omicron.dag.dagman.out ]; then
     mv ./gw/omicron.dag.dagman.out ./gw/dags/omicron.${now}.dag
-    rm -f ./gw/omicron.dag*
 fi
 if [ -e ./fine/omicron.dag.dagman.out ]; then
     mv ./fine/omicron.dag.dagman.out ./fine/dags/omicron.${now}.dag
-    rm -f ./fine/omicron.dag*
 fi
 
 # more cleaning
+rm -f ./low/omicron.dag*
+rm -f ./std/omicron.dag*
+rm -f ./std2/omicron.dag*
+rm -f ./gw/omicron.dag*
+rm -f ./fine/omicron.dag*
 rmdir ./std/triggers/* ./std2/triggers/* ./low/triggers/* ./gw/triggers/* ./fine/triggers/* >> /dev/null 2>&1
 
 ################################################################################
@@ -153,7 +153,7 @@ mv ./segments.tmp ./segments.txt
 # raw data
 echo "`date -u`: get LCF file for raw data" >> $logfile
 for type in $data_type; do
-    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./frames.lcf 2>> $logfile
+    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./frames.lcf 2>> $logfile
     if [ -s ./frames.lcf ]; then break; fi
 done
 if [ ! -s ./frames.lcf ]; then
@@ -165,7 +165,7 @@ fi
 # gw data
 echo "`date -u`: get LCF file for gw data" >> $logfile
 for type in $gw_type; do
-    ligo_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./frames.gw.lcf 2>> $logfile
+    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./frames.gw.lcf 2>> $logfile
     if [ -s ./frames.gw.lcf ]; then break; fi
 done
 
