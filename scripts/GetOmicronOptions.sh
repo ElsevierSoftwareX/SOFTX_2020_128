@@ -50,6 +50,8 @@ printhelp(){
     echo ""
 } 
 
+
+
 printoption(){
     if [ $1 = "LOW1" ]; then
 	# online and offline configs are the same
