@@ -203,6 +203,11 @@ class Omicron {
    */
   inline int GetVerbosity(void){ return fVerbosity; };
 
+  /**
+   * Returns Omicron version.
+   */
+  inline string GetVersion(void){ return "v2r1"; };
+
  private:
 
   // PROCESS STATUS

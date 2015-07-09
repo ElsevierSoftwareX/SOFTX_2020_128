@@ -5,9 +5,6 @@
 # Author: Florent Robinet
 # florent.robinet@lal.in2p3.fr
 
-echo "This tool is currently not available"
-exit 1
-
 printhelp(){
     echo ""
     echo "Usage:"
@@ -18,8 +15,8 @@ printhelp(){
     echo " |__ generates Omicron parameter files for an online search."
     echo ""
     echo "The input channel file should contain a list of channels to process, one channel per line."
-    echo "A keyword following the channel name can be used to select a pre-defined parameter set"
-    echo "listed below. By default, the STD1 parameter set is used."
+    echo "A keyword following the channel name is used to select a pre-defined parameter set"
+    echo "listed below."
     echo ""
     echo "KEYWORD  FMIN[Hz]  FMAX[Hz]  SNR_THRESHOLD        OTHER"
     echo "-----------------------------------------------------------"
@@ -176,7 +173,9 @@ printoption(){
     if [ -e $5 ]; then 
 	echo "DATA       FFL              $5"                                    >> ./parameters_${1}_${2}.txt
     fi
-    echo "DATA       CHANNELS         $3"                                        >> ./parameters_${1}_${2}.txt
+    for chan in $3; do
+	echo "DATA       CHANNELS         $chan"                                        >> ./parameters_${1}_${2}.txt
+    done
     echo "DATA       SAMPLEFREQUENCY  ${sampling}"                               >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  CHUNKDURATION    ${chunk}"                                  >> ./parameters_${1}_${2}.txt
@@ -190,7 +189,12 @@ printoption(){
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     FORMAT           root"                                      >> ./parameters_${1}_${2}.txt
+    if [ $7 -eq 1 ]; then
+	echo "PARAMETER  CLUSTERING       TIME"                                  >> ./parameters_${1}_${2}.txt
+	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
+    else
+	echo "OUTPUT     FORMAT           root"                                  >> ./parameters_${1}_${2}.txt
+    fi
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
 } 
 
@@ -273,10 +277,10 @@ fi
 for conf in STD1 STD2 STD3 LOW1 LOW2 HIGH GW FINE; do
 
     # select channels for this config
-    if [ "$conf" = "$STD1" ]; then
-	awk '$2=="" || $2=="STD1" {print $1}' $chanfile | sort | uniq > ./channel.goo
+    if [ "$conf" = "STD1" ]; then
+	awk '$2=="STD1" {print $1}' $chanfile | sort | uniq > ./channel.goo.$conf
     else
-	awk -v var="$conf" '$2=="var" {print $1}' $chanfile | sort | uniq > ./channel.goo
+	awk -v var="$conf" '$2==var {print $1}' $chanfile | sort | uniq > ./channel.goo.$conf
     fi
 
     # cleaning
@@ -284,10 +288,14 @@ for conf in STD1 STD2 STD3 LOW1 LOW2 HIGH GW FINE; do
 
     # skip if no channels
     if [ ! -s ./channel.goo.$conf ]; then continue; fi
-    
+    echo ""
+    echo "GetOmicronOptions: Make $conf option files..."
+    echo "   --> "`cat ./channel.goo.$conf | wc -l`" channels"
+
     # maximum number of channels per option file
     nchanmax=`grep "${conf}=" $chanfile | cut -d'=' -f2`
     if [ "$nchanmax" = "" ]; then nchanmax=5; fi # default
+    echo "   --> $nchanmax channels / option file"
 
     # loop over channels for this conf
     n=0
@@ -314,6 +322,7 @@ for conf in STD1 STD2 STD3 LOW1 LOW2 HIGH GW FINE; do
     #echo "${conf}_${p} = $channel_list"
     # left over --> last option file
     if [ $n -gt 0 ]; then printoption "${conf}" $p "$channel_list" $online $fflfile $outdir $outxml; fi
+    echo "   --> $(( $p + 1)) option files were produced"
 done
 
 

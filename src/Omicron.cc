@@ -74,7 +74,7 @@ Omicron::Omicron(const string aOptionFile){
     triggers[c] = new MakeTriggers(outdir[c],fChannels[c],fOutFormat,fVerbosity);
     status_OK*=triggers[c]->SetFrequencies(fSampleFrequency,fSampleFrequency,fFreqRange[0]);// default
     triggers[c]->SetClusterizeDt(fcldt);
-
+    triggers[c]->SetProcessVersion(GetVersion());
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fFflFile);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
