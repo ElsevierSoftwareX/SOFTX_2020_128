@@ -19,17 +19,16 @@ printhelp(){
     echo ""
     echo "The input channel file should contain a list of channels to process, one channel per line."
     echo "A keyword following the channel name can be used to select a pre-defined parameter set"
-    echo "listed below. By default, the STD parameter set is used."
+    echo "listed below. By default, the STD1 parameter set is used."
     echo ""
     echo "KEYWORD  FMIN[Hz]  FMAX[Hz]  SNR_THRESHOLD        OTHER"
     echo "-----------------------------------------------------------"
-    echo " STD         8      2048             8"
-    echo " STD2        8      1024             8"
-    echo " STD3        8       512             8"
-    echo " LOW       0.1        64             8         block=512s"
-    echo " LOW2      0.1        64             8         block=8192s"
-    echo " LOW3      0.1        64             8         block=65536s"
-    echo " HIGH     1024      8192             8"
+    echo " STD1        8      2048             7"
+    echo " STD2        8      1024             7"
+    echo " STD3        8       512             7"
+    echo " LOW1      0.1        64             7         block=512s"
+    echo " LOW2      0.1        64             7         block=8192s"
+    echo " HIGH     1024      8192             7"
     echo " FINE        8      4096             6         fine tiling"
     echo " GW         32      4096             5         fine tiling"
     echo ""
@@ -39,7 +38,8 @@ printhelp(){
     echo "OPTIONS:"
     echo "  -c  [CHANNEL_FILE]    Channel file. Required option"
     echo "  -o                    Flag for online analyses"
-    echo ""
+    echo "  -n  [N_CHANNELS]      number of channels per option file"
+   echo ""
     echo "PARAMETER OPTIONS:"
     echo "  -d  [TRIG_OUTDIR]     Trigger output directory"
     echo "                        Default: current directory"
@@ -54,7 +54,7 @@ printhelp(){
 } 
 
 printoption(){
-    if [ $1 = "LOW" ]; then
+    if [ $1 = "LOW1" ]; then
 	# online and offline configs are the same
 	sampling=128
 	freqmin=0.1
@@ -63,8 +63,7 @@ printoption(){
 	block=512
 	overlap=112
 	mmmax=0.35
-	snrthr=8
-	ratemax=300
+	snrthr=7
     elif [ $1 = "LOW2" ]; then
 	# online and offline configs are the same
 	sampling=128
@@ -74,44 +73,30 @@ printoption(){
 	block=8192
 	overlap=192
 	mmmax=0.35
-	snrthr=8
-	ratemax=250
-    elif [ $1 = "LOW3" ]; then
-	# online and offline configs are the same
-	sampling=128
-	freqmin=0.1
-	freqmax=64
-	chunk=65536
-	block=65536
-	overlap=15536
-	mmmax=0.35
-	snrthr=8
-	ratemax=250
+	snrthr=7
     elif [ $1 = "HIGH" ]; then
 	sampling=16384
 	freqmin=1024
 	freqmax=8192
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=506
-	    block=256
-	    overlap=6
-	    ratemax=300
+	    chunk=312
+	    block=64
+	    overlap=2
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
-	    ratemax=500
 	fi
 	mmmax=0.35
-	snrthr=8	
-    elif [ $1 = "GW" ]; then # this was optimized for ligo scripts
+	snrthr=7
+    elif [ $1 = "GW" ]; then
 	sampling=8192
 	freqmin=32
 	freqmax=4096
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=314
+	    chunk=544
 	    block=64
-	    overlap=14
+	    overlap=4
 	else                  # online
 	    chunk=16
 	    block=16
@@ -119,15 +104,14 @@ printoption(){
 	fi
 	mmmax=0.2
 	snrthr=5	
-	ratemax=2000
-    elif [ $1 = "FINE" ]; then # this was optimized for ligo scripts
+    elif [ $1 = "FINE" ]; then
 	sampling=8192
 	freqmin=8
 	freqmax=4096
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=314
+	    chunk=544
 	    block=64
-	    overlap=14
+	    overlap=4
 	else                  # online
 	    chunk=16
 	    block=16
@@ -135,100 +119,79 @@ printoption(){
 	fi
 	mmmax=0.2
 	snrthr=6	
-	ratemax=1000
     elif [ $1 = "STD2" ]; then
 	sampling=2048
 	freqmin=8
 	freqmax=1024
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=506
-	    block=256
-	    overlap=6
-	    ratemax=300
+	    chunk=544
+	    block=64
+	    overlap=4
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
-	    ratemax=500
 	fi
 	mmmax=0.35
-	snrthr=8
+	snrthr=7
     elif [ $1 = "STD3" ]; then
         sampling=1024
         freqmin=8
         freqmax=512
         if [ $4 -eq 0 ]; then # offline
-            chunk=506
-            block=256
-            overlap=6
-            ratemax=300
+            chunk=544
+            block=64
+            overlap=4
         else                  # online
             chunk=16
             block=16
             overlap=2
-            ratemax=500
         fi
         mmmax=0.35
-        snrthr=8
+        snrthr=7
     else
 	sampling=4096
 	freqmin=8
 	freqmax=2048
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=506
-	    block=256
-	    overlap=6
-	    ratemax=300
+	    chunk=544
+	    block=64
+	    overlap=4
 	else                  # online
 	    chunk=16
 	    block=16
 	    overlap=2
-	    ratemax=500
 	fi
 	mmmax=0.35
-	snrthr=8
+	snrthr=7
     fi
     	
     # Static parameters
     echo "// ------------------------------------------------------------------"  > ./parameters_${1}_${2}.txt
-    echo "// Omicron option file generated on `date`"                            >> ./parameters_${1}_${2}.txt
+    echo "// Omicron (v2r1) option file generated on `date`"                     >> ./parameters_${1}_${2}.txt
     echo "// Configuration type = $1"                                            >> ./parameters_${1}_${2}.txt
     echo "// ------------------------------------------------------------------" >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  QRANGE           3.3166  100.0"                             >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     WRITEPSD         0"                                         >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     WRITETIMESERIES  0"                                         >> ./parameters_${1}_${2}.txt
-    echo ""                                                                      >> ./parameters_${1}_${2}.txt
-    
-    # Tunable parameters
-    echo "DATA       CHANNELS         $3"                                        >> ./parameters_${1}_${2}.txt
-    echo "DATA       SAMPLEFREQUENCY  ${sampling}"                               >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  CHUNKDURATION    ${chunk}"                                  >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  BLOCKDURATION    ${block}"                                  >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  OVERLAPDURATION  ${overlap}"                                >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  FREQUENCYRANGE   ${freqmin}  ${freqmax}"                    >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  MISMATCHMAX      ${mmmax}"                                  >> ./parameters_${1}_${2}.txt
-    echo "TRIGGER    SNRTHRESHOLD     ${snrthr}"                                 >> ./parameters_${1}_${2}.txt
-    echo "TRIGGER    RATEMAX          ${ratemax}"                                >> ./parameters_${1}_${2}.txt
-    echo ""                                                                      >> ./parameters_${1}_${2}.txt
 
-    # ffl
     if [ -e $5 ]; then 
 	echo "DATA       FFL              $5"                                    >> ./parameters_${1}_${2}.txt
     fi
-
-    # outdir
+    echo "DATA       CHANNELS         $3"                                        >> ./parameters_${1}_${2}.txt
+    echo "DATA       SAMPLEFREQUENCY  ${sampling}"                               >> ./parameters_${1}_${2}.txt
+    echo ""                                                                      >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  CHUNKDURATION    ${chunk}"                                  >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  SEGMENTDURATION  ${block}"                                  >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  OVERLAPDURATION  ${overlap}"                                >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  QRANGE           3.3166  100.0"                             >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  FREQUENCYRANGE   ${freqmin}  ${freqmax}"                    >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  MISMATCHMAX      ${mmmax}"                                  >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  SNRTHRESHOLD     ${snrthr}"                                 >> ./parameters_${1}_${2}.txt
+    echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
-    
-    # XML output
-    if [ $7 -eq 1 ]; then 
-	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
-	echo "TRIGGER    CLUSTERING       TIME noroot"                           >> ./parameters_${1}_${2}.txt
-    else
-	echo "OUTPUT     FORMAT           root"                                  >> ./parameters_${1}_${2}.txt
-    fi
-    
+    echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     FORMAT           root"                                      >> ./parameters_${1}_${2}.txt
+    echo ""                                                                      >> ./parameters_${1}_${2}.txt
 } 
 
 ##### Check the Omicron environment
@@ -245,7 +208,7 @@ outdir=`pwd`
 outxml=0
 
 ##### read options
-while getopts ":oc:f:d:Xh" opt; do
+while getopts ":oc:f:d:n:Xh" opt; do
     case $opt in
 	o)
 	    online=1
@@ -270,6 +233,9 @@ while getopts ":oc:f:d:Xh" opt; do
 		echo "`basename $0`: the output directory $outdir cannot be found"
 		exit 2
 	    fi
+	    ;;
+	n)
+	    nmax="$OPTARG"
 	    ;;
 	X)
 	    outxml=1
@@ -304,51 +270,38 @@ if [ $online -eq 0 ]; then # offline
 fi
 
 ##### user channel lists
-rm -f ./channel.goo.*
-awk '$2=="" || $2=="STD" {print $1}' $chanfile | sort | uniq > ./channel.goo.STD
-awk '$2=="STD2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD2
-awk '$2=="STD3" {print $1}' $chanfile | sort | uniq          > ./channel.goo.STD3
-awk '$2=="LOW" {print $1}' $chanfile | sort | uniq           > ./channel.goo.LOW
-awk '$2=="LOW2" {print $1}' $chanfile | sort | uniq          > ./channel.goo.LOW2
-awk '$2=="LOW3" {print $1}' $chanfile | sort | uniq          > ./channel.goo.LOW3
-awk '$2=="HIGH" {print $1}' $chanfile | sort | uniq          > ./channel.goo.HIGH
-awk '$2=="GW" {print $1}' $chanfile | sort | uniq            > ./channel.goo.GW
-awk '$2=="FINE" {print $1}' $chanfile | sort | uniq          > ./channel.goo.FINE
+for conf in STD1 STD2 STD3 LOW1 LOW2 HIGH GW FINE; do
 
-rm -f ./parameters_STD_*.txt \
-    ./parameters_STD2_*.txt \
-    ./parameters_STD3_*.txt \
-    ./parameters_FINE_*.txt \
-    ./parameters_HIGH_*.txt \
-    ./parameters_LOW_*.txt \
-    ./parameters_LOW2_*.txt \
-    ./parameters_LOW3_*.txt \
-    ./parameters_GW_*.txt
+    # select channels for this config
+    if [ "$conf" = "$STD1" ]; then
+	awk '$2=="" || $2=="STD1" {print $1}' $chanfile | sort | uniq > ./channel.goo
+    else
+	awk -v var="$conf" '$2=="var" {print $1}' $chanfile | sort | uniq > ./channel.goo
+    fi
 
-for conf in STD STD2 STD3 LOW LOW2 LOW3 HIGH GW FINE; do
+    # cleaning
+    rm -f ./parameters_${conf}_*.txt
+
+    # skip if no channels
     if [ ! -s ./channel.goo.$conf ]; then continue; fi
+    
+    # maximum number of channels per option file
+    nchanmax=`grep "${conf}=" $chanfile | cut -d'=' -f2`
+    if [ "$nchanmax" = "" ]; then nchanmax=5; fi # default
+
+    # loop over channels for this conf
     n=0
     p=0
     channel_list=""
-    
-    # maximum number of channels per option file
-    if [ "$conf" = "STD" ];    then nchanmax=20
-    elif [ "$conf" = "STD2" ]; then nchanmax=15
-    elif [ "$conf" = "STD3" ]; then nchanmax=40
-    elif [ "$conf" = "LOW" ];  then nchanmax=20
-    elif [ "$conf" = "LOW2" ]; then nchanmax=10
-    elif [ "$conf" = "LOW3" ]; then nchanmax=4
-    elif [ "$conf" = "HIGH" ]; then nchanmax=4
-    elif [ "$conf" = "FINE" ]; then nchanmax=5
-    else nchanmax=5 #GW
-    fi
-    
     while read channel; do
+
+	# add this channel
 	channel_list="$channel $channel_list"
 	n=$(($n+1))
-	# this is one option file
+	
+	# option file is full
 	if [ $n -eq $nchanmax ]; then
-	    echo "${conf}_${p} = $channel_list"
+	    #echo "${conf}_${p} = $channel_list"
 	    printoption "${conf}" $p "$channel_list" $online $fflfile $outdir $outxml
 	    channel_list=""
 	    p=$(($p+1))
@@ -356,7 +309,10 @@ for conf in STD STD2 STD3 LOW LOW2 LOW3 HIGH GW FINE; do
 	fi
 	
     done < ./channel.goo.${conf};
-    echo "${conf}_${p} = $channel_list"
+
+
+    #echo "${conf}_${p} = $channel_list"
+    # left over --> last option file
     if [ $n -gt 0 ]; then printoption "${conf}" $p "$channel_list" $online $fflfile $outdir $outxml; fi
 done
 

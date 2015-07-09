@@ -165,8 +165,8 @@ class Otile: public GwollumPlot {
    * @param aSNRThr_trigger tiles with a SNR value below that threshold are not saved when calling SaveTriggers()
    * @param aTriggerFracMax if, for a given Qplane, the fraction of tiles with a SNR above 'aSNRThr_trigger' is larger than this value, not a single tile of all planes can be saved. In other words, SaveTriggers() will return false
    */
-  inline void SetSaveSelection(const double aSNRThr_map=-1.0, const double aSNRThr_trigger=2.0, const double aTriggerFracMax=1.0){
-    TriggerFracMax=aTriggerFracMax;
+  inline void SetSaveSelection(const double aSNRThr_map=-1.0, const double aSNRThr_trigger=2.0, const int aNTriggerMax=1000000){
+    NTriggerMax=aNTriggerMax;
     SNRThr_map=aSNRThr_map;
     for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
@@ -180,7 +180,7 @@ class Otile: public GwollumPlot {
   int TimeRange;            ///< map time range
   int snrscale;             ///< map snr scale
   double SNRThr_map;        ///< map SNR threshold
-  double TriggerFracMax;    ///< max. fraction of tiles to save (triggers only)
+  int NTriggerMax;          ///< max. number of tiles to save (triggers only)
   
   TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
   void TileDown(void);         ///< tile-down

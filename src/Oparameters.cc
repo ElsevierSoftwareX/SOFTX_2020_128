@@ -62,6 +62,13 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
    
+  //***** Trigger limit *****
+  if(!io->GetOpt("OUTPUT","NTRIGGERMAX", fNTriggerMax)){
+    cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)                --> set default: 1,000,000"<<endl;
+    fNTriggerMax=1000000;
+  }
+  //*****************************
+  
   //***** set verbosity *****
   if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=0;
   //*****************************
@@ -108,6 +115,13 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** Trigger rate limit *****
+  double rmax;
+  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", rmax)){
+    fNTriggerMax=(int)ceil(rmax*(double)fSegmentDuration);
+  }
+  //*****************************
+  
   //***** Frequency range *****
   fFreqRange.clear();
   if(!io->GetOpt("PARAMETER","FREQUENCYRANGE", fFreqRange)){
@@ -161,13 +175,6 @@ void Omicron::ReadOptions(void){
     fSNRThreshold_trigger=v[0];
     fSNRThreshold_map=v[1];
   }    
-  //*****************************
-  
-  //***** Trigger Frac limit *****
-  if(!io->GetOpt("PARAMETER","TILEFRACMAX", fTriggerFracMax)){
-    cerr<<"Omicron::ReadOptions: No trigger limit (PARAMETER/TILEFRACMAX)             --> set default: 0.5 (no limit)"<<endl;
-    fTriggerFracMax=0.5;
-  }
   //*****************************
   
   //***** set clustering *****

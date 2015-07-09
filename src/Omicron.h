@@ -234,7 +234,7 @@ class Omicron {
   double fMismatchMax;          ///< maximum mismatch
   double fSNRThreshold_trigger; ///< SNR Threshold for trigger
   double fSNRThreshold_map;     ///< SNR Threshold for maps
-  double fTriggerFracMax;       ///< trigger max limit
+  int fNTriggerMax;             ///< trigger max limit
   string fClusterAlgo;          ///< clustering modes
   double fcldt;                 ///< clustering dt
   int fTileDown;                ///< tile-down flag

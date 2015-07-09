@@ -117,12 +117,13 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, con
     return false;
   }
 
-  // check tile frac selection
-  for(int p=0; p<nq; p++)
-    if(qplanes[p]->GetTriggerFrac()>TriggerFracMax){
-      cerr<<"Otile::SaveTriggers: more than "<<TriggerFracMax*100.0<<"% of the tile are above the SNR threshold - do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
-      return false;
-    }
+  // check tile limit
+  int ntrig = 0;
+  for(int p=0; p<nq; p++) ntrig+=qplanes[p]->GetNTriggers();
+  if(ntrig>NTriggerMax){
+    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" --> do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
+    return false;
+  }
 
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)

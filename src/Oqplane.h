@@ -48,9 +48,7 @@ class Oqplane: public Omap {
     return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
   };
 
-  inline double GetTriggerFrac(void){    
-    return (double)nTriggers/(double)Ntiles;
-  }
+  inline int GetNTriggers(void){ return nTriggers; }
   
   // SETS
   bool SetPower(Spectrum *aSpec);
