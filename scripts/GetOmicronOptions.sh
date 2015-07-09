@@ -172,10 +172,6 @@ printoption(){
 
     if [ $4 -eq 0 ]; then 
 	echo "DATA       FFL              $5"                                    >> ./parameters_${1}_${2}.txt
-    else
-	echo "// This is an online search: contain the trigger rate"             >> ./parameters_${1}_${2}.txt
-	echo "OUTPUT     TRIGGERRATEMAX   500"                                   >> ./parameters_${1}_${2}.txt
-	echo ""                                                                  >> ./parameters_${1}_${2}.txt
     fi
     for chan in $3; do
 	echo "DATA       CHANNELS         $chan"                                 >> ./parameters_${1}_${2}.txt
@@ -192,6 +188,7 @@ printoption(){
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     TRIGGERRATEMAX   1000"                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
     if [ $7 -eq 1 ]; then
 	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
