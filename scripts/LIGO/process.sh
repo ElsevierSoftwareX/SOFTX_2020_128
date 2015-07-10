@@ -15,6 +15,7 @@ else
     IFO="L1"; 
     LIGO_DATAFIND_SERVER="10.12.0.49:80"
 fi
+export LIGO_DATAFIND_SERVER
 
 ###### user parameters
 delay=300 # do not look at data after now-delay
@@ -80,7 +81,7 @@ for ptype in $PRODTYPES; do
     # check if previous batch is still running
     echo "`date -u`: check if previous batch is still running..." >> $logfile
     if [ -e ./${ptype}/omicron.dag.lock ]; then
-	echo "`date -u` condor (low) is already running" >> $logfile
+	echo "`date -u` condor is already running" >> $logfile
 	continue
     fi
 
@@ -148,7 +149,6 @@ for ptype in $PRODTYPES; do
 
     # segment to process
     GetOverlap $ptype
-    echo $overlap
     awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ./${ptype}/segments.ref > ./${ptype}/segments.txt
 
     # generate option files
@@ -162,7 +162,7 @@ for ptype in $PRODTYPES; do
 
     # GO!
     cd ./${ptype}
-    #if [ -e omicron.dag ]; then condor_submit_dag omicron.dag >> $logfile 2>&1; fi
+    if [ -e omicron.dag ]; then condor_submit_dag omicron.dag >> $logfile 2>&1; fi
     cd ..
     
 done
