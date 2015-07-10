@@ -35,8 +35,7 @@ printhelp(){
     echo "OPTIONS:"
     echo "  -c  [CHANNEL_FILE]    Channel file. Required option"
     echo "  -o                    Flag for online analyses"
-    echo "  -n  [N_CHANNELS]      number of channels per option file"
-   echo ""
+    echo ""
     echo "PARAMETER OPTIONS:"
     echo "  -d  [TRIG_OUTDIR]     Trigger output directory"
     echo "                        Default: current directory"
@@ -217,7 +216,7 @@ outdir=`pwd`
 outxml=0
 
 ##### read options
-while getopts ":oc:f:d:n:Xh" opt; do
+while getopts ":oc:f:d:Xh" opt; do
     case $opt in
 	o)
 	    online=1
@@ -242,9 +241,6 @@ while getopts ":oc:f:d:n:Xh" opt; do
 		echo "`basename $0`: the output directory $outdir cannot be found"
 		exit 2
 	    fi
-	    ;;
-	n)
-	    nmax="$OPTARG"
 	    ;;
 	X)
 	    outxml=1

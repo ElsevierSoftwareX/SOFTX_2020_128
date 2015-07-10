@@ -170,7 +170,6 @@ while [ $p -lt $nproc ]; do # loop over parameters
 	    # make job
 	    if [ $durcum -ge $OMICRON_TRIGGERS_BASE ]; then
 	    	echo "JOB omicron${usertag}_seg${nseg}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
-		echo "RETRY omicron${usertag}_seg${nseg}_par${p} 3" >> ${workdir}/omicron${usertag}.dag
 		echo "VARS omicron${usertag}_seg${nseg}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${p}_${nseg}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 		echo "   JOB omicron${usertag}_seg${nseg}_par${p}:"
 		echo "       ---> parameters = ${workdir}/parameters/parameters${usertag}_${p}.txt"
@@ -188,7 +187,6 @@ while [ $p -lt $nproc ]; do # loop over parameters
 	# one last job
 	if [ $durcum -gt 0 ]; then
 	    echo "JOB omicron${usertag}_seg${nseg}_par${p} omicron.sub" >> ${workdir}/omicron${usertag}.dag
-	    echo "RETRY omicron${usertag}_seg${nseg}_par${p} 3" >> ${workdir}/omicron${usertag}.dag
 	    echo "VARS omicron${usertag}_seg${nseg}_par${p} initialdir=\"${workdir}\" in_segments=\"./segments/segments${usertag}_${p}_${nseg}.txt\" in_parameters=\"./parameters/parameters${usertag}_${p}.txt\"" >> ${workdir}/omicron${usertag}.dag
 	    echo "   JOB omicron${usertag}_seg${nseg}_par${p}:"
 	    echo "       ---> parameters = ${workdir}/parameters/parameters${usertag}_${p}.txt"

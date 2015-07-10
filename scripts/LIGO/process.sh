@@ -6,6 +6,11 @@
 # robinet@lal.in2p3.fr
 cd `dirname $0`
 
+# LLO of LHO?                                                                                                                                           
+hn=`hostname -d`
+if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
+else  IFO="L1"; fi
+
 ###### user parameters
 delay=300 # do not look at data after now-delay
 tmax=16000 # delay after which a new segment is started to get back on track
@@ -24,11 +29,6 @@ GetOverlap(){
     else overlap=0;
     fi
 }
-    
-# LLO of LHO?
-hn=`hostname -d`
-if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
-else  IFO="L1"; fi
 
 ################################################################################
 ###########                         GENERAL                          ########### 
@@ -70,7 +70,7 @@ for ptype in $PRODTYPES; do
     # cleaning old files
     find ./${ptype}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
     find ./${ptype}/dags -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
-    find ./${ptype} -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+    find ./${ptype} -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
 
     # check if previous batch is still running
     echo "`date -u`: check if previous batch is still running..." >> $logfile
@@ -89,7 +89,7 @@ for ptype in $PRODTYPES; do
     rmdir ./${ptype}/triggers/* >> /dev/null 2>&1
 
     # channel list
-    awk -v var="$ptype" '$2==var {print}' ./channels.${IFO} > ./$ptype/channels.list
+    grep -w "$ptype" ./channels.${IFO} > ./$ptype/channels.list
     if [ ! -s ./$ptype/channels.list ]; then
 	echo "`date -u`: no channels" >> $logfile
 	continue
@@ -142,7 +142,8 @@ for ptype in $PRODTYPES; do
     fi
 
     # segment to process
-    GetOverlap
+    GetOverlap $ptype
+    echo $overlap
     awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ./${ptype}/segments.ref > ./${ptype}/segments.txt
 
     # generate option files
