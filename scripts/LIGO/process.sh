@@ -8,8 +8,13 @@ cd `dirname $0`
 
 # LLO of LHO?
 hn=`hostname -d`
-if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
-else  IFO="L1"; fi
+if [ "$hn" = "ligo-wa.caltech.edu" ]; then 
+    IFO="H1"
+    LIGO_DATAFIND_SERVER="10.12.0.49:80"
+else
+    IFO="L1"; 
+    LIGO_DATAFIND_SERVER="10.12.0.49:80"
+fi
 
 ###### user parameters
 delay=300 # do not look at data after now-delay
