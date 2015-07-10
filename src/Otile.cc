@@ -121,7 +121,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, con
   int ntrig = 0;
   for(int p=0; p<nq; p++) ntrig+=qplanes[p]->GetNTriggers();
   if(ntrig>NTriggerMax){
-    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" --> do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
+    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" ("<<aTriggers->GetName()<<") --> do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
     return false;
   }
 
