@@ -22,9 +22,9 @@ GetOverlap(){
     elif [ "$1" = "GW" ]; then overlap=4
     elif [ "$1" = "FINE" ]; then overlap=4
     else overlap=0;
+    fi
 }
     
-
 # LLO of LHO?
 hn=`hostname -d`
 if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
@@ -60,8 +60,8 @@ fi
 ################################################################################
 
 for ptype in $PRODTYPES; do
-    echo ""
-    echo ""
+    echo "" >> $logfile
+    echo "" >> $logfile
     echo "`date -u` *******************   ${ptype} CONFIG   *******************" >> $logfile
 
     # directories
@@ -104,7 +104,7 @@ for ptype in $PRODTYPES; do
 	echo "`date -u`: no previous segment --> start a new one [$tstart; $tstop]" >> $logfile
 	echo "$tstart $tstop" > ./${ptype}/segments.tmp
     else
-	prev_stop=`head -n 1 ./${ptype}/segments.txt | awk '{print $2}'`
+	prev_stop=`head -n 1 ./${ptype}/segments.ref | awk '{print $2}'`
 	if [ $(( $tstop - $prev_stop )) -gt $tmax ]; then
 	    echo "`date -u`: the last processed segment is too old --> start a new one [$tstart; $tstop]" >> $logfile
 	    echo "$tstart $tstop" > ./${ptype}/segments.tmp
@@ -130,7 +130,7 @@ for ptype in $PRODTYPES; do
 	done
     else
 	for type in $data_type; do
-	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./frames.lcf 2>> $logfile
+	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./${ptype}/frames.lcf 2>> $logfile
 	    if [ -s ./${ptype}/frames.lcf ]; then break; fi
 	done
     fi
