@@ -6,7 +6,7 @@
 # robinet@lal.in2p3.fr
 cd `dirname $0`
 
-# LLO of LHO?                                                                                                                                           
+# LLO of LHO?
 hn=`hostname -d`
 if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
 else  IFO="L1"; fi

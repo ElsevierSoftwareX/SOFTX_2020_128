@@ -5,26 +5,28 @@
 # Author: Florent Robinet
 # robinet@lal.in2p3.fr
 cd `dirname $0`
-# GWOLLUM environment
-source /home/detchar/opt/virgosoft/environment.v1r4.sh "" >> /dev/null
 
-###### user parameters
-
+# LLO of LHO?
 hn=`hostname -d`
 if [ "$hn" = "ligo-wa.caltech.edu" ]; then IFO="H1"
 else  IFO="L1"; fi
+
+# GWOLLUM environment
+source /home/detchar/opt/virgosoft/environment.v2r1.sh "" >> /dev/null
+
+###### user parameters
 . ${GWOLLUM_SCRIPTS}/getrun.sh
 XMLDIR="/home/detchar/triggers/${RUN}/${IFO}"
-types="std std2 low fine gw"
-
+PRODTYPES="STD1 STD2 LOW1 GW FINE"
 ######################
 
-# vars
+# start log
 now=`tconvert now`
 logfile=`pwd`/logs/postprocess.${now}.txt
 echo "Local time: `date`" > $logfile
 echo "UTC time: `date -u`" >> $logfile
 
+# check running jobs
 npostjob=`ps -efd | grep detchar | grep postprocess |wc -l`
 echo "$npostjob postprocess jobs were detected" >> $logfile
 if [ $npostjob -gt 4 ]; then
@@ -36,7 +38,7 @@ fi
 find ./logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
 
 # loop over production types
-for t in $types; do
+for t in $PRODTYPES; do
     if [ ! -d ./${t}/triggers ]; then continue; fi
     cd ./${t}/triggers
 
@@ -44,8 +46,8 @@ for t in $types; do
     for channel in ${IFO}:*; do
 	if [ ! -d ./${channel} ]; then continue; fi
 	if [ ! "$(ls -A ./${channel})" ]; then continue; fi
-	mkdir -p ${OMICRON_ONLINE_TRIGGERS}/${channel}
-	mkdir -p ${OMICRON_TRIGGERS}/${RUN}/${channel}
+	mkdir -p ${OMICRON_ONLINE_TRIGGERS}/${channel} #online buffer
+	mkdir -p ${OMICRON_TRIGGERS}/${RUN}/${channel} #offline archive
 		
 	# move root files
 	echo "${channel}: moving root files" >> $logfile
@@ -63,8 +65,8 @@ for t in $types; do
 	    gps=`echo $file | cut -d "-" -f 4`
 	    gpsroot=$(( $gps / 100000 ))
 	    mkdir -p ${xmloutdir}/$gpsroot
-	    mv $file ${xmloutdir}/$gpsroot
-	    gzip -f ${xmloutdir}/${gpsroot}/*.xml
+	    gzip -f $file
+	    mv ${file}.gz ${xmloutdir}/$gpsroot
 	done
     done
 
