@@ -13,7 +13,7 @@ if [ "$hn" = "ligo-wa.caltech.edu" ]; then
     LIGO_DATAFIND_SERVER="10.12.0.49:80"
 else
     IFO="L1"; 
-    LIGO_DATAFIND_SERVER="10.12.0.49:80"
+    LIGO_DATAFIND_SERVER="10.13.20.73:80"
 fi
 export LIGO_DATAFIND_SERVER
 
