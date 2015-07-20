@@ -609,9 +609,10 @@ bool Omicron::WriteOutput(void){
     if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
     
     // write triggers to disk
-    if(!triggers[chanindex]->Write().compare("none"))
+    if(!triggers[chanindex]->Write().compare("none")){
       cerr<<"Omicron::WriteOutput: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
-    return false;
+      return false;
+    }
   }
 
   chan_write_ctr[chanindex]++;
