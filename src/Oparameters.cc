@@ -64,7 +64,7 @@ void Omicron::ReadOptions(void){
    
   //***** Trigger limit *****
   if(!io->GetOpt("OUTPUT","NTRIGGERMAX", fNTriggerMax)){
-    cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)                --> set default: 1,000,000"<<endl;
+    if(!io->GetOpt("OUTPUT","TRIGGERRATEMAX", fNTriggerMax)) cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)                --> set default: 1,000,000"<<endl;
     fNTriggerMax=1000000;
   }
   //*****************************
@@ -117,9 +117,8 @@ void Omicron::ReadOptions(void){
 
   //***** Trigger rate limit *****
   double rmax;
-  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", rmax)){
+  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", rmax))
     fNTriggerMax=(int)ceil(rmax*(double)fSegmentDuration);
-  }
   //*****************************
   
   //***** Frequency range *****
