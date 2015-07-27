@@ -287,7 +287,43 @@ double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
 
   return -1.0;
 }
+/*
+////////////////////////////////////////////////////////////////////////////////////
+double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
+////////////////////////////////////////////////////////////////////////////////////
 
+  // remove segment edges (2 x 25%)
+  int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
+  int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
+  
+  // get mean
+  double MeanEnergy=0, VarEnergy=0;
+  int n=0;
+  for(int t=tstart; t<tend; t++){
+    MeanEnergy+=aEnergies[t];
+    VarEnergy+=aEnergies[t]*aEnergies[t];
+    n++;
+  }
+
+  double thr=MeanEnergy/(double)n + 2*sqrt(VarEnergy/(double)n-MeanEnergy*MeanEnergy/(double)n/(double)n);
+  MeanEnergy=0;
+  VarEnergy=0;
+  n=0;
+  for(int t=tstart; t<tend; t++){
+    if(aEnergies[t]>thr) continue;
+    MeanEnergy+=aEnergies[t];
+    n++;
+  }
+
+  
+  if(n){
+    MeanEnergy/=(double)n;
+    return MeanEnergy*1.00270710469359381;
+  }
+
+  return -1.0;
+}
+*/
 ////////////////////////////////////////////////////////////////////////////////////
 bool Oqplane::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
