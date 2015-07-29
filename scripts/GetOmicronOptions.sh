@@ -189,14 +189,14 @@ printoption(){
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     TRIGGERRATEMAX   1000"                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
-    if [ $7 -eq 1 ]; then
+    if [ $7 -eq 1 ]; then # LIGO-specific
 	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
 	echo ""                                                                  >> ./parameters_${1}_${2}.txt
 	echo "// clustering is only applied to XML"                              >> ./parameters_${1}_${2}.txt
 	echo "PARAMETER  CLUSTERING       TIME"                                  >> ./parameters_${1}_${2}.txt
     else
+	echo "OUTPUT     TRIGGERRATEMAX   1000"                                  >> ./parameters_${1}_${2}.txt
 	echo "OUTPUT     FORMAT           root"                                  >> ./parameters_${1}_${2}.txt
     fi
     echo ""                                                                      >> ./parameters_${1}_${2}.txt

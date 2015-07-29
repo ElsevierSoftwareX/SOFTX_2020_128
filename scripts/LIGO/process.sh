@@ -40,7 +40,8 @@ GetOverlap(){
 ###########                         GENERAL                          ########### 
 ################################################################################                               
 
-# GWOLLUM environment
+# environment
+source /home/detchar/opt/gwpysoft/etc/gwpy-user-env.sh
 source /home/detchar/opt/virgosoft/environment.v2r1.sh "" >> /dev/null
 
 # for safety, release held jobs
@@ -77,6 +78,7 @@ for ptype in $PRODTYPES; do
     find ./${ptype}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
     find ./${ptype}/dags -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
     find ./${ptype} -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
+    find ./${ptype}/triggers -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
 
     # check if previous batch is still running
     echo "`date -u`: check if previous batch is still running..." >> $logfile
@@ -86,6 +88,7 @@ for ptype in $PRODTYPES; do
     fi
 
     # archive dagman
+    echo "`date -u`: srchive previous dagman..." >> $logfile
     if [ -e ./${ptype}/omicron.dag.dagman.out ]; then
 	mv ./${ptype}/omicron.dag.dagman.out ./${ptype}/dags/omicron.${now}.dag
     fi
@@ -95,13 +98,15 @@ for ptype in $PRODTYPES; do
     rmdir ./${ptype}/triggers/* >> /dev/null 2>&1
 
     # channel list
+    echo "`date -u`: make channel list..." >> $logfile
     grep -w "$ptype" ./channels.${IFO} > ./$ptype/channels.list
     if [ ! -s ./$ptype/channels.list ]; then
 	echo "`date -u`: no channels" >> $logfile
 	continue
     fi
 
-    # timing
+    # reference timing
+    echo "`date -u`: make reference timing..." >> $logfile
     tstop=$(( ($now - $delay) / 1000 ))
     if [ $(( $tstop % 2 )) -eq 1 ]; then tstop=$(( $tstop - 1 )); fi
     tstop="${tstop}000"
@@ -147,9 +152,22 @@ for ptype in $PRODTYPES; do
 	continue
     fi
 
-    # segment to process
+    # segments to process
+    echo "`date -u`: make proc segments..." >> $logfile
     GetOverlap $ptype
-    awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ./${ptype}/segments.ref > ./${ptype}/segments.txt
+    awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ./${ptype}/segments.ref > ./${ptype}/segments.tmp
+    if [ "${ptype}" = "GW" ]; then
+        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2,3,4 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>./${ptype}/segments.OK 2>> $logfile
+    else
+        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>./${ptype}/segments.OK 2>> $logfile
+    fi
+    segexpr 'intersection(./'${ptype}'/segments.tmp,./'${ptype}'/segments.OK)' > ./${ptype}/segments.txt
+    rm -f ./${ptype}/segments.tmp
+    if [ ! -s ./${ptype}/segments.txt ]; then
+        echo "`date -u`: no segment to process" >> $logfile
+        continue
+    fi
+
 
     # generate option files
     cd ./${ptype}
