@@ -74,9 +74,9 @@ fi
 ##### default options
 channel="V1:h_4096Hz" # channel name
 snrmin=1           # minimum SNR
-snrmax=10000       # maximum SNR
+snrmax=1e10        # maximum SNR
 freqmin=1          # minimum frequency
-freqmax=10000      # maximum frequency
+freqmax=1e10       # maximum frequency
 cluster_dt=0.1     # cluster deltat
 print_freq=1       # print frequency column
 print_dur=0        # print duration column
