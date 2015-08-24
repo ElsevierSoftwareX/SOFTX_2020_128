@@ -47,12 +47,21 @@ source /home/detchar/opt/virgosoft/environment.v2r1.sh "" >> /dev/null
 # for safety, release held jobs
 condor_release -all >> /dev/null 2>&1
 
+basedir=`pwd`
+
+# special case for offline processing
+if [ $# -eq 2 ]; then
+    off_start=$1
+    off_stop=$2
+    basedir="`pwd`/${1}-${2}"
+fi
+
 
 # start log file
-mkdir -p ./logs
-find ./logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+mkdir -p ${basedir}/logs
+find ${basedir}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
 now=`tconvert now`
-logfile=`pwd`/logs/process.${now}.txt
+logfile=${basedir}/logs/process.${now}.txt
 echo "Local time: `date`" > $logfile
 echo "UTC time: `date -u`" >> $logfile
 
@@ -72,116 +81,125 @@ for ptype in $PRODTYPES; do
     echo "`date -u` *******************   ${ptype} CONFIG   *******************" >> $logfile
 
     # directories
-    mkdir -p ./${ptype}/triggers ./${ptype}/dags ./${ptype}/logs;
+    mkdir -p ${basedir}/${ptype}/triggers ${basedir}/${ptype}/dags ${basedir}/${ptype}/logs;
 
     # cleaning old files
-    find ./${ptype}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
-    find ./${ptype}/dags -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
-    find ./${ptype} -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
-    find ./${ptype}/triggers -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
+    find ${basedir}/${ptype}/logs -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+    find ${basedir}/${ptype}/dags -type f -mtime +4 -exec rm {} \; >> /dev/null 2>&1
+    find ${basedir}/${ptype} -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
+    find ${basedir}/${ptype}/triggers -type f -mtime +2 -exec rm {} \; >> /dev/null 2>&1
 
     # check if previous batch is still running
     echo "`date -u`: check if previous batch is still running..." >> $logfile
-    if [ -e ./${ptype}/omicron.dag.lock ]; then
+    if [ -e ${basedir}/${ptype}/omicron.dag.lock ]; then
 	echo "`date -u` condor is already running" >> $logfile
 	continue
     fi
 
     # archive dagman
-    echo "`date -u`: srchive previous dagman..." >> $logfile
-    if [ -e ./${ptype}/omicron.dag.dagman.out ]; then
-	mv ./${ptype}/omicron.dag.dagman.out ./${ptype}/dags/omicron.${now}.dag
+    echo "`date -u`: archive previous dagman..." >> $logfile
+    if [ -e ${basedir}/${ptype}/omicron.dag.dagman.out ]; then
+	mv ${basedir}/${ptype}/omicron.dag.dagman.out ${basedir}/${ptype}/dags/omicron.${now}.dag
     fi
 
     # more cleaning
-    rm -f ./${ptype}/omicron.dag*
-    rmdir ./${ptype}/triggers/* >> /dev/null 2>&1
+    rm -f ${basedir}/${ptype}/omicron.dag*
+    rmdir ${basedir}/${ptype}/triggers/* >> /dev/null 2>&1
 
     # channel list
     echo "`date -u`: make channel list..." >> $logfile
-    grep -w "$ptype" ./channels.${IFO} > ./$ptype/channels.list
-    if [ ! -s ./$ptype/channels.list ]; then
+    grep -w "$ptype" ${basedir}/channels.${IFO} > ${basedir}/$ptype/channels.list
+    if [ ! -s ${basedir}/$ptype/channels.list ]; then
 	echo "`date -u`: no channels" >> $logfile
 	continue
     fi
 
     # reference timing
     echo "`date -u`: make reference timing..." >> $logfile
-    tstop=$(( ($now - $delay) / 1000 ))
-    if [ $(( $tstop % 2 )) -eq 1 ]; then tstop=$(( $tstop - 1 )); fi
-    tstop="${tstop}000"
-    tstart=$(( $tstop - 2000 ))
-    if [ ! -e ./${ptype}/segments.ref ]; then
-	echo "`date -u`: no previous segment --> start a new one [$tstart; $tstop]" >> $logfile
-	echo "$tstart $tstop" > ./${ptype}/segments.tmp
+    if [ $# -eq 2 ]; then
+	tstart=$1
+	tstop=$2
+	echo "`date -u`: create new segment [$tstart; $tstop]" >> $logfile
+	echo "$tstart $tstop" > ${basedir}/${ptype}/segments.tmp
+
     else
-	prev_stop=`head -n 1 ./${ptype}/segments.ref | awk '{print $2}'`
-	if [ $(( $tstop - $prev_stop )) -gt $tmax ]; then
-	    echo "`date -u`: the last processed segment is too old --> start a new one [$tstart; $tstop]" >> $logfile
-	    echo "$tstart $tstop" > ./${ptype}/segments.tmp
+	tstop=$(( ($now - $delay) / 1000 ))
+	if [ $(( $tstop % 2 )) -eq 1 ]; then tstop=$(( $tstop - 1 )); fi
+	tstop="${tstop}000"
+	tstart=$(( $tstop - 2000 ))
+	if [ ! -e ${basedir}/${ptype}/segments.ref ]; then
+	    echo "`date -u`: no previous segment --> start a new one [$tstart; $tstop]" >> $logfile
+	    echo "$tstart $tstop" > ${basedir}/${ptype}/segments.tmp
 	else
-	    tstart=$prev_stop
-	    echo "`date -u`: create new segment [$tstart; $tstop]" >> $logfile
-            echo "$tstart $tstop" > ./${ptype}/segments.tmp
+	    prev_stop=`head -n 1 ${basedir}/${ptype}/segments.ref | awk '{print $2}'`
+	    if [ $(( $tstop - $prev_stop )) -gt $tmax ]; then
+		echo "`date -u`: the last processed segment is too old --> start a new one [$tstart; $tstop]" >> $logfile
+		echo "$tstart $tstop" > ${basedir}/${ptype}/segments.tmp
+	    else
+		tstart=$prev_stop
+		echo "`date -u`: create new segment [$tstart; $tstop]" >> $logfile
+		echo "$tstart $tstop" > ${basedir}/${ptype}/segments.tmp
+	    fi
 	fi
     fi
-    if [ `segsum ./${ptype}/segments.tmp` -lt 2000 ]; then
+    
+    if [ `segsum ${basedir}/${ptype}/segments.tmp` -lt 2000 ]; then
 	echo "`date -u`: the new segment is too short, start again later..." >> $logfile
-	rm -f ./${ptype}/segments.tmp
+	rm -f ${basedir}/${ptype}/segments.tmp
 	continue
     fi
-    mv ./${ptype}/segments.tmp ./${ptype}/segments.ref
+    mv ${basedir}/${ptype}/segments.tmp ${basedir}/${ptype}/segments.ref
 
     # LCF
     echo "`date -u`: get LCF file" >> $logfile
     if [ "${ptype}" = "GW" ]; then
 	for type in $gw_type; do
-	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>./${ptype}/frames.lcf 2>> $logfile
-	    if [ -s ./${ptype}/frames.lcf ]; then break; fi
+	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 100 )) -e $(( $tstop + 100 )) 1>${basedir}/${ptype}/frames.lcf 2>> $logfile
+	    if [ -s ${basedir}/${ptype}/frames.lcf ]; then break; fi
 	done
     else
 	for type in $data_type; do
-	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>./${ptype}/frames.lcf 2>> $logfile
-	    if [ -s ./${ptype}/frames.lcf ]; then break; fi
+	    gw_data_find -o ${IFO:0:1} -l -t $type -u file -s $(( $tstart - 200 )) -e $(( $tstop + 200 )) 1>${basedir}/${ptype}/frames.lcf 2>> $logfile
+	    if [ -s ${basedir}/${ptype}/frames.lcf ]; then break; fi
 	done
     fi
     
-    if [ ! -s ./${ptype}/frames.lcf ]; then
+    if [ ! -s ${basedir}/${ptype}/frames.lcf ]; then
 	echo "`date -u`: data are missing for this segment" >> $logfile
-	rm -f ./${ptype}/frames.lcf
+	rm -f ${basedir}/${ptype}/frames.lcf
 	continue
     fi
 
     # segments to process
     echo "`date -u`: make proc segments..." >> $logfile
     GetOverlap $ptype
-    awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ./${ptype}/segments.ref > ./${ptype}/segments.tmp
+    awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ${basedir}/${ptype}/segments.ref > ${basedir}/${ptype}/segments.tmp
     if [ "${ptype}" = "GW" ]; then
-        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2,3,4 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>./${ptype}/segments.OK 2>> $logfile
+        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2,3,4 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
     else
-        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>./${ptype}/segments.OK 2>> $logfile
+        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
     fi
-    segexpr 'intersection(./'${ptype}'/segments.tmp,./'${ptype}'/segments.OK)' > ./${ptype}/segments.txt
-    rm -f ./${ptype}/segments.tmp
-    if [ ! -s ./${ptype}/segments.txt ]; then
+    segexpr 'intersection('${basedir}'/'${ptype}'/segments.tmp,'${basedir}'/'${ptype}'/segments.OK)' > ${basedir}/${ptype}/segments.txt
+    rm -f ${basedir}/${ptype}/segments.tmp
+    if [ ! -s ${basedir}/${ptype}/segments.txt ]; then
         echo "`date -u`: no segment to process" >> $logfile
         continue
     fi
 
 
     # generate option files
-    cd ./${ptype}
+    cd ${basedir}/${ptype}
     GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
-    cd ..
+    cd ${basedir}
 
     # make dags
-    GetOmicronDAG -d `pwd`/${ptype} >> $logfile 2>&1
-    rm -f ./${ptype}/parameters_${ptype}_*.txt
+    GetOmicronDAG -d ${basedir}/${ptype} >> $logfile 2>&1
+    rm -f ${basedir}/${ptype}/parameters_${ptype}_*.txt
 
     # GO!
-    cd ./${ptype}
+    cd ${basedir}/${ptype}
     if [ -e omicron.dag ]; then condor_submit_dag omicron.dag >> $logfile 2>&1; fi
-    cd ..
+    cd ${basedir}
     
 done
 
