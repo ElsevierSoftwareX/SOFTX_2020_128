@@ -41,13 +41,14 @@ GetOverlap(){
 ################################################################################                               
 
 # environment
-source /home/detchar/opt/gwpysoft/etc/gwpy-user-env.sh
 source /home/detchar/opt/virgosoft/environment.v2r1.sh "" >> /dev/null
+source /home/detchar/opt/gwpysoft/etc/gwpy-user-env.sh
 
 # for safety, release held jobs
 condor_release -all >> /dev/null 2>&1
 
 basedir=`pwd`
+here=`pwd`
 
 # special case for offline processing
 if [ $# -eq 2 ]; then
@@ -108,7 +109,7 @@ for ptype in $PRODTYPES; do
 
     # channel list
     echo "`date -u`: make channel list..." >> $logfile
-    grep -w "$ptype" ${basedir}/channels.${IFO} > ${basedir}/$ptype/channels.list
+    grep -w "$ptype" ./channels.${IFO} > ${basedir}/$ptype/channels.list
     if [ ! -s ${basedir}/$ptype/channels.list ]; then
 	echo "`date -u`: no channels" >> $logfile
 	continue
@@ -175,9 +176,17 @@ for ptype in $PRODTYPES; do
     GetOverlap $ptype
     awk -v var="$(( $overlap / 2 ))" '{print $1-var,$2+var}' ${basedir}/${ptype}/segments.ref > ${basedir}/${ptype}/segments.tmp
     if [ "${ptype}" = "GW" ]; then
-        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2,3,4 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+	if [ $# -eq 2 ]; then 
+	    ligolw_segment_query_dqsegdb --segment-url=https://dqsegdb5.phy.syr.edu --query-segments --gps-start-time $(( $tstart - $overlap / 2 )) --gps-end-time $(( $tstop + $overlap / 2 )) --include-segments="${IFO}:DMT-CALIBRATED" | ligolw_print -t segment -c start_time -c end_time -d ' ' 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+	else
+            /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2,3,4 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+	fi
     else
-        /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+        if [ $# -eq 2 ]; then 
+	    ligolw_segment_query_dqsegdb --segment-url=https://dqsegdb5.phy.syr.edu --query-segments --gps-start-time $(( $tstart - $overlap / 2 )) --gps-end-time $(( $tstop + $overlap / 2 )) --include-segments="${IFO}:DMT-UP" | ligolw_print -t segment -c start_time -c end_time -d ' ' 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+        else
+            /home/detchar/bin/gwdq-get-ligo-segments -c ${IFO}:GDS-CALIB_STATE_VECTOR -t ${IFO}_llhoft -b 2 $(( $tstart - $overlap / 2 )) $(( $tstop + $overlap / 2 )) 1>${basedir}/${ptype}/segments.OK 2>> $logfile
+	fi
     fi
     segexpr 'intersection('${basedir}'/'${ptype}'/segments.tmp,'${basedir}'/'${ptype}'/segments.OK)' > ${basedir}/${ptype}/segments.txt
     rm -f ${basedir}/${ptype}/segments.tmp
@@ -190,7 +199,7 @@ for ptype in $PRODTYPES; do
     # generate option files
     cd ${basedir}/${ptype}
     GetOmicronOptions -c ./channels.list -f ./frames.lcf -d ./triggers -X >> $logfile 2>&1
-    cd ${basedir}
+    cd $here
 
     # make dags
     GetOmicronDAG -d ${basedir}/${ptype} >> $logfile 2>&1
@@ -199,8 +208,7 @@ for ptype in $PRODTYPES; do
     # GO!
     cd ${basedir}/${ptype}
     if [ -e omicron.dag ]; then condor_submit_dag omicron.dag >> $logfile 2>&1; fi
-    cd ${basedir}
-    
+    cd $here
 done
 
 exit 0
