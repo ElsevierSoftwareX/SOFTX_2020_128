@@ -143,7 +143,7 @@ while [ $p -lt $nproc ]; do # loop over parameters
 
     # init
     nseg=0
-    durcum=0
+    #durcum=0
     rm -f ${workdir}/segments/segments${usertag}_${p}_*.txt
   
     # overlap
@@ -154,10 +154,11 @@ while [ $p -lt $nproc ]; do # loop over parameters
 	if [ "$line" = "" ]; then continue; fi
 	
         # timing
-	dur=`echo $line | awk '{print int($2-$1)}'`
+	#dur=`echo $line | awk '{print int($2-$1)}'`
 	ss=`echo $line | awk '{print int($1)}'`
 	ee=`echo $line | awk '{print int($2)}'`
-	durcum=$(( $durcum + $dur ))
+	#durcum=$(( $durcum + $dur ))
+	durcum=0
 
 	# make jobs for this segment
 	sss=$ss
