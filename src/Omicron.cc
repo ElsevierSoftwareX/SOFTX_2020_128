@@ -437,7 +437,7 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
     }
 
     // add injections in the data
-    for(int d=0; d<*aSize; d++) *aDataVector[d]+=(fInjFact[chanindex]*dvector_inj[d]);
+    for(int d=0; d<*aSize; d++) (*aDataVector)[d]+=(fInjFact[chanindex]*dvector_inj[d]);
     delete dvector_inj;
   }
 
