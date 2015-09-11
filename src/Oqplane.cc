@@ -315,7 +315,6 @@ double Oqplane::GetMeanEnergy(const int aBandIndex, double *aEnergies){
     n++;
   }
 
-  
   if(n){
     MeanEnergy/=(double)n;
     return MeanEnergy*1.00270710469359381;
