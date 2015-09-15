@@ -57,7 +57,7 @@ class Omap: public TH2D {
     return GetYaxis()->FindBin(aFrequency)-1;
   };
   inline double GetBandFrequency(const int aBandIndex){
-    return GetYaxis()->GetBinCenterLog(aBandIndex+1);
+    return GetYaxis()->GetBinCenter(aBandIndex+1);
   };
   inline double GetBandStart(const int aBandIndex){ 
     return GetYaxis()->GetBinLowEdge(aBandIndex+1);

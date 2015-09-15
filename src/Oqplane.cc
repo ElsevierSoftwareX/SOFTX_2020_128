@@ -70,7 +70,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   double windowargument;
   double winnormalization;
   double ifftnormalization;
-  double delta_f;
+  double delta_f;// Connes window 1/2-width
 
   for(int f=0; f<GetNBands(); f++){
     
@@ -85,16 +85,17 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
     bandWindowSize[f] = 2 * (int)floor(delta_f/df) + 1;
+    df=delta_f*2.0/(double)(bandWindowSize[f]-1);
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
     winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26
  
     // Connes window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
     for(int i=0; i<bandWindowSize[f]; i++){
-      bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * df;
+      bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) * df;// centered on 0
       windowargument=bandWindowFreq[f][i]/delta_f;// f/delta_f
       bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// connes window (1-x^2)^2
-      bandWindowFreq[f][i]+=GetBandFrequency(f);
+      bandWindowFreq[f][i]+=GetBandFrequency(f);// now centered on band frequency
     }
   }
   
