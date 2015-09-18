@@ -128,6 +128,13 @@ Omicron::Omicron(const string aOptionFile){
     }
   }
    
+  // data sequence
+  if(fVerbosity) cout<<"Omicron::Omicron: init data sequence..."<<endl;
+  dataseq          = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
+  fChunkDuration   = dataseq->GetChunkDuration();
+  fSegmentDuration = dataseq->GetSegmentDuration();
+  fOverlapDuration = dataseq->GetOverlapDuration();
+
   // data Spectrum
   if(fVerbosity) cout<<"Omicron::Omicron: init data spectrum..."<<endl;
   int psdsize;
@@ -138,22 +145,17 @@ Omicron::Omicron(const string aOptionFile){
   spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(),psdsize,0,fVerbosity);
   status_OK*=spectrum->GetStatus();
 
-  // data sequence
-  if(fVerbosity) cout<<"Omicron::Omicron: init data sequence..."<<endl;
-  dataseq          = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
-  fChunkDuration   = dataseq->GetChunkDuration();
-  fSegmentDuration = dataseq->GetSegmentDuration();
-  fOverlapDuration = dataseq->GetOverlapDuration();
-
   // data container
   if(fVerbosity) cout<<"Omicron::Omicron: init data container..."<<endl;
-  ChunkVect   = new double [fChunkDuration*triggers[0]->GetWorkingFrequency()];
-  SegVect     = new double [fSegmentDuration*triggers[0]->GetWorkingFrequency()];
-  TukeyWindow = GetTukeyWindow(fSegmentDuration*triggers[0]->GetWorkingFrequency(),fOverlapDuration*triggers[0]->GetWorkingFrequency());
-  offt        = new fft(fSegmentDuration*triggers[0]->GetWorkingFrequency(),"FFTW_ESTIMATE");
-  dataRe      = new double* [dataseq->GetNSegments()];
-  dataIm      = new double* [dataseq->GetNSegments()];
-  
+  ChunkVect     = new double [fChunkDuration*triggers[0]->GetWorkingFrequency()];
+  CondChunkVect = new double [fChunkDuration*triggers[0]->GetWorkingFrequency()];
+  SegVect       = new double [fSegmentDuration*triggers[0]->GetWorkingFrequency()];
+  TukeyWindow   = GetTukeyWindow(fSegmentDuration*triggers[0]->GetWorkingFrequency(),fOverlapDuration*triggers[0]->GetWorkingFrequency());
+  offt          = new fft(fSegmentDuration*triggers[0]->GetWorkingFrequency(),"FFTW_ESTIMATE");
+  dataRe        = new double* [dataseq->GetNSegments()];
+  dataIm        = new double* [dataseq->GetNSegments()];
+  for(int i=0; i<fChunkDuration*triggers[0]->GetWorkingFrequency(); i++)
+    CondChunkVect[i]=0.0;
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------                INTERNALS               --------------
@@ -225,6 +227,7 @@ Omicron::~Omicron(void){
   delete tile;
   delete GPlot;
   delete ChunkVect;
+  delete CondChunkVect;
   delete SegVect;
   delete TukeyWindow;
   delete offt;
@@ -463,7 +466,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     return 2;
   }
   if(aInVect[0]==aInVect[aInVectSize-1]){
-    cerr<<"Omicron::Condition: input vector seems to be flat ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::Condition: input vector appears to be flat ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
     return 3;
   }
     
@@ -535,6 +538,17 @@ bool Omicron::Project(void){
       return false;
     }
 
+    // save whiten data for condition data products
+    if(fOutProducts.find("condition")!=string::npos){
+      if(!offt->Backward(dataRe[s], dataIm[s])){// Back in time domain
+	delete dataRe[s];
+	delete dataIm[s];
+	return false;
+      }
+      for(int i=ovsize/2; i<segsize-ovsize/2; i++) CondChunkVect[s*(segsize-ovsize)+i]=offt->GetReOut(i);// CHECKME: tukey window?
+    }
+
+    // not used anymore
     delete dataRe[s];
     delete dataIm[s];
 
@@ -592,13 +606,23 @@ bool Omicron::WriteOutput(void){
     SaveAPSD("PSD");
   }
   
-  //*** TS
+  //*** RAW TS
   if(fOutProducts.find("timeseries")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write time-series..."<<endl;
-    SaveTS();
+    SaveTS(false);
   }
 
-  //*** triggers
+  //*** CONDITIONNED DATA
+  if(fOutProducts.find("condition")!=string::npos){
+    if(fVerbosity>1) cout<<"\t- write conditioned data..."<<endl;
+    SaveTS(true);// save whitened time series
+    spectrum->SetPadding(fOverlapDuration);
+    if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect)) return false;// compute spectrum
+    spectrum->SetPadding(0);
+    SaveAPSD("PSD",true);// save whiten PSD
+  }
+
+  //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
 
@@ -693,7 +717,7 @@ bool Omicron::Whiten(double **aDataRe, double **aDataIm){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::SaveAPSD(const string type){
+void Omicron::SaveAPSD(const string type, const bool aCond){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // extract A/PSD 
@@ -717,6 +741,7 @@ void Omicron::SaveAPSD(const string type){
     GAPSD->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
     GAPSD->SetTitle((fChannels[chanindex]+": Amplitude spectrum density").c_str());
   }
+  if(aCond) GAPSD->SetTitle(((string)GAPSD->GetTitle()+" (after conditioning)").c_str());
   GAPSD->SetLineWidth(2);
   GAPSD->GetXaxis()->SetLimits(fFreqRange[0],fFreqRange[1]);
   GAPSD->GetXaxis()->SetTitleOffset(1.1);
@@ -724,18 +749,21 @@ void Omicron::SaveAPSD(const string type){
   GAPSD->GetYaxis()->SetLabelSize(0.045);
   GAPSD->GetXaxis()->SetTitleSize(0.045);
   GAPSD->GetYaxis()->SetTitleSize(0.045);
-   
+  
   // set new name
   stringstream ss;
-  if(!type.compare("ASD")) ss<<"ASD_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
-  else ss<<"PSD_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+  ss<<type;
+  if(aCond) ss<<"cond";
+  ss<<"_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
   GAPSD->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type<<".root";
+    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type;
+    if(aCond) ss<<"cond";
+    ss<<".root";
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fpsd->cd();
@@ -755,7 +783,9 @@ void Omicron::SaveAPSD(const string type){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type<<"."<<form[f];
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_"<<type;
+      if(aCond) ss<<"cond";
+      ss<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
@@ -767,18 +797,29 @@ void Omicron::SaveAPSD(const string type){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::SaveTS(void){
+void Omicron::SaveTS(const bool aCond){
 ////////////////////////////////////////////////////////////////////////////////////
 
+  // create graph 
   TGraph *GDATA = new TGraph(triggers[chanindex]->GetWorkingFrequency()*dataseq->GetCurrentChunkDuration());
   if(GDATA==NULL) return;
 
   stringstream ss;
-  ss<<"ts_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+
+  // condition data
+  if(aCond){
+    ss<<"tscond_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+    for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency())-timeoffset,CondChunkVect[i]);
+  }
+  // raw data
+  else{
+    ss<<"ts_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
+    for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency())-timeoffset,ChunkVect[i]);
+  }
+
+  // plot name
   GDATA->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
-
-  for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency())-timeoffset,ChunkVect[i]);
      
   // cosmetics
   GPlot->SetLogx(0);
@@ -786,8 +827,9 @@ void Omicron::SaveTS(void){
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
   GDATA->GetHistogram()->SetXTitle("Time [s]");
-  GDATA->GetHistogram()->SetYTitle("Amplitude [?]");
-  GDATA->SetTitle((fChannels[chanindex]+": amplitude time series").c_str());
+  GDATA->GetHistogram()->SetYTitle("Amplitude");
+  if(aCond) GDATA->SetTitle((fChannels[chanindex]+": amplitude conditioned data time series").c_str());
+  else GDATA->SetTitle((fChannels[chanindex]+": amplitude raw time series (high-passed)").c_str());
   GDATA->SetLineWidth(1);
   GDATA->GetXaxis()->SetNoExponent();
   GDATA->GetXaxis()->SetTitleOffset(1.1);
@@ -795,13 +837,16 @@ void Omicron::SaveTS(void){
   GDATA->GetYaxis()->SetLabelSize(0.045);
   GDATA->GetXaxis()->SetTitleSize(0.045);
   GDATA->GetYaxis()->SetTitleSize(0.045);
-  
+  GDATA->GetXaxis()->SetNdivisions(4,5,0);
   GPlot->Draw(GDATA,"APL");
-
+  
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
-    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_ts.root";
+    if(aCond)
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_tscond.root";
+    else
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_ts.root";
     fdata=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fdata->cd();
@@ -823,20 +868,22 @@ void Omicron::SaveTS(void){
     
     // give the time offset info in the title
     if(timeoffset){
-      ss<<fChannels[chanindex]+": amplitude time series centered at "<<fixed<<setprecision(3)<<timeoffset;
-      //tcenter=0;
-      GDATA->SetTitle(ss.str().c_str());
+      ss<<" centered at "<<fixed<<setprecision(3)<<timeoffset;
+      GDATA->SetTitle(((string)GDATA->GetTitle()+ss.str()).c_str());
       ss.str(""); ss.clear();
     }
 
     // zoom
     double tcenter;
     if(timeoffset) tcenter=0.0;
-    else tcenter=(double)(dataseq->GetChunkTimeStart()+dataseq->GetChunkTimeEnd())/2.0;
+    else tcenter=(double)(dataseq->GetChunkTimeStart())/2.0+(double)(dataseq->GetChunkTimeEnd())/2.0;
     for(int w=(int)fWindows.size()-1; w>=0; w--){
       GDATA->GetXaxis()->SetLimits(tcenter-(double)fWindows[w]/2.0,tcenter+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
-	ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
+	if(aCond)
+	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_tsconddt"<<fWindows[w]<<"."<<form[f];
+	else
+	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
 	ss.str(""); ss.clear();
       }

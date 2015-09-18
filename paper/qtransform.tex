@@ -1,0 +1,6 @@
+\section{The Q transform} \label{sec:qtransform}
+
+The Q transform consists of projecting a data time series, $s(t)$, onto a basis of windowed sinusoids:
+\begin{equation}
+  S(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ s(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}
+\end{equation}

@@ -273,6 +273,7 @@ class Omicron {
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
+  double *CondChunkVect;        ///< chunk conditioned data (time domain)
   double *SegVect;              ///< subsegment raw data (time domain)
   
   // CONDITIONING
@@ -287,8 +288,8 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   vector <string> outdir;       ///< output directories per channel
-  void SaveAPSD(const string type="PSD");///< Save current PSD/ASD
-  void SaveTS(void);            ///< Save current chunk time series
+  void SaveAPSD(const string type="PSD", const bool aCond=false);///< Save current PSD/ASD
+  void SaveTS(const bool aCond=false); ///< Save current chunk time series
   void MakeHtml(void);          ///< make html report
 
   // MISC

@@ -1,5 +1,28 @@
 \section{The algorithm} \label{sec:algorithm}
 
+\subsection{Overview} \label{sec:algorithm:overview}
+The Omicron algorithm is developed in C++ and the code lives in the Virgo software repository~\cite{VirgoSVN}. Omicron relies on GWOLLUM~\cite{GWOLLUM} libraries used to perform every step of an Omicron analysis. The GWOLLUM package depends on external libraries. The FrameL~\cite{FrameL} library is used to perform IO operations on data frame files~\footnote{The frame format was developed for interferometric gravitational-wave detectors' data.}. Mathematical routines developed in the GNU Scientific Library~\cite{GSL} are commonly used by GWOLLUM functions. Discrete Fourier transforms are performed using the FFTW~\cite{FFTW} algorithm. Finally, the GWOLLUM and Omicron code heavily rely on C++ classes developed in the ROOT~\cite{Brun:1997pa} framework. For example, ROOT classes are used for plotting purposes, for event storage or for data access. To deal with package dependencies, the CMT~\cite{CMT} configuration management tool was chosen.
+
+A fully object-oriented framework is adopted when developing GWOLLUM and Omicron, in which C++ classes and inheritance features are extensively used. The Omicron algorithm is entirely based on the \texttt{Omicron} C++ class which member functions are used to perform the analysis steps.
+
+
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/omicron_flowchart.eps}
+  \caption{Omicron flowchart.}
+  \label{fig:omicron_flowchart}
+\end{figure}
+
+\begin{figure}
+  \center
+  \includegraphics[angle=90, scale=0.4]{./figures/omicron_incl}
+  \caption{Diagram presenting the Omicron code dependencies. Header files starting with a ``O'' are part of the Omicron Package. Header files starting with a ``T'' are taken from the ROOT~\cite{Brun:1997pa} libraries. \bluenote{Clean this!}}
+  \label{fig:omicron_incl}
+\end{figure}
+
+
+
+
 \subsection{The data access} \label{sec:algorithm:data}
 The input data time series are read using the frame library. The Omicron algorithm
 

@@ -194,6 +194,23 @@ void Omicron::MakeHtml(void){
 	}
       }
       
+      // conditioned time-series
+      if(fOutProducts.find("condition")!=string::npos){
+	for(int w=0; w<(int)fWindows.size(); w++){
+	  report<<"  <tr><td>Conditioned time series ("<<fWindows[w]<<"s):</td>"<<endl;
+	  for(int s=0; s<(int)chunkstart.size(); s++){
+	    tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsconddt"<<fWindows[w]<<"."<<form;
+	    if(IsBinaryFile(tmpstream.str()))
+	      report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_tsconddt"<<fWindows[w]<<"."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	    else
+	      report<<"    <td>missing</td>"<<endl;
+
+	    tmpstream.clear(); tmpstream.str("");
+	  }
+	  report<<"  </tr>"<<endl;
+	}
+      }
+      
       // ASD
       if(fOutProducts.find("asd")!=string::npos){
 	report<<"  <tr><td>ASD:</td>"<<endl;
@@ -216,6 +233,21 @@ void Omicron::MakeHtml(void){
 	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form;
 	  if(IsBinaryFile(tmpstream.str()))
 	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSD."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	  else
+	    report<<"    <td>missing</td>"<<endl;
+	  
+	  tmpstream.clear(); tmpstream.str("");
+	}
+	report<<"  </tr>"<<endl;
+      }
+
+      // PSD after whitening
+      if(fOutProducts.find("condition")!=string::npos){
+	report<<"  <tr><td>PSD after whitening:</td>"<<endl;
+	for(int s=0; s<(int)chunkstart.size(); s++){
+	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSDcond."<<form;
+	  if(IsBinaryFile(tmpstream.str()))
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSDcond."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
 	  else
 	    report<<"    <td>missing</td>"<<endl;
 	  
