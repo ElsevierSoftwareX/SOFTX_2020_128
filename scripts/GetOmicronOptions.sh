@@ -189,7 +189,7 @@ printoption(){
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
-    echo "OUTPUT     VERBOSITY        0"                                         >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     VERBOSITY        1"                                         >> ./parameters_${1}_${2}.txt
     if [ $7 -eq 1 ]; then # LIGO-specific
 	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
 	echo ""                                                                  >> ./parameters_${1}_${2}.txt
