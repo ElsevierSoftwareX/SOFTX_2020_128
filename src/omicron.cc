@@ -117,25 +117,25 @@ int main (int argc, char* argv[]){
   // channel list
   vector <string> Channels = O->GetChannels();
 
-  // init segments CHECKED
+  // init segments
   if(!O->InitSegments(segments, gps)) return 1;
 
-  // create trigger directories CHECKED
+  // create trigger directories
   if(!O->MakeDirectories(gps)) return 2;
 
   O->PrintMessage("Start looping over chunks and channels");
 
-  // loop over chunks CHECKED
+  // loop over chunks
   while(O->NewChunk()){
       
-    // new channels CHECKED
+    // new channels
     while(O->NewChannel()){
       
-      // get data vector CHECKED
+      // get data vector
       dvector=NULL; dsize=0;
       if(!O->LoadData(&dvector,&dsize)) continue;
       
-      // condition data vector CHECKED
+      // condition data vector
       res=O->Condition(dsize, dvector);
       if(res<0){
 	delete dvector;
@@ -147,19 +147,16 @@ int main (int argc, char* argv[]){
       }
       delete dvector;// not needed anymore
 
-      // project data CHECKED
+      // project data
       if(!O->Project()) continue;
 
-      // write chunk outputs CHECKED
+      // write chunk outputs
       if(!O->WriteOutput()) continue;
     }
 
   }
     
   O->PrintMessage("Omicron processing is over");
-
-  //O->ScanReport();
-  O->PrintMessage("Omicron report is over");
 
   // prints summary report
   O->PrintStatusInfo();
