@@ -76,7 +76,6 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
     // no power
     bandPower[f]=0.0;
-
             
     // band fft
     ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
@@ -85,7 +84,6 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
     bandWindowSize[f] = 2 * (int)floor(delta_f/df) + 1;
-    df=delta_f*2.0/(double)(bandWindowSize[f]-1);
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
     winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26
