@@ -8,9 +8,9 @@ void Omicron::MakeHtml(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // import material
-  system(("cp -f ${OMICRON_HTML}/style/style."+fOutStyle+".css "+maindir+"/style.css").c_str());
+  system(("cp -f ${OMICRON_HTML}/style/style."+GPlot->GetCurrentStyle()+".css "+maindir+"/style.css").c_str());
   system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+maindir+"/icon.gif").c_str());
-  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+fOutStyle+".gif "+maindir+"/logo.gif").c_str());
+  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+GPlot->GetCurrentStyle()+".gif "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
   // select web supported image format
@@ -106,18 +106,18 @@ void Omicron::MakeHtml(void){
   // search parameters
   report<<"<h2>Parameters</h2>"<<endl;
   report<<"<table>"<<endl;
-  report<<"  <tr><td>Timing:</td><td> chunks of "<<fChunkDuration<<" sec, divided into "<<(fChunkDuration-fOverlapDuration)/(fSegmentDuration-fOverlapDuration)<<" sub-segments of "<<fSegmentDuration<<" sec, overlapping by "<<fOverlapDuration<<" sec</td></tr>"<<endl;
+  report<<"  <tr><td>Timing:</td><td> chunks of "<<dataseq->GetChunkDuration()<<" sec, divided into "<<(dataseq->GetChunkDuration()-dataseq->GetOverlapDuration())/(dataseq->GetSegmentDuration()-dataseq->GetOverlapDuration())<<" sub-segments of "<<dataseq->GetSegmentDuration()<<" sec, overlapping by "<<dataseq->GetOverlapDuration()<<" sec</td></tr>"<<endl;
   report<<"  <tr><td>Sampling frequency:</td><td>"<<triggers[0]->GetWorkingFrequency()<<" Hz</td></tr>"<<endl;
-  report<<"  <tr><td>Frequency range:</td><td>"<<fFreqRange[0]<<" &rarr; "<<fFreqRange[1]<<" Hz</td></tr>"<<endl;
-  report<<"  <tr><td>Q range:</td><td>"<<fQRange[0]<<" &rarr; "<<fQRange[1]<<"</td></tr>"<<endl;
-  report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<fMismatchMax*100<<" %</td></tr>"<<endl;
-  if(fOutProducts.find("triggers")!=string::npos) report<<"  <tr><td>SNR threshold (triggers):</td><td>SNR &gt; "<<fSNRThreshold_trigger<<"</td></tr>"<<endl;
-  if(fOutProducts.find("maps")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<fSNRThreshold_map<<"</td></tr>"<<endl;
+  report<<"  <tr><td>Frequency range:</td><td>"<<tile->GetFrequencyMin()<<" &rarr; "<<tile->GetFrequencyMax()<<" Hz</td></tr>"<<endl;
+  report<<"  <tr><td>Q range:</td><td>"<<tile->GetQ(0)<<" &rarr; "<<tile->GetQ(tile->GetNQ()-1)<<"</td></tr>"<<endl;
+  report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<tile->GetMismatchMax()*100<<" %</td></tr>"<<endl;
+  if(fOutProducts.find("triggers")!=string::npos) report<<"  <tr><td>SNR threshold (triggers):</td><td>SNR &gt; "<<tile->GetSNRTriggerThr()<<"</td></tr>"<<endl;
+  if(fOutProducts.find("maps")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<tile->GetSNRMapThr()<<"</td></tr>"<<endl;
   report<<"  <tr><td>Tile-down:</td><td>";
   if(fTileDown) report<<"YES";
   else report<<"NO";
   report<<"</td></tr>"<<endl;
-  if(fClusterAlgo.compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo<<", dt = "<<fcldt<<" sec</td></tr>"<<endl;
+  if(fClusterAlgo.compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo<<", dt = "<<triggers[0]->GetClusterizeDt()<<" sec</td></tr>"<<endl;
   else report<<"  <tr><td>Trigger clustering:</td><td>NONE</td></tr>"<<endl;
   report<<"</table>"<<endl;
   report<<"<hr />"<<endl;
@@ -135,7 +135,7 @@ void Omicron::MakeHtml(void){
   string colcode;
   for(int c=0; c<(int)fChannels.size(); c++){
     colcode="";
-    if(fSNRThreshold_map>0) colcode=GetColorCode((chan_mapsnrmax[c]-fSNRThreshold_map)/fSNRThreshold_map);
+    if(tile->GetSNRMapThr()>0) colcode=GetColorCode((chan_mapsnrmax[c]-tile->GetSNRMapThr())/tile->GetSNRMapThr());
     if(!(c%9)) report<<"  <tr>"<<endl;
     if(colcode.compare("")) report<<"    <td style=\"border:2px solid "<<colcode<<"\"><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
     else report<<"    <td><a href=\"#"<<fChannels[c]<<"\">"<<fChannels[c]<<"</a></td>"<<endl;
@@ -152,8 +152,8 @@ void Omicron::MakeHtml(void){
   for(int c=0; c<(int)fChannels.size(); c++){
 
     // processing report
-    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<fSNRThreshold_map){
-      report<<"<h2 class=\"off\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<fSNRThreshold_map<<") <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
+    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<tile->GetSNRMapThr()){
+      report<<"<h2 class=\"off\">"<<fChannels[c]<<" -- below threshold (SNR &lt; "<<tile->GetSNRMapThr()<<") <a href=\"javascript:void(0)\" name=\""<<fChannels[c]<<"\" onclick=\"toggle('id_"<<fChannels[c]<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<fChannels[c]<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
     else{
@@ -241,13 +241,13 @@ void Omicron::MakeHtml(void){
 	report<<"  </tr>"<<endl;
       }
 
-      // PSD after whitening
+      // ASD after whitening
       if(fOutProducts.find("condition")!=string::npos){
-	report<<"  <tr><td>PSD after whitening:</td>"<<endl;
+	report<<"  <tr><td>ASD after whitening:</td>"<<endl;
 	for(int s=0; s<(int)chunkstart.size(); s++){
-	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSDcond."<<form;
+	  tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASDcond."<<form;
 	  if(IsBinaryFile(tmpstream.str()))
-	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_PSDcond."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
+	    report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_"<<chunkstop[s]<<"_ASDcond."<<form<<"\" target=\"_blank\">"<<(int)(((double)chunkstart[s]+(double)chunkstop[s])/2.0)<<"</a></td>"<<endl;
 	  else
 	    report<<"    <td>missing</td>"<<endl;
 	  

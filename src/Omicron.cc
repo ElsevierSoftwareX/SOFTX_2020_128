@@ -18,15 +18,48 @@ Omicron::Omicron(const string aOptionFile){
   time ( &timer );
   timer_start=timer;
 
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  //--------------                OPTIONS                 --------------
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  // parse option file
   if(fVerbosity) cout<<"Omicron::Omicron: init options..."<<endl;
-
-  // input
   fOptionFile=aOptionFile;
+  ReadOptions();
+
+  // output directory
+  maindir=fMaindir;
+  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
+
+  // load ffl if any
+  if(FFL!=NULL){
+    status_OK*=FFL->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
+    status_OK*=FFL->LoadFrameFile();
+  }
+
+  // update windowing (CHECKME: useful?)
+  for(int c=0; c<(int)fChannels.size(); c++)
+    status_OK*=triggers[c]->SetWindows((double)dataseq->GetOverlapDuration()/(double)dataseq->GetChunkDuration());
+
+  // sort time windows
+  std::sort(fWindows.begin(), fWindows.end());
+
+  // data spectrum (CHECKME: test PSD frequency resolution)
+  spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(), dataseq->GetChunkDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
+  status_OK*=spectrum->GetStatus();
+
+  // data containers
+  ChunkVect     = new double    [dataseq->GetChunkDuration()  *triggers[0]->GetWorkingFrequency()];
+  CondChunkVect = new double    [dataseq->GetChunkDuration()  *triggers[0]->GetWorkingFrequency()];
+  SegVect       = new double    [dataseq->GetSegmentDuration()*triggers[0]->GetWorkingFrequency()];
+  TukeyWindow   = GetTukeyWindow(dataseq->GetSegmentDuration()*triggers[0]->GetWorkingFrequency(),
+				 dataseq->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
+  offt          = new fft(       dataseq->GetSegmentDuration()*triggers[0]->GetWorkingFrequency(),
+				 "FFTW_MEASURE");
+  dataRe        = new double*   [dataseq->GetNSegments()];
+  dataIm        = new double*   [dataseq->GetNSegments()];
+  for(int i=0; i<dataseq->GetChunkDuration()*triggers[0]->GetWorkingFrequency(); i++)
+    CondChunkVect[i]=0.0;
 
   // metadata field definition
+  vector <string> fOptionName;  ///< option name (metadata)
+  vector <string> fOptionType;  ///< option type (metadata)
   fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_CHANNEL");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
@@ -52,117 +85,46 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");           fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_STYLE");              fOptionType.push_back("s");
 
-  // read option file
-  ReadOptions();
-
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  //--------------                 OUTPUT                 --------------
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-  // output directory
-  maindir=fMaindir;
-  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
-  
-  // plotting
-  GPlot = new GwollumPlot ("Omicron",fOutStyle);
-  fOutStyle = GPlot->GetCurrentStyle();
-
-  // triggers
-  if(fVerbosity) cout<<"Omicron::Omicron: init triggers..."<<endl;
-  triggers = new MakeTriggers* [(int)fChannels.size()];
+  // triggers metadata
   for(int c=0; c<(int)fChannels.size(); c++){
-    triggers[c] = new MakeTriggers(outdir[c],fChannels[c],fOutFormat,fVerbosity);
-    status_OK*=triggers[c]->SetFrequencies(fSampleFrequency,fSampleFrequency,fFreqRange[0]);// default
-    triggers[c]->SetClusterizeDt(fcldt);
     triggers[c]->SetProcessVersion(GetVersion());
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],fFflFile);
+    if(FFL==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],"none");
+    else          status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],FFL->GetInputFfl());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],triggers[c]->GetWorkingFrequency());
-    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjChan[c]);
-    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
-    if(fInjChan.size()) status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjFact[c]);
-    else status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],0.0);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFilePat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],fFreqRange[0]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fFreqRange[1]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],fQRange[0]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],fQRange[1]);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],fChunkDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],fSegmentDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],fOverlapDuration);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],fMismatchMax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fSNRThreshold_trigger);
+    if(fInjChan.size()){
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjChan[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjFact[c]);
+    }
+    else{
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],0.0);
+    }
+    if(inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],"none");
+    else             status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],inject[c]->GetInputFilePattern());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],tile->GetFrequencyMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],tile->GetFrequencyMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],tile->GetQ(0));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],tile->GetQ(tile->GetNQ()-1));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],dataseq->GetChunkDuration());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],dataseq->GetSegmentDuration());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],dataseq->GetOverlapDuration());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetMismatchMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],tile->GetSNRTriggerThr());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fcldt);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],triggers[c]->GetClusterizeDt());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fNTriggerMax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetNTriggerMax());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fVerbosity);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutFormat);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutStyle);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],GPlot->GetCurrentStyle());
     triggers[c]->SetMprocessname("Omicron");
   }
-
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  //--------------               INPUT DATA               --------------
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  // data FFL (if any)
-  FFL=NULL; // no input data
-  if(fFflFile.compare("none")){
-    if(fVerbosity) cout<<"Omicron::Omicron: init data ffl..."<<endl;
-    FFL = new ffl(fFflFile, fOutStyle, fVerbosity);
-    status_OK*=FFL->DefineTmpDir(fMaindir);
-    status_OK*=FFL->LoadFrameFile();
-  }
-
-  // software injection
-  inject=NULL;
-  if(fInjFilePat.compare("none")){
-    if(fVerbosity) cout<<"Omicron::Omicron: init software injection..."<<endl;
-    inject = new InjEct* [(int)fChannels.size()];
-    for(int c=0; c<(int)fChannels.size(); c++){
-      inject[c] = new InjEct(triggers[c],fInjFilePat,fVerbosity);
-      status_OK*=inject[c]->GetStatus();
-    }
-  }
-   
-  // data sequence
-  if(fVerbosity) cout<<"Omicron::Omicron: init data sequence..."<<endl;
-  dataseq          = new Odata(fChunkDuration, fSegmentDuration, fOverlapDuration, fVerbosity);
-  fChunkDuration   = dataseq->GetChunkDuration();
-  fSegmentDuration = dataseq->GetSegmentDuration();
-  fOverlapDuration = dataseq->GetOverlapDuration();
-
-  // data Spectrum
-  if(fVerbosity) cout<<"Omicron::Omicron: init data spectrum..."<<endl;
-  int psdsize;
-  if(fFreqRange[0]>=1.0)
-    psdsize = triggers[0]->GetWorkingFrequency(); // 0.5Hz binning
-  else
-    psdsize=NextPowerOfTwo(10.0*floor((double)triggers[0]->GetWorkingFrequency()/fFreqRange[0]));// over-binning (>factor 20)
-  spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(),psdsize,0,fVerbosity);
-  status_OK*=spectrum->GetStatus();
-
-  // data container
-  if(fVerbosity) cout<<"Omicron::Omicron: init data container..."<<endl;
-  ChunkVect     = new double [fChunkDuration*triggers[0]->GetWorkingFrequency()];
-  CondChunkVect = new double [fChunkDuration*triggers[0]->GetWorkingFrequency()];
-  SegVect       = new double [fSegmentDuration*triggers[0]->GetWorkingFrequency()];
-  TukeyWindow   = GetTukeyWindow(fSegmentDuration*triggers[0]->GetWorkingFrequency(),fOverlapDuration*triggers[0]->GetWorkingFrequency());
-  offt          = new fft(fSegmentDuration*triggers[0]->GetWorkingFrequency(),"FFTW_ESTIMATE");
-  dataRe        = new double* [dataseq->GetNSegments()];
-  dataIm        = new double* [dataseq->GetNSegments()];
-  for(int i=0; i<fChunkDuration*triggers[0]->GetWorkingFrequency(); i++)
-    CondChunkVect[i]=0.0;
-
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  //--------------                INTERNALS               --------------
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+  
   // process monitoring
-  if(fVerbosity) cout<<"Omicron::Omicron: init process monitors..."<<endl;
   chanindex      = -1;
   timeoffset     = 0.0;
   inSegments     = new Segments();
@@ -183,18 +145,6 @@ Omicron::Omicron(const string aOptionFile){
     chan_write_ctr[c] = 0;
     chan_mapsnrmax[c] = 0.0;
   }
-  
-  // adjust plot time windows
-  if(!fWindows.size()) fWindows.push_back(fSegmentDuration-fOverlapDuration);
-  std::sort(fWindows.begin(), fWindows.end());
-
-
-  // tiling
-  if(fVerbosity) cout<<"Omicron::Omicron: init tiling..."<<endl;
-  tile = new Otile(fSegmentDuration,fQRange[0],fQRange[1],fFreqRange[0],fFreqRange[1],triggers[0]->GetWorkingFrequency(),fMismatchMax,fOutStyle,fVerbosity);
-  tile->SetSNRScale(fsnrscale);
-  tile->SetSaveSelection(fSNRThreshold_map,fSNRThreshold_trigger,fNTriggerMax);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -235,14 +185,10 @@ Omicron::~Omicron(void){
   mapcenter.clear();
   chunkstart.clear();
   chunkstop.clear();
-  fOptionName.clear();
-  fOptionType.clear();
   outdir.clear();
   fChannels.clear();
   fInjChan.clear();
   fInjFact.clear();
-  fFreqRange.clear();
-  fQRange.clear();
   fWindows.clear();
 }
 
@@ -496,9 +442,10 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // Make spectrum
   if(fVerbosity>1) cout<<"\t- make spectrum..."<<endl;
   if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 7;
+  if(!spectrum->WriteSubPSD("./test.root")) return 8;
 
-  // connect spectrum to tiling
-  if(fVerbosity>1) cout<<"\t- connect spectrum to tiling..."<<endl;
+  // compute tiling power
+  if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
   if(!tile->SetPower(spectrum)) return 8;
 
   chan_cond_ctr[chanindex]++;
@@ -545,7 +492,9 @@ bool Omicron::Project(void){
 	delete dataIm[s];
 	return false;
       }
-      for(int i=ovsize/2; i<segsize-ovsize/2; i++) CondChunkVect[s*(segsize-ovsize)+i]=offt->GetReOut(i);// CHECKME: tukey window?
+      if(!s) for(int i=0; i<ovsize/2; i++) CondChunkVect[i]=2.0*offt->GetReOut(i)/(double)segsize;
+      for(int i=ovsize/2; i<segsize-ovsize/2; i++) CondChunkVect[s*(segsize-ovsize)+i]=2.0*offt->GetReOut(i)/(double)segsize;// apply FFT normalization
+      if(s==dataseq->GetNSegments()-1) for(int i=segsize-ovsize/2; i<segsize; i++) CondChunkVect[s*(segsize-ovsize)+i]=2.0*offt->GetReOut(i)/(double)segsize;
     }
 
     // not used anymore
@@ -616,10 +565,8 @@ bool Omicron::WriteOutput(void){
   if(fOutProducts.find("condition")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write conditioned data..."<<endl;
     SaveTS(true);// save whitened time series
-    spectrum->SetPadding(fOverlapDuration);
-    if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect)) return false;// compute spectrum
-    spectrum->SetPadding(0);
-    SaveAPSD("PSD",true);// save whiten PSD
+    if(!spectrum->LoadData((dataseq->GetCurrentChunkDuration()-dataseq->GetOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect, dataseq->GetOverlapDuration()/2*triggers[chanindex]->GetWorkingFrequency())) return false;// compute spectrum exclude both chunk ends ov/2
+    SaveAPSD("ASD",true);// save whiten PSD
   }
 
   //*** TRIGGERS
@@ -627,7 +574,10 @@ bool Omicron::WriteOutput(void){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
 
     // sort triggers
-    triggers[chanindex]->SortTriggers();
+    if(!triggers[chanindex]->SortTriggers()){
+      cerr<<"Omicron::WriteOutput: triggers cannot be sorted ("<<fChannels[chanindex]<<" "<<dataseq->GetChunkTimeStart()<<"-"<<dataseq->GetChunkTimeEnd()<<")"<<endl;
+      return false;
+    }
     
     // clustering if any
     if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
@@ -640,7 +590,7 @@ bool Omicron::WriteOutput(void){
   }
 
   chan_write_ctr[chanindex]++;
-  outSegments[chanindex]->AddSegment(dataseq->GetChunkTimeStart()+fOverlapDuration/2,dataseq->GetChunkTimeEnd()-fOverlapDuration/2);// FIXME: known bug with the timing (last chunk)
+  outSegments[chanindex]->AddSegment(dataseq->GetChunkTimeStart()+dataseq->GetOverlapDuration()/2,dataseq->GetChunkTimeEnd()-dataseq->GetOverlapDuration()/2);// FIXME: known bug with the timing (last chunk)
   return true;
 }
 
@@ -680,7 +630,10 @@ bool Omicron::Whiten(double **aDataRe, double **aDataIm){
     cerr<<"Omicron::Whiten: FFT-forward failed"<<endl;
     return false;
   }
-    
+
+  // NOTE: no FFT normalization when forwarding
+  // the normalization (/N) is performed (by convention) after backwarding
+
   // get ffted data
   *aDataRe=offt->GetRe();
   *aDataIm=offt->GetIm();
@@ -688,19 +641,21 @@ bool Omicron::Whiten(double **aDataRe, double **aDataIm){
     cerr<<"Omicron::Whiten: cannot retrieve FFT data"<<endl;
     return false;
   }
-
-  // zero-out below high-frequency cutoff
-  int icutoff = (int)floor(fFreqRange[0]*(double)(dataseq->GetSegmentDuration()));
-  for(int i=0; i<icutoff; i++){
-    (*aDataRe)[i]=0.0;
-    (*aDataIm)[i]=0.0;
+ 
+  int i=0;
+ 
+  // zero-out below highpass frequency
+  int n = (int)(tile->GetFrequencyMin()*dataseq->GetSegmentDuration());
+  for(; i<n; i++){
+    (*aDataRe)[i] = 0.0;
+    (*aDataIm)[i] = 0.0;
   }
-
+ 
   // normalize data by the ASD
+  n = dataseq->GetSegmentDuration()*triggers[chanindex]->GetWorkingFrequency()/2;
   double asdval;
-  int ssize=dataseq->GetSegmentDuration()*triggers[chanindex]->GetWorkingFrequency()/2;
-  for(int i=icutoff; i<ssize; i++){
-    asdval=spectrum->GetPower(i*(double)triggers[chanindex]->GetWorkingFrequency()/(double)(2*ssize));
+  for(; i<n; i++){
+    asdval=spectrum->GetPower((double)i/(double)dataseq->GetSegmentDuration());
     if(asdval<=0){
       cerr<<"Omicron::Whiten: could not retrieve power"<<endl;
       delete *aDataRe; delete *aDataIm;
@@ -710,9 +665,16 @@ bool Omicron::Whiten(double **aDataRe, double **aDataIm){
     asdval=sqrt(asdval);
     (*aDataRe)[i] /= asdval;
     (*aDataIm)[i] /= asdval;
-    // NOTE: no FFT normalization here because we do a FFTback in Oqplane later with no normalization either.
-  }
 
+  }
+ 
+  // zero-out negative frequencies
+  n*=2;
+  for(; i<n; i++){
+    (*aDataRe)[i] = 0.0;
+    (*aDataIm)[i] = 0.0;
+  }
+ 
   return true;
 }
 
@@ -722,8 +684,8 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
 
   // extract A/PSD 
   TGraph *GAPSD;
-  if(!type.compare("ASD")) GAPSD = spectrum->GetASD();
-  else GAPSD = spectrum->GetPSD();
+  if(!type.compare("ASD")) GAPSD = spectrum->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  else GAPSD = spectrum->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD==NULL) return;
 
   // cosmetics
@@ -742,13 +704,13 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
     GAPSD->SetTitle((fChannels[chanindex]+": Amplitude spectrum density").c_str());
   }
   if(aCond) GAPSD->SetTitle(((string)GAPSD->GetTitle()+" (after conditioning)").c_str());
-  GAPSD->SetLineWidth(2);
-  GAPSD->GetXaxis()->SetLimits(fFreqRange[0],fFreqRange[1]);
+  GAPSD->SetLineWidth(1);
   GAPSD->GetXaxis()->SetTitleOffset(1.1);
   GAPSD->GetXaxis()->SetLabelSize(0.045);
   GAPSD->GetYaxis()->SetLabelSize(0.045);
   GAPSD->GetXaxis()->SetTitleSize(0.045);
   GAPSD->GetYaxis()->SetTitleSize(0.045);
+  //GAPSD->GetYaxis()->SetRangeUser(3e-26,7e-21);
   
   // set new name
   stringstream ss;
@@ -805,7 +767,7 @@ void Omicron::SaveTS(const bool aCond){
   if(GDATA==NULL) return;
 
   stringstream ss;
-
+ 
   // condition data
   if(aCond){
     ss<<"tscond_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
@@ -816,7 +778,7 @@ void Omicron::SaveTS(const bool aCond){
     ss<<"ts_"<<fChannels[chanindex]<<"_"<<dataseq->GetChunkTimeStart()<<"_"<<dataseq->GetChunkTimeEnd();
     for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*dataseq->GetCurrentChunkDuration(); i++) GDATA->SetPoint(i,(double)dataseq->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency())-timeoffset,ChunkVect[i]);
   }
-
+ 
   // plot name
   GDATA->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
@@ -839,7 +801,7 @@ void Omicron::SaveTS(const bool aCond){
   GDATA->GetYaxis()->SetTitleSize(0.045);
   GDATA->GetXaxis()->SetNdivisions(4,5,0);
   GPlot->Draw(GDATA,"APL");
-  
+ 
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
@@ -853,7 +815,7 @@ void Omicron::SaveTS(const bool aCond){
     GDATA->Write();
     fdata->Close();
   }
-
+ 
   // Graphix
   vector <string> form;
   if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
@@ -889,7 +851,7 @@ void Omicron::SaveTS(const bool aCond){
       }
     }
   }
-  
+      
   form.clear();
   delete GDATA;
   return;

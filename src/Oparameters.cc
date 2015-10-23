@@ -19,11 +19,68 @@ void Omicron::ReadOptions(void){
 
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  //--------------                 OUTPUT                 --------------
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+  //***** output directory *****
+  if(!io->GetOpt("OUTPUT","DIRECTORY", fMaindir)){
+    cerr<<"Omicron::ReadOptions: No output directory (OUTPUT/DIRECTORY)  --> set default: current"<<endl;
+    fMaindir=".";
+  }
+  if(!IsDirectory(fMaindir)){
+    cerr<<"Omicron::ReadOptions: output directory cannot be found (OUTPUT/DIRECTORY)  --> set default: current"<<endl;
+    fMaindir=".";
+  }
+  //*****************************
+   
+  //***** verbosity *****
+  if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=0;
+  //*****************************
+
+  //***** set output products *****
+  if(!io->GetOpt("OUTPUT","PRODUCTS", fOutProducts)){
+    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/PRODUCTS)  --> set default: triggers"<<endl;
+    fOutProducts="triggers";
+  }
+  //*****************************
+
+  //***** set output format ***** 
+  if(!io->GetOpt("OUTPUT","FORMAT", fOutFormat)){
+    cerr<<"Omicron::ReadOptions: No output format (OUTPUT/FORMAT)  --> set default: root"<<endl;
+    fOutFormat="root";
+  }
+  //*****************************
+
+  //***** set output style *****
+  string outstyle;
+  if(!io->GetOpt("OUTPUT","STYLE", outstyle)){
+    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/STYLE)  --> set default: GWOLLUM"<<endl;
+    outstyle="GWOLLUM";
+  }
+  GPlot = new GwollumPlot ("Omicron",outstyle);
+  //*****************************
+
+  //***** Trigger limit *****
+  double ntmax, trmax=10;
+  if(!io->GetOpt("OUTPUT","NTRIGGERMAX", ntmax)){
+    cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)  --> set default: 1,000,000"<<endl;
+    ntmax=1000000;
+  }
+  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", trmax)) ntmax=-1;// use rate instead
+  //*****************************
+
+  
+
+  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------                  DATA                  --------------
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** ffl file *****
-  if(!io->GetOpt("DATA","FFL", fFflFile)&&!io->GetOpt("DATA","LCF", fFflFile)) fFflFile="none";
+  string fflfile;
+  if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile))
+    FFL = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+  else
+    FFL=NULL;
   //*****************************
   
   //***** List of channels *****
@@ -32,174 +89,126 @@ void Omicron::ReadOptions(void){
     fChannels.push_back("M1:MISSING");
     status_OK=false;
   }
+  triggers = new MakeTriggers* [(int)fChannels.size()];// output triggers
+  for(int c=0; c<(int)fChannels.size(); c++)
+    triggers[c] = new MakeTriggers(fMaindir,fChannels[c],fOutFormat,fVerbosity);
   //*****************************
   
   //***** Sampling frequency *****
-  if(!io->GetOpt("DATA","SAMPLEFREQUENCY", fSampleFrequency)){
+  int sampling;
+  if(!io->GetOpt("DATA","SAMPLEFREQUENCY", sampling)){
     cerr<<"Omicron::ReadOptions: a working sampling frequency is required (DATA/SAMPLEFREQUENCY)"<<endl;
-    fSampleFrequency=16;
+    sampling=16;// not to crash
     status_OK=false;
   }
-  if(fSampleFrequency<16){
+  if(sampling<16){
     cerr<<"Omicron::ReadOptions: the working sampling frequency (DATA/SAMPLEFREQUENCY) should be at least 16Hz"<<endl;
-    fSampleFrequency=16;
+    sampling=16;
     status_OK=false;
   }
+  for(int c=0; c<(int)fChannels.size(); c++)
+    status_OK*=triggers[c]->SetFrequencies(sampling,sampling,0.0);
   //*****************************
-
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  //--------------                 OUTPUT                 --------------
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-  //***** output directory *****
-  if(!io->GetOpt("OUTPUT","DIRECTORY", fMaindir)){
-    cerr<<"Omicron::ReadOptions: No output directory (OUTPUT/DIRECTORY)               --> set default: current"<<endl;
-    fMaindir=".";
-  }
-  if(!IsDirectory(fMaindir)){
-    cerr<<"Omicron::ReadOptions: output directory cannot be found: OUTPUT/DIRECTORY   --> set default: current"<<endl;
-    fMaindir=".";
-  }
-  //*****************************
-   
-  //***** Trigger limit *****
-  if(!io->GetOpt("OUTPUT","NTRIGGERMAX", fNTriggerMax)){
-    if(!io->GetOpt("OUTPUT","TRIGGERRATEMAX", fNTriggerMax)) cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)                --> set default: 1,000,000"<<endl;
-    fNTriggerMax=1000000;
-  }
-  //*****************************
-  
-  //***** set verbosity *****
-  if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=0;
-  //*****************************
-
-  //***** set output products *****
-  if(!io->GetOpt("OUTPUT","PRODUCTS", fOutProducts)){
-    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/PRODUCTS)                 --> set default: triggers"<<endl;
-    fOutProducts="triggers";
-  }
-  //*****************************
-
-  //***** set output format ***** 
-  if(!io->GetOpt("OUTPUT","FORMAT", fOutFormat)){
-    cerr<<"Omicron::ReadOptions: No output format (OUTPUT/FORMAT)                     --> set default: root"<<endl;
-    fOutFormat="root";
-  }
-  //*****************************
-
-  //***** set output style *****
-  if(!io->GetOpt("OUTPUT","STYLE", fOutStyle)){
-    cerr<<"Omicron::ReadOptions: No output products (OUTPUT/STYLE)                    --> set default: GWOLLUM"<<endl;
-    fOutStyle="GWOLLUM";
-  }
-  //*****************************
-
-
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------                PARAMETER               --------------
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** timing *****
-  if(!io->GetOpt("PARAMETER","CHUNKDURATION", fChunkDuration)){
-    cerr<<"Omicron::ReadOptions: No search chunk duration (PARAMETER/CHUNKDURATION)   --> set default: 512s"<<endl;
-    fChunkDuration=0;// will be updated by Odata
-  }
-  if(!io->GetOpt("PARAMETER","SEGMENTDURATION", fSegmentDuration)){
-    cerr<<"Omicron::ReadOptions: No search segment duration (PARAMETER/SEGMENTDURATION)   --> set default: 64s"<<endl;
-    fSegmentDuration=0;// will be updated by Odata
-  }
-  if(!io->GetOpt("PARAMETER","OVERLAPDURATION", fOverlapDuration)){
-    cerr<<"Omicron::ReadOptions: No search overlap duration (PARAMETER/OVERLAPDURATION) --> set default: 8s"<<endl;
-    fOverlapDuration=0;// will be updated by Odata
-  }
-  //*****************************
-
-  //***** Trigger rate limit *****
-  double rmax;
-  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", rmax))
-    fNTriggerMax=(int)ceil(rmax*(double)fSegmentDuration);
+  int cduration, sduration, oduration;
+  if(!io->GetOpt("PARAMETER", "CHUNKDURATION",   cduration)) cduration=0;// will be updated by Odata
+  if(!io->GetOpt("PARAMETER", "SEGMENTDURATION", sduration)) sduration=0;// will be updated by Odata
+  if(!io->GetOpt("PARAMETER", "OVERLAPDURATION", oduration)) oduration=0;// will be updated by Odata
+  dataseq = new Odata(cduration, sduration, oduration, fVerbosity);
   //*****************************
   
   //***** Frequency range *****
-  fFreqRange.clear();
-  if(!io->GetOpt("PARAMETER","FREQUENCYRANGE", fFreqRange)){
-    cerr<<"Omicron::ReadOptions: No search frequency range (PARAMETER/FREQUENCYRANGE) --> set default: 2-"<<fSampleFrequency/2<<" Hz"<<endl;
-    fFreqRange.push_back(2); fFreqRange.push_back(fSampleFrequency/2);
+  vector <double> FRange;
+  if(!io->GetOpt("PARAMETER","FREQUENCYRANGE", FRange)){
+    cerr<<"Omicron::ReadOptions: No search frequency range (PARAMETER/FREQUENCYRANGE)  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
+    FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
-  if(fFreqRange[1]>(double)fSampleFrequency/2.0) fFreqRange[1]=(double)fSampleFrequency/2.0;
-  if(fFreqRange.size()!=2||fFreqRange[0]>=fFreqRange[1]){
-    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct --> set default: 2-"<<fSampleFrequency/2<<" Hz"<<endl;
-    fFreqRange.clear();
-    fFreqRange.push_back(2); fFreqRange.push_back(fSampleFrequency/2);
+  if(FRange.size()!=2){// must be size 2
+    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
+    FRange.clear();
+    FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
+  if(FRange[0]>=FRange[1]){// check the order
+    cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
+    FRange.clear();
+    FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
+  }
+  if(FRange[1]>(double)triggers[0]->GetWorkingFrequency()/2.0){// check for Nyquist
+    FRange.pop_back();
+    FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
+  }
+  for(int c=0; c<(int)fChannels.size(); c++)
+    status_OK*=triggers[c]->SetHighPassFrequency(FRange[0]);
   //*****************************
 
   //***** Q range *****
-  fQRange.clear();
-  if(!io->GetOpt("PARAMETER","QRANGE", fQRange)){
-    cerr<<"Omicron::ReadOptions: No search Q range (PARAMETER/QRANGE)                 --> set default: 4-100"<<endl;
-    fQRange.push_back(4);  fQRange.push_back(100);
+  vector <double> QRange;
+  if(!io->GetOpt("PARAMETER","QRANGE", QRange)){
+    cerr<<"Omicron::ReadOptions: No search Q range (PARAMETER/QRANGE)  --> set default: 4-100"<<endl;
+    QRange.push_back(4); QRange.push_back(100);
   }
-  if(fQRange.size()!=2||fQRange[0]>=fQRange[1]||fQRange[0]<=0.0){
-    cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct            --> set default: 4-100"<<endl;
-    fQRange.clear();
-    fQRange.push_back(4);  fQRange.push_back(100);
+  if(QRange.size()!=2){// must be size 2
+    cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct  --> set default: 4-100"<<endl;
+    QRange.push_back(4); QRange.push_back(100);
+  }
+  if(QRange[0]>=QRange[1]){// check the order
+    cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct  --> set default: 4-100"<<endl;
+    QRange.push_back(4); QRange.push_back(100);
   }
   //*****************************
 
   //***** maximum mismatch *****
-  if(!io->GetOpt("PARAMETER","MISMATCHMAX", fMismatchMax)){
-    cerr<<"Omicron::ReadOptions: No mismatch (PARAMETER/MISMATCHMAX)                  --> set default: 0.2"<<endl;
-    fMismatchMax=0.2;
+  double mmm;
+  if(!io->GetOpt("PARAMETER","MISMATCHMAX", mmm)){
+    cerr<<"Omicron::ReadOptions: No mismatch (PARAMETER/MISMATCHMAX)  --> set default: 0.25"<<endl;
+    mmm=0.25;
   }
-  if(fMismatchMax<=0){
-    cerr<<"Omicron::ReadOptions: mismatch (PARAMETER/MISMATCHMAX) is not correct      --> set default: 0.2"<<endl;
-    fMismatchMax=0.2;
-  }
+  tile = new Otile(dataseq->GetSegmentDuration(),QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
+  QRange.clear(); FRange.clear();
   //*****************************
   
-  //***** SNR Threshold *****
+  //***** Tile selection *****
   vector <double> v;
   if(!io->GetOpt("PARAMETER","SNRTHRESHOLD", v)){
-    cerr<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)            --> set default: 7"<<endl;
-    fSNRThreshold_trigger=7.0;
-    fSNRThreshold_map=7.0;
+    cerr<<"Omicron::ReadOptions: No SNR threshold (PARAMETER/SNRTHRESHOLD)  --> set default: 7"<<endl;
+    v.push_back(7.0); v.push_back(7.0);
   }
-  else if(v.size()==1){
-    fSNRThreshold_trigger=v[0];
-    fSNRThreshold_map=v[0];
-  }
-  else{
-    fSNRThreshold_trigger=v[0];
-    fSNRThreshold_map=v[1];
-  }    
+  if(v.size()==1) v.push_back(v[0]);
+  if(ntmax>0) tile->SetSaveSelection(v[1],v[0],ntmax);
+  else        tile->SetSaveSelection(v[1],v[0],trmax*dataseq->GetChunkDuration());
   //*****************************
   
   //***** set clustering *****
-  if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)){
-    cerr<<"Omicron::ReadOptions: No clustering (PARAMETER/CLUSTERING)                 --> set default: none"<<endl;
-    fClusterAlgo="none";
-  }
-  if(!io->GetOpt("PARAMETER","CLUSTERDT", fcldt)) fcldt=0.1;
+  double cldt=0.1;
+  if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)) fClusterAlgo="none";
+  if(!io->GetOpt("PARAMETER","CLUSTERDT", cldt)) cldt=0.1;
+  for(int c=0; c<(int)fChannels.size(); c++) triggers[c]->SetClusterizeDt(cldt);
   //*****************************
   
   //***** Down-tiling *****
   if(!io->GetOpt("PARAMETER","TILEDOWN", fTileDown)){
-    cerr<<"Omicron::ReadOptions: No downtiling option (PARAMETER/TILEDOWN)            --> set default: NO"<<endl;
+    cerr<<"Omicron::ReadOptions: No downtiling option (PARAMETER/TILEDOWN)  --> set default: NO"<<endl;
     fTileDown=0;
   }
   //*****************************
   
-  //***** scan windows *****
-  io->GetOpt("PARAMETER","WINDOWS", fWindows);
+  //***** plot windows *****
+  if(!io->GetOpt("PARAMETER","WINDOWS", fWindows))
+    fWindows.push_back(dataseq->GetChunkDuration()-dataseq->GetOverlapDuration());
   //*****************************
 
   //***** vertical scale *****
-  if(!io->GetOpt("PARAMETER","SNRSCALE", fsnrscale)){
-    cerr<<"Omicron::ReadOptions: No snr scale option (PARAMETER/SNRSCALE)             --> set default: 50"<<endl;
-    fsnrscale=50;
+  double snrscale;
+  if(!io->GetOpt("PARAMETER","SNRSCALE", snrscale)){
+    cerr<<"Omicron::ReadOptions: No snr scale option (PARAMETER/SNRSCALE)  --> set default: 50"<<endl;
+    snrscale=50;
   }
+  tile->SetSNRScale(fabs(snrscale));
   //*****************************
 
 
@@ -227,12 +236,17 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   //***** software injections *****
-  if(!io->GetOpt("INJECTION","FILENAME", fInjFilePat)) fInjFilePat="none";
+  inject=NULL; string injfile;
+  if(io->GetOpt("INJECTION","FILENAME", injfile)){
+    inject = new InjEct* [(int)fChannels.size()];
+    for(int c=0; c<(int)fChannels.size(); c++) inject[c] = new InjEct(triggers[c],injfile,fVerbosity);
+  }
   //*****************************
 
   // dump options
   if(fVerbosity>1) io->Dump(cout);
-  delete io;
 
+  delete io;
+ 
   return;
 }

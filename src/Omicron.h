@@ -170,22 +170,22 @@ class Omicron {
   /**
    * Returns chunk duration [s].
    */
-  inline int GetChunkDuration(void){return fChunkDuration;};
+  inline int GetChunkDuration(void){return dataseq->GetChunkDuration();};
 
   /**
    * Returns segment/block duration [s].
    */
-  inline int GetSegmentDuration(void){return fSegmentDuration;};
+  inline int GetSegmentDuration(void){return dataseq->GetSegmentDuration();};
 
   /**
    * Returns overlap duration [s].
    */
-  inline int GetOverlapDuration(void){return fOverlapDuration;};
+  inline int GetOverlapDuration(void){return dataseq->GetOverlapDuration();};
 
   /**
    * Returns working sampling frequency [Hz]
    */
-  inline int GetSampleFrequency(void){return fSampleFrequency;};
+  inline int GetSampleFrequency(void){return triggers[0]->GetWorkingFrequency();};
  
   /**
    * Prints a formatted message with a timer.
@@ -206,7 +206,7 @@ class Omicron {
   /**
    * Returns Omicron version.
    */
-  inline string GetVersion(void){ return "v2r1"; };
+  inline string GetVersion(void){ return "v2r2"; };
 
  private:
 
@@ -221,33 +221,16 @@ class Omicron {
   // OPTIONS
   void ReadOptions(void);       ///< to parse option card
   string fOptionFile;           ///< option file name
-  vector <string> fOptionName;  ///< option name (metadata)
-  vector <string> fOptionType;  ///< option type (metadata)
-  string fFflFile;              ///< path to FFL file
-  vector <string> fChannels;    ///< list of channel names
-  int fSampleFrequency;         ///< working sampling frequency
-  string fMaindir;              ///< main output directory
   int fVerbosity;               ///< verbosity level
-  string fOutProducts;          ///< output products
-  string fOutFormat;            ///< output format
-  string fOutStyle;             ///< output style
-  int fChunkDuration;           ///< chunk duration (varies!)
-  int fSegmentDuration;         ///< segment duration
-  int fOverlapDuration;         ///< overlap duration
-  vector <double> fFreqRange;   ///< frequency range
-  vector <double> fQRange;      ///< Q range
-  double fMismatchMax;          ///< maximum mismatch
-  double fSNRThreshold_trigger; ///< SNR Threshold for trigger
-  double fSNRThreshold_map;     ///< SNR Threshold for maps
-  int fNTriggerMax;             ///< trigger max limit
-  string fClusterAlgo;          ///< clustering modes
-  double fcldt;                 ///< clustering dt
+  string fMaindir;              ///< main output directory
+  string fOutFormat;            ///< output format string
+  string fOutProducts;          ///< output product string
+  vector <string> fChannels;    ///< list of channel names
+  vector <int> fWindows;        ///< plot time windows
+  string fClusterAlgo;          ///< clustering algorithm
   int fTileDown;                ///< tile-down flag
-  vector <int> fWindows;        ///< map windows
-  int fsnrscale;                ///< map snr scale
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
-  string fInjFilePat;           ///< injection file pattern
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments
@@ -264,6 +247,7 @@ class Omicron {
   vector <int> chunkstop;       ///< chunk stop for html plots (only for html)
 
   // COMPONENTS
+  GwollumPlot *GPlot;           ///< Gwollum plots
   Odata *dataseq;               ///< data sequence
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
@@ -293,7 +277,6 @@ class Omicron {
   void MakeHtml(void);          ///< make html report
 
   // MISC
-  GwollumPlot *GPlot;           ///< Gwollum plots
   void PrintASCIIlogo(void);    ///< print ascii logo
   static const string colorcode[17];
   string GetColorCode(const double aSNRratio);
