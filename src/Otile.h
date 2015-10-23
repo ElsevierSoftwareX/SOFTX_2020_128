@@ -69,7 +69,11 @@ class Otile: public GwollumPlot {
    * -1.0 is returned if this function fails.
    * @param aQindex Q-plane index
    */
-  double GetQ(const int aQindex);
+  inline double GetQ(const int aQindex){
+    if(aQindex<0) return -1.0;
+    if(aQindex>=nq) return -1.0;
+    return qplanes[aQindex]->GetQ();
+  };
 
   /**
    * Displays a canonical representation of a given Q-plane.
