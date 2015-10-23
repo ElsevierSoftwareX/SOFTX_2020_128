@@ -27,7 +27,7 @@ Omicron::Omicron(const string aOptionFile){
   maindir=fMaindir;
   for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
 
-  // load ffl if any
+  // load ffl if any (CHECKME: can we load lcf directly?)
   if(FFL!=NULL){
     status_OK*=FFL->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
     status_OK*=FFL->LoadFrameFile();
@@ -52,8 +52,6 @@ Omicron::Omicron(const string aOptionFile){
 				 dataseq->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
   offt          = new fft(       dataseq->GetSegmentDuration()*triggers[0]->GetWorkingFrequency(),
 				 "FFTW_MEASURE");
-  dataRe        = new double*   [dataseq->GetNSegments()];
-  dataIm        = new double*   [dataseq->GetNSegments()];
   for(int i=0; i<dataseq->GetChunkDuration()*triggers[0]->GetWorkingFrequency(); i++)
     CondChunkVect[i]=0.0;
 
@@ -164,8 +162,6 @@ Omicron::~Omicron(void){
     delete triggers[c];
   }
   delete outSegments;
-  delete dataRe;
-  delete dataIm;
   delete spectrum;
   delete triggers;
   if(FFL!=NULL) delete FFL;
@@ -442,7 +438,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // Make spectrum
   if(fVerbosity>1) cout<<"\t- make spectrum..."<<endl;
   if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 7;
-  if(!spectrum->WriteSubPSD("./test.root")) return 8;
+  //if(!spectrum->WriteSubPSD("./test.root")) return 8;
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
@@ -462,6 +458,10 @@ bool Omicron::Project(void){
 
   if(fVerbosity) cout<<"Omicron::Project: project data onto the tiles..."<<endl;
 
+  //locals
+  double *dataRe;
+  double *dataIm;
+
   // loop over segments
   int segsize=dataseq->GetSegmentDuration()*triggers[chanindex]->GetWorkingFrequency();
   int ovsize=dataseq->GetOverlapDuration()*triggers[chanindex]->GetWorkingFrequency();
@@ -475,21 +475,19 @@ bool Omicron::Project(void){
     
     // get whiten data
     if(fVerbosity>2) cout<<"\t\t- whiten subsegment"<<endl;
-    if(!Whiten(&(dataRe[s]), &(dataIm[s]))) return false;
+    if(!Whiten(&dataRe, &dataIm)) return false;
     
     // project data
     if(fVerbosity>2) cout<<"\t\t- project subsegment"<<endl;
-    if(!tile->ProjectData(dataRe[s], dataIm[s], fTileDown)){
-      delete dataRe[s];
-      delete dataIm[s];
+    if(!tile->ProjectData(dataRe, dataIm, fTileDown)){
+      delete dataRe; delete dataIm;
       return false;
     }
 
     // save whiten data for condition data products
     if(fOutProducts.find("condition")!=string::npos){
-      if(!offt->Backward(dataRe[s], dataIm[s])){// Back in time domain
-	delete dataRe[s];
-	delete dataIm[s];
+      if(!offt->Backward(dataRe, dataIm)){// Back in time domain
+	delete dataRe; delete dataIm;
 	return false;
       }
       if(!s) for(int i=0; i<ovsize/2; i++) CondChunkVect[i]=2.0*offt->GetReOut(i)/(double)segsize;
@@ -498,8 +496,7 @@ bool Omicron::Project(void){
     }
 
     // not used anymore
-    delete dataRe[s];
-    delete dataIm[s];
+    delete dataRe; delete dataIm;
 
     // write maps on disk
     double snr;

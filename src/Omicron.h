@@ -266,8 +266,6 @@ class Omicron {
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
-  double **dataRe;              ///< conditioned data (Re)
-  double **dataIm;              ///< conditioned data (Im)
 
   // OUTPUT
   string maindir;               ///< output main directory
