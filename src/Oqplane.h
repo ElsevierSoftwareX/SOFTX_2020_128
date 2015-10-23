@@ -49,7 +49,8 @@ class Oqplane: public Omap {
   };
 
   inline int GetNTriggers(void){ return nTriggers; }
-  
+  inline double GetSNRThr(void){ return SNRThr; };
+
   // SETS
   bool SetPower(Spectrum *aSpec);
   inline void SetSNRThr(const double aSNRThr){ SNRThr=aSNRThr; };
