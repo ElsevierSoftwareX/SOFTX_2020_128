@@ -163,18 +163,53 @@ class Otile: public GwollumPlot {
    * This selection is applied when calling the SaveMaps() or SaveTriggers() functions.
    * @param aSNRThr_map when calling SaveMaps(), a map is not saved if the loudest tile is below that threshold
    * @param aSNRThr_trigger tiles with a SNR value below that threshold are not saved when calling SaveTriggers()
-   * @param aTriggerFracMax if, for a given Qplane, the fraction of tiles with a SNR above 'aSNRThr_trigger' is larger than this value, not a single tile of all planes can be saved. In other words, SaveTriggers() will return false
+   * @param aNTriggerMax if, for a given Qplane, the number of tiles with a SNR above 'aSNRThr_trigger' is larger than this value, not a single tile of all planes can be saved. In other words, SaveTriggers() will return false
    */
   inline void SetSaveSelection(const double aSNRThr_map=-1.0, const double aSNRThr_trigger=2.0, const int aNTriggerMax=1000000){
     NTriggerMax=aNTriggerMax;
     SNRThr_map=aSNRThr_map;
     for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
-    
+
+  /**
+   * Returns the current SNR threshold for maps.
+   * See SetSaveSelection().
+   */
+  inline double GetSNRMapThr(void){ return SNRThr_map; };
+
+  /**
+   * Returns the current SNR threshold for triggers.
+   * See SetSaveSelection().
+   */
+  inline double GetSNRTriggerThr(void){ return qplanes[0]->GetSNRThr(); };
+
+  /**
+   * Returns the current limit on the number of triggers.
+   * See SetSaveSelection().
+   */
+  inline int GetNTriggerMax(void){ return NTriggerMax; };
+
+  /**
+   * Returns the lowest frequency of this tiling.
+   * The minimum frequency of the lowest Q plane is returned.
+   */
+  inline double GetFrequencyMin(void){ return qplanes[0]->GetFrequencyMin(); };
+
+  /**
+   * Returns the highest frequency of this tiling.
+   * The maximum frequency of the highest Q plane is returned.
+   */
+  inline double GetFrequencyMax(void){ return qplanes[nq-1]->GetFrequencyMax(); };
+
+  /**
+   * Returns the maximum mismatch between tiles.
+   */
+  inline double GetMismatchMax(void){ return MaximumMismatch; };
 
  private:
 
   int fVerbosity;           ///< verbosity level
+  double MaximumMismatch;   ///< maximum mismatch
   Oqplane **qplanes;        ///< Q planes
   int nq;                   ///< number of q planes
   int TimeRange;            ///< map time range
