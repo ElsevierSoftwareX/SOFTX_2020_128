@@ -24,7 +24,7 @@ Otile::Otile(const int aTimeRange,
   double FrequencyMin=fabs(aFrequencyMin);
   double FrequencyMax=fabs(aFrequencyMax);
   int SampleFrequency=(int)fabs(aSampleFrequency);
-  double MaximumMismatch=TMath::Max(0.01,fabs(aMaximumMismatch));
+  MaximumMismatch=TMath::Max(0.01,fabs(aMaximumMismatch));
   fVerbosity=aVerbosity;
   
   ////// Adjust parameters   ////////////////////////////////
