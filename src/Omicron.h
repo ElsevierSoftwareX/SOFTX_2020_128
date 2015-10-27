@@ -32,12 +32,12 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, triggers, injections, monitoring, etc.
+   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, maps, triggers, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
    * After initialization, the Omicron methods should be called sequentially to perform the analysis. Here is a typical sequence:
    * - InitSegments() defines the data segments to process.
-   * - MakeDirectories() creates a specific directory tree for the output 
+   * - MakeDirectories() creates a specific directory structure for the output 
 (optional).
    * - NewChunk() loads a new chunk of data (loop #1).
    * - NewChannel() loads a new channel (loop #2).
@@ -117,21 +117,21 @@ class Omicron {
    * If the returned value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning failed but the Omicron object is still valid for further use. If it is 0, the conditioning ended correctly. The error code is the following:
    * - -1 = the Omicron object is corrupted.
    * -  0 = OK
-   * -  1 = the input vector is null
-   * -  2 = the input vector is empty
+   * -  1 = the input vector is NULL
+   * -  2 = the input vector is 0 size
    * -  3 = the input vector is flat
    * -  4 = the native frequency is not compatible with frequency settings.
    * -  5 = the vector transformation failed (resampling+highpassing)
    * -  6 = simulated signals could not be injected in the data vector
    * -  7 = the spectrum could not be computed
-   * -  8 = the tiling could not be normalized
+   * -  8 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
   int Condition(const int aInVectSize, double *aInVect);
   
   /**
-   * Projects whitened data onto the tiles and fills output structures.
+   * Whitens and projects whitened data onto the tiles and fills output structures.
    * The data vector is subdivided into subsegments. Subsegments are Tukey-windowed, Fourier-transformed and normalized by the ASD. Finally, sub-segments are projected onto the tiling structure.
    *
    * In this function, the trigger structure is also filled with tiles above SNR threshold. If requested, the maps are written to disk.

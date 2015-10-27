@@ -14,7 +14,7 @@ set OMICRON_TRIGGERS        ""\
     CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
     LIGO		    "/home/detchar/Omicron/triggers"
 set OMICRON_ONLINE_TRIGGERS ""\
-    Cascina		    "/data/procdata/detchar/Omicron/online/triggers"\
+    Cascina		    "/data/procdata/detchar/omicron/online/triggers"\
     LIGO		    "/home/detchar/Omicron/Prod/triggers"
 set OMICRON_TRIGGERS_BASE   "100000"
 

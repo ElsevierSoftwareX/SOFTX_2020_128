@@ -438,6 +438,8 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // Make spectrum
   if(fVerbosity>1) cout<<"\t- make spectrum..."<<endl;
   if(!spectrum->LoadData(dataseq->GetCurrentChunkDuration()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 7;
+
+  // CHECKME: add option to write this
   //if(!spectrum->WriteSubPSD("./test.root")) return 8;
 
   // compute tiling power
@@ -562,7 +564,7 @@ bool Omicron::WriteOutput(void){
   if(fOutProducts.find("condition")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write conditioned data..."<<endl;
     SaveTS(true);// save whitened time series
-    if(!spectrum->LoadData((dataseq->GetCurrentChunkDuration()-dataseq->GetOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect, dataseq->GetOverlapDuration()/2*triggers[chanindex]->GetWorkingFrequency())) return false;// compute spectrum exclude both chunk ends ov/2
+    if(!spectrum->LoadData((dataseq->GetCurrentChunkDuration()-dataseq->GetOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect, dataseq->GetOverlapDuration()/2*triggers[chanindex]->GetWorkingFrequency())) return false;// compute spectrum excluding both chunk ends ov/2
     SaveAPSD("ASD",true);// save whiten PSD
   }
 
