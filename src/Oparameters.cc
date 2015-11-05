@@ -142,8 +142,6 @@ void Omicron::ReadOptions(void){
     FRange.pop_back();
     FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
-  for(int c=0; c<(int)fChannels.size(); c++)
-    status_OK*=triggers[c]->SetHighPassFrequency(FRange[0]);
   //*****************************
 
   //***** Q range *****
@@ -170,6 +168,8 @@ void Omicron::ReadOptions(void){
   }
   tile = new Otile(dataseq->GetSegmentDuration(),QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
   QRange.clear(); FRange.clear();
+  for(int c=0; c<(int)fChannels.size(); c++)
+    status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
   //*****************************
   
   //***** Tile selection *****

@@ -33,15 +33,15 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=FFL->LoadFrameFile();
   }
 
-  // update windowing (CHECKME: useful?)
-  for(int c=0; c<(int)fChannels.size(); c++)
-    status_OK*=triggers[c]->SetWindows((double)dataseq->GetOverlapDuration()/(double)dataseq->GetChunkDuration());
-
   // sort time windows
   std::sort(fWindows.begin(), fWindows.end());
 
-  // data spectrum (CHECKME: test PSD frequency resolution)
-  spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(), dataseq->GetChunkDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
+  // data spectrum 
+  if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
+    spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(), dataseq->GetChunkDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
+  else // increase the resolution not to extrapolate the PSD.
+    spectrum = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()), dataseq->GetChunkDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
+
   status_OK*=spectrum->GetStatus();
 
   // data containers
@@ -687,12 +687,27 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
   else GAPSD = spectrum->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD==NULL) return;
 
+  // extract sub-segment A/PSD
+  TGraph **G;
+  G = new TGraph* [spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1)];
+  if(!type.compare("ASD")){
+    for(int i=0; i<spectrum->GetNSubSegmentsMax(0); i++) G[i] = spectrum->GetSubASD(0,i);
+    for(int i=0; i<spectrum->GetNSubSegmentsMax(1); i++) G[spectrum->GetNSubSegmentsMax(0)+i] = spectrum->GetSubASD(1,i);
+  }
+  else{
+    for(int i=0; i<spectrum->GetNSubSegmentsMax(0); i++) G[i] = spectrum->GetSubASD(0,i);
+    for(int i=0; i<spectrum->GetNSubSegmentsMax(1); i++) G[spectrum->GetNSubSegmentsMax(0)+i] = spectrum->GetSubASD(1,i);
+  }
+
   // cosmetics
   GPlot->SetLogx(1);
   GPlot->SetLogy(1);
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
-  GPlot->Draw(GAPSD,"APL");
+  GPlot->Draw(GAPSD,"AP");
+  for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++){
+    if(G[i]!=NULL) GPlot->Draw(G[i],"Lsame");
+  }
   GAPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
   if(type.compare("ASD")){
     GAPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
@@ -702,6 +717,9 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
     GAPSD->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
     GAPSD->SetTitle((fChannels[chanindex]+": Amplitude spectrum density").c_str());
   }
+  GPlot->Draw(GAPSD,"PLsame");
+  GPlot->RedrawAxis();
+  GPlot->RedrawAxis("g");
   if(aCond) GAPSD->SetTitle(((string)GAPSD->GetTitle()+" (after conditioning)").c_str());
   GAPSD->SetLineWidth(1);
   GAPSD->GetXaxis()->SetTitleOffset(1.1);
@@ -709,7 +727,7 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
   GAPSD->GetYaxis()->SetLabelSize(0.045);
   GAPSD->GetXaxis()->SetTitleSize(0.045);
   GAPSD->GetYaxis()->SetTitleSize(0.045);
-  //GAPSD->GetYaxis()->SetRangeUser(3e-26,7e-21);
+  //GAPSD->GetYaxis()->SetRangeUser(1e-25,1e-21);
   
   // set new name
   stringstream ss;
@@ -729,6 +747,9 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
     ss.str(""); ss.clear();
     fpsd->cd();
     GAPSD->Write();
+    for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++){
+      if(G[i]!=NULL) G[i]->Write();
+    }
     fpsd->Close();
   }
 
@@ -754,6 +775,10 @@ void Omicron::SaveAPSD(const string type, const bool aCond){
   
   form.clear();
   delete GAPSD;
+  for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++)
+    if(G[i]!=NULL) delete G[i];
+  delete G;
+
   return;
 }
 

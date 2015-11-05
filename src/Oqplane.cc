@@ -387,8 +387,10 @@ void Oqplane::PrintParameters(void){
   cout<<"Oqplane::PrintParameters: Q plane properties"<<endl;
   cout<<"\t- Q                         = "<<Q<<endl;
   cout<<"\t- Time range                = "<<GetTimeRange()<<" s"<<endl;
+  cout<<"\t- Time resolution           = "<<GetTileDuration(GetNBands()-1)<<" s - "<<GetTileDuration(0)<<" s"<<endl;
   cout<<"\t- Frequency range           = "<<GetFrequencyMin()<<"-"<<GetFrequencyMax()<<" Hz"<<endl;
   cout<<"\t- Number of frequency rows  = "<<GetNBands()<<endl;
+  cout<<"\t- Frequency resolution      = "<<GetBandWidth(0)<<" Hz - "<<GetBandWidth(GetNBands()-1)<<" Hz"<<endl;
   cout<<"\t- Number of tiles           = "<<Ntiles<<endl;
   cout<<"\t- Number of bins (internal) = "<<GetNbinsX()*GetNBands()<<endl;
   return;
