@@ -115,11 +115,12 @@ void Omicron::ReadOptions(void){
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** timing *****
-  int cduration, sduration, oduration;
-  if(!io->GetOpt("PARAMETER", "CHUNKDURATION",   cduration)) cduration=0;// will be updated by Odata
-  if(!io->GetOpt("PARAMETER", "SEGMENTDURATION", sduration)) sduration=0;// will be updated by Odata
-  if(!io->GetOpt("PARAMETER", "OVERLAPDURATION", oduration)) oduration=0;// will be updated by Odata
-  dataseq = new Odata(cduration, sduration, oduration, fVerbosity);
+  vector <int> timing;
+  if(!io->GetOpt("PARAMETER", "TIMING",   timing)){
+    timing.push_back(64); timing.push_back(4);
+  }
+  else if(timing.size()==1) timing.push_back(timing[0]/4);
+  else;
   //*****************************
   
   //***** Frequency range *****
@@ -166,7 +167,8 @@ void Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: No mismatch (PARAMETER/MISMATCHMAX)  --> set default: 0.25"<<endl;
     mmm=0.25;
   }
-  tile = new Otile(dataseq->GetSegmentDuration(),QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
+  tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
+  tile->SetOverlapDuration(timing[1]);
   QRange.clear(); FRange.clear();
   for(int c=0; c<(int)fChannels.size(); c++)
     status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
@@ -180,7 +182,7 @@ void Omicron::ReadOptions(void){
   }
   if(v.size()==1) v.push_back(v[0]);
   if(ntmax>0) tile->SetSaveSelection(v[1],v[0],ntmax);
-  else        tile->SetSaveSelection(v[1],v[0],trmax*dataseq->GetChunkDuration());
+  else        tile->SetSaveSelection(v[1],v[0],trmax*tile->GetTimeRange());
   //*****************************
   
   //***** set clustering *****
@@ -199,7 +201,7 @@ void Omicron::ReadOptions(void){
   
   //***** plot windows *****
   if(!io->GetOpt("PARAMETER","WINDOWS", fWindows))
-    fWindows.push_back(dataseq->GetChunkDuration()-dataseq->GetOverlapDuration());
+    fWindows.push_back(tile->GetTimeRange()-tile->GetOverlapDuration());
   //*****************************
 
   //***** vertical scale *****
@@ -244,8 +246,13 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   // dump options
-  if(fVerbosity>1) io->Dump(cout);
-
+  if(fVerbosity>1){
+    cout<<"**********************************************"<<endl;
+    cout<<"**********      PARAMETER FILE      **********"<<endl;
+    cout<<"**********************************************"<<endl;
+    io->Dump(cout);
+    cout<<"**********************************************"<<endl;
+  }
   delete io;
  
   return;

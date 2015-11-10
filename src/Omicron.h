@@ -6,7 +6,6 @@
 
 #include "IO.h"
 #include "Otile.h"
-#include "Odata.h"
 #include "Date.h"
 #include "InjEct.h"
 #include "ffl.h"
@@ -60,13 +59,10 @@ class Omicron {
 
   /**
    * Initializes the segments to process.
-   * This function should always be called before any type of processing. This function can also be used to introduce a time offset (for graphical plots only!).
-   * 
-   * WARNING: the input Segments object is not copied, only the pointer is used. This means that the Segments structure pointed by aSeg should not be modified or deleted before the end of the processing.
+   * This function should always be called before any type of processing. Use NewChunk() to sequence the Omicron analysis.
    * @param aSeg pointer to the input Segments structure
-   * @param aTimeOffset time offset to define a new time origin for the graphical plots
    */
-  bool InitSegments(Segments *aSeg, const double aTimeOffset=0.0);
+  bool InitSegments(Segments *aSeg);
 
   /**
    * Creates a specific directory tree for the output.
@@ -84,22 +80,22 @@ class Omicron {
   bool MakeDirectories(const int aId = 0);
 
   /**
-   * Loads a new chunk.
-   * The chunks are loaded following the time structure defined in the option file and the Segments object defined with InitSegments(). When there is not enough data to fill one chunk (end of a segment), the chunk duration is shortened as explained in Odata. This function should be called iteratively to cover the full data set. The segmentation procedure is detailed in Odata. The returned value indicates the status of this operation:
-   * - true : a new chunk has been successfully loaded
+   * Calls a new time chunk.
+   * The time chunks are called following the time sequence defined by the Otile class. The returned value indicates the status of this operation:
+   * - true : a new time chunk has been successfully called
    * - false : no more chunk to load
    */
   bool NewChunk(void);
 
   /**
-   * Loads a new channel.
-   * The channels defined in the option file are loaded incrementally. If this function is called after the last channel, false is returned and the channel sequence is reset: the next call will load the first channel again.
+   * Calls a new channel.
+   * The channels defined in the option file are called incrementally. If this function is called after the last channel, false is returned and the channel sequence is reset: the next call will call the first channel again.
    */
   bool NewChannel(void);
 
   /**
    * Loads a data vector.
-   * The data vector of the current channel and the current chunk is loaded. If requested in the option file, the injection channel is added to the vector. This function loads the data from the frames listed in the FFL. The FFL option is therefore mandatory to use this function.
+   * The data vector of the current channel and the current chunk is loaded. If requested in the option file, the injection stream and the software injections are added to the data vector. This function loads the data from the frames listed in the FFL. The FFL option is therefore mandatory to use this function.
    * It is the user's responsibility to delete the returned data vector.
    *
    * If this function fails, a pointer to NULL is returned.
@@ -110,39 +106,35 @@ class Omicron {
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data are conditioned with this function. The input data chunk is first resampled and highpassed. If requested in the option file, software injection waveforms are added to the data vector. Then the data is used to estimate the noise (PSD). Finally, the data subsegments in the chunk are Tukey-windowed, Fourier-transformed and normalized by the ASD.
+   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed and Tukey-windowed. Then the data is used to estimate the noise (PSD).
    *
-   * IMPORTANT: The input vector size MUST MATCH the current chunk size loaded with NewChunk(). NO check is performed against that!
+   * IMPORTANT: The input vector size MUST MATCH the chunk size loaded with NewChunk(). NO check is performed against that!
    *
    * If the returned value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning failed but the Omicron object is still valid for further use. If it is 0, the conditioning ended correctly. The error code is the following:
    * - -1 = the Omicron object is corrupted.
    * -  0 = OK
    * -  1 = the input vector is NULL
-   * -  2 = the input vector is 0 size
-   * -  3 = the input vector is flat
-   * -  4 = the native frequency is not compatible with frequency settings.
-   * -  5 = the vector transformation failed (resampling+highpassing)
-   * -  6 = simulated signals could not be injected in the data vector
-   * -  7 = the spectrum could not be computed
-   * -  8 = the tiling power could not be computed
+   * -  2 = the input vector size is 0
+   * -  3 = the input vector appears to be flat
+   * -  4 = the vector transformation failed (resampling+highpassing)
+   * -  5 = the spectrum could not be updated
+   * -  6 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
   int Condition(const int aInVectSize, double *aInVect);
   
   /**
-   * Whitens and projects whitened data onto the tiles and fills output structures.
-   * The data vector is subdivided into subsegments. Subsegments are Tukey-windowed, Fourier-transformed and normalized by the ASD. Finally, sub-segments are projected onto the tiling structure.
+   * Projects whitened data onto the tiles and fills output structures.
+   * The data vector Fourier-transformed and normalized by the ASD. The data are then projected onto the tiling structure.
    *
-   * In this function, the trigger structure is also filled with tiles above SNR threshold. If requested, the maps are written to disk.
+   * In this function, the trigger structure is also filled with tiles above SNR threshold.
    */
   bool Project(void);
   
   /**
-   * Writes output to disk.
+   * Writes output products to disk.
    * The output data products selected by the user in the option file are written to disk.
-   *
-   * Note that maps are written in the Project() function as they are built at the segment scale, not at the chunk scale.
    */
   bool WriteOutput(void);
   
@@ -170,17 +162,12 @@ class Omicron {
   /**
    * Returns chunk duration [s].
    */
-  inline int GetChunkDuration(void){return dataseq->GetChunkDuration();};
-
-  /**
-   * Returns segment/block duration [s].
-   */
-  inline int GetSegmentDuration(void){return dataseq->GetSegmentDuration();};
+  inline int GetChunkDuration(void){return tile->GetTimeRange();};
 
   /**
    * Returns overlap duration [s].
    */
-  inline int GetOverlapDuration(void){return dataseq->GetOverlapDuration();};
+  inline int GetOverlapDuration(void){return tile->GetOverlapDuration();};
 
   /**
    * Returns working sampling frequency [Hz]
@@ -216,7 +203,6 @@ class Omicron {
   time_t timer_start;           ///< timer start
   struct tm * ptm;              ///< gmt time
   int chanindex;                ///< current channel index
-  double timeoffset;            ///< current time offset
 
   // OPTIONS
   void ReadOptions(void);       ///< to parse option card
@@ -226,29 +212,26 @@ class Omicron {
   string fOutFormat;            ///< output format string
   string fOutProducts;          ///< output product string
   vector <string> fChannels;    ///< list of channel names
-  vector <int> fWindows;        ///< plot time windows
+  vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
-  int fTileDown;                ///< tile-down flag
+  int fTileDown;                ///< tile-down flag FIXME: to move in Otile
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments
   Segments **outSegments;       ///< segments currently processed
-  int chunk_ctr;                ///< number of loaded chunks
-  int *chan_ctr;                ///< number of times a channel was loaded
-  int *chan_data_ctr;           ///< number of times a channel was found data
-  int *chan_cond_ctr;           ///< number of times a channel was conditioned
-  int *chan_proj_ctr;           ///< number of times a channel was projected
-  int *chan_write_ctr;          ///< number of times a channel's triggers were saved
+  int chunk_ctr;                ///< number of called chunks
+  int *chan_ctr;                ///< number of called chunks /channel
+  int *chan_data_ctr;           ///< number of LoadData() calls /channel
+  int *chan_cond_ctr;           ///< number of Condition() calls /channel
+  int *chan_proj_ctr;           ///< number of Project() calls /channel
+  int *chan_write_ctr;          ///< number of WriteOutput() calls /channel
   double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
-  vector <int> mapcenter;       ///< save map centers (only for html)
-  vector <int> chunkstart;      ///< chunk start for html plots (only for html)
-  vector <int> chunkstop;       ///< chunk stop for html plots (only for html)
-
+  vector <int> chunkcenter;     ///< save chunk centers (only for html)
+  
   // COMPONENTS
   GwollumPlot *GPlot;           ///< Gwollum plots
-  Odata *dataseq;               ///< data sequence
   Spectrum *spectrum;           ///< spectrum structure
   ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure
@@ -257,10 +240,9 @@ class Omicron {
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
-  double *CondChunkVect;        ///< chunk conditioned data (time domain)
-  double *SegVect;              ///< subsegment raw data (time domain)
-  
-  // CONDITIONING
+  double *WhiteChunkVect;       ///< chunk for whitened data (time domain)
+   
+  // CONDITIONING & WHITENING
   bool Whiten(double **aDataRe, 
 	      double **aDataIm);///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
@@ -270,9 +252,10 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   vector <string> outdir;       ///< output directories per channel
-  void SaveAPSD(const string type="PSD", const bool aCond=false);///< Save current PSD/ASD
-  void SaveTS(const bool aCond=false); ///< Save current chunk time series
+  void SaveAPSD(const string type="PSD", const bool aWhite=false);///< Save current PSD/ASD
+  void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void MakeHtml(void);          ///< make html report
+  bool WriteTriggers(void);     ///< write triggers to disk
 
   // MISC
   void PrintASCIIlogo(void);    ///< print ascii logo

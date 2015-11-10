@@ -118,7 +118,7 @@ int main (int argc, char* argv[]){
   vector <string> Channels = O->GetChannels();
 
   // init segments
-  if(!O->InitSegments(segments, gps)) return 1;
+  if(!O->InitSegments(segments)) return 1;
 
   // create trigger directories
   if(!O->MakeDirectories(gps)) return 2;
