@@ -10,8 +10,35 @@
 using namespace std;
 
 /**
- * Construct a time-frequency-Q tiling.
- * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins. Once constructed, the planes can be used to apply a Q-transform to data. This class offers a graphical interface (GwollumPlot inheritance) and plotting functions to display the tiles and the data.
+ * Construct and apply a time-frequency-Q analysis.
+ * This class was designed to tile the 3-dimensional space in time, frequency and Q. The tiling consists of logarithmically spaced Q-planes. Each of these planes is divided in logarithmically spaced frequency bands. Each of these bands are then linearly divided in time bins. Once constructed, the planes can be used to apply a Q-transform data segments.
+ *
+ * This class offers an algorithm, called Sequence, to read an input segment list sequentially. The Segments object is divided into overlapping time chunks matching the tiling duration. The chunks are loaded sequentially any time the NewChunk() function is called. The chunk sequence can be represented in the following way:
+ * \verbatim
+------------------------------------------------------------ current segment
+ |------------------| chunk i-1
+                |------------------| chunk i
+                               |------------------| chunk i+1
+ 
+                |---| overlap
+ \endverbatim
+ *
+ * In general, the Segments object contain multiple time segments. The sequence described above does not necessarily match the size of the input segments. The sequence algorithm is designed to deal with such edge effects. Firstly, segments shorter than the tiling duration are skipped. When calling NewChunk() for the last chunk of a segment, the overlap duration is adjusted to fit the leftover:
+ * \verbatim
+ -----------------------------------------|   <--- input segment under processing
+
+    |--------------------------|              <--- penultimate chunk 
+  
+ ###### call NextChunk() to cover the left-over
+
+               |--------------------------|   <--- last chunk
+	       |---------------|              <--- adjusted overlap
+ * \endverbatim 
+ * Obviously, the user must be careful about this special case as the overlap duration is modified (the chunk duration is never changed). Some functions are available to monitor the overlap size.
+ *
+ * When moving to a new segment, the overlap duration is set back to nominal values.
+ *
+ * This class offers a graphical interface (GwollumPlot inheritance) and plotting functions to display the tiles and the data.
  * \author    Florent Robinet
  */
 class Otile: public GwollumPlot {
@@ -31,6 +58,8 @@ class Otile: public GwollumPlot {
    * - The sampling frequency must be a power of 2
    * - The Q value cannot be smaller than sqrt(11)
    * - The maximum mismatch cannot be larger than 0.5
+   *
+   * The tiling parameters (time, Q and frequency range and the mismatch max) can be internally modified to match these conditions.
    * @param aTimeRange time range [s]
    * @param aQMin minimal Q value
    * @param aQMax maximal Q value
@@ -119,15 +148,12 @@ class Otile: public GwollumPlot {
 
   /**
    * Saves active tiles in a MakeTriggers structure.
-   * The triggers Segments are also saved follwing the GWOLLUM convention for triggers. A padding can be provided to NOT saved triggers on the plane edges. The planes are always centered on 0. A T0 must therefore be provided.
+   * The triggers Segments are also saved following the GWOLLUM convention for triggers. If the Sequence algorithm is in use, the current timing is applied to the tiling.
    *
    * See also SetSaveSelection().
    * @param aTriggers MakeTriggers object
-   * @param aLeftTimePad duration of the left padding
-   * @param aRightTimePad duration of the right padding
-   * @param aT0 plane central time
    */
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad=0.0, const double aRightTimePad=0.0, const double aT0=0.0);
+  bool SaveTriggers(MakeTriggers *aTriggers);
 
   /**
    * Saves the maps for each Q-planes in output files.
@@ -139,12 +165,11 @@ class Otile: public GwollumPlot {
    * See also SetSaveSelection().
    * @param aOutdir output directory path
    * @param aName name identifier
-   * @param aT0 plane central time
    * @param aFormat output format string
    * @param aWindows list of time windows
    * @param aThumb also produce thumbnails if set to true
    */
-  double SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const bool aThumb=false);
+  double SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.
@@ -210,20 +235,84 @@ class Otile: public GwollumPlot {
    */
   inline double GetMismatchMax(void){ return MaximumMismatch; };
 
+  /**
+   * Returns the time range.
+   */
+  inline int GetTimeRange(void){ return TimeRange; };
+
+  /**
+   * Sets new input segments.
+   * This list of segments can be read sequencially using Sequence.
+   * The input segment times must be integer numbers. They will be considered as such!
+   * @param aSegments input segment list
+   */
+  bool SetSegments(Segments *aSegments);
+
+  /**
+   * Sets a new sequence overlap duration.
+   * The input parameter can be modified to be an even number.
+   * @param aOverlapDuration new overlap duration [s]
+   */
+  inline void SetOverlapDuration(const int aOverlapDuration){
+    SeqOverlap=aOverlapDuration+aOverlapDuration%2;
+  };
+
+  /**
+   * Loads a new sequence chunk.
+   * The chunks are loaded following the definition presented in the description of this class. This function should be called iteratively to cover the full data set defined with SetSegments(). The returned value indicates the status of this operation:
+   * - true : a new chunk has been loaded
+   * - false : no more chunk to load
+   */
+  bool NewChunk(void);
+
+  /**
+   * Returns the GPS center time of current chunk.
+   */
+  inline int GetChunkTimeCenter(void){ return SeqT0; };
+  
+  /**
+   * Returns the GPS starting time of current chunk.
+   */
+  inline int GetChunkTimeStart(void){ return SeqT0-TimeRange/2; };
+  
+  /**
+   * Returns the GPS ending time of current chunk.
+   */
+  inline int GetChunkTimeEnd(void){ return SeqT0+TimeRange/2; };
+  
+  /**
+   * Returns the current overlap duration.
+   * In most cases the overlap duration is nominal unless the special case of the end of an input segment is hit.
+   */
+  inline int GetCurrentOverlapDuration(void){ return SeqOverlapCurrent; };
+
+  /**
+   * Returns the nominal overlap duration.
+   */
+  inline int GetOverlapDuration(void){ return SeqOverlap; };
+
+
  private:
 
-  int fVerbosity;           ///< verbosity level
-  double MaximumMismatch;   ///< maximum mismatch
-  Oqplane **qplanes;        ///< Q planes
-  int nq;                   ///< number of q planes
-  int TimeRange;            ///< map time range
-  int snrscale;             ///< map snr scale
-  double SNRThr_map;        ///< map SNR threshold
-  int NTriggerMax;          ///< max. number of tiles to save (triggers only)
+  int fVerbosity;               ///< verbosity level
+  double MaximumMismatch;       ///< maximum mismatch
+  Oqplane **qplanes;            ///< Q planes
+  int nq;                       ///< number of q planes
+  int TimeRange;                ///< map time range
+  int snrscale;                 ///< map snr scale
+  double SNRThr_map;            ///< map SNR threshold
+  int NTriggerMax;              ///< max. number of tiles to save (triggers only)
   
-  TH2D* MakeFullMap(const int aTimeRange, const double aT0=0.0); ///< make full map
-  void TileDown(void);         ///< tile-down
+  TH2D* MakeFullMap(const int aTimeRange); ///< make full map
+  void TileDown(void);          ///< tile-down
   void ApplyOffset(TH2D *aMap, const double aOffset);
+
+  // SEQUENCE
+  Segments *SeqSegments;        ///< input segments
+  int SeqOverlap;               ///< nominal overlap duration
+  int SeqOverlapCurrent;        ///< current overlap duration
+  int SeqT0;                    ///< current chunk center
+  int SeqSeg;                   ///< current segment index
 
   ClassDef(Otile,0)  
 };

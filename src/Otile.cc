@@ -10,7 +10,7 @@ Otile::Otile(const int aTimeRange,
 	     const double aQMin, const double aQMax, 
 	     const double aFrequencyMin, const double aFrequencyMax, 
 	     const int aSampleFrequency, const double aMaximumMismatch, 
-	     const string aPlotStyle, const int aVerbosity): GwollumPlot("otile",aPlotStyle){ 
+	     const string aPlotStyle, const int aVerbosity): GwollumPlot("otile",aPlotStyle){
 ////////////////////////////////////////////////////////////////////////////////////
  
   // Plot default
@@ -62,6 +62,13 @@ Otile::Otile(const int aTimeRange,
 
   // set default save selection
   SetSaveSelection();
+
+  // Sequence
+  SeqSegments = new Segments();
+  SeqOverlap=0;
+  SeqOverlapCurrent=SeqOverlap;
+  SeqT0=0;
+  SeqSeg=0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -70,8 +77,68 @@ Otile::~Otile(void){
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
   for(int p=0; p<nq; p++) delete qplanes[p];
   delete qplanes;
+  delete SeqSegments;
 }
  
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Otile::SetSegments(Segments *aSegments){
+////////////////////////////////////////////////////////////////////////////////////
+  if(aSegments==NULL || !aSegments->GetStatus()){
+    cerr<<"Otile::SetSegments: input segments are corrupted"<<endl;
+    return false;
+  }
+  
+  SeqSegments->Reset();
+  SeqSegments->Append(aSegments);
+  SeqOverlapCurrent=SeqOverlap;
+  SeqT0=0;// for initialization in NewChunk()
+  SeqSeg=0;
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Otile::NewChunk(void){
+////////////////////////////////////////////////////////////////////////////////////
+  if(SeqSeg>=SeqSegments->GetNsegments()){
+    cerr<<"Otile::NewChunk: end of segments"<<endl;
+    return false;
+  }
+  
+  // current segment is too short
+  if((int)SeqSegments->GetEnd(SeqSeg)-(int)SeqSegments->GetStart(SeqSeg)<TimeRange){
+    SeqSeg++; //  --> move to next segment
+    SeqT0=0;
+    return NewChunk();
+  }
+
+  // end of current segment
+  if(SeqT0+TimeRange/2==(int)SeqSegments->GetEnd(SeqSeg)){
+    SeqSeg++; //  --> move to next segment
+    SeqT0=0;
+    return NewChunk();
+  }
+
+  // initialization = start of current segment
+  if(!SeqT0) SeqT0=(int)SeqSegments->GetStart(SeqSeg)-TimeRange/2+SeqOverlap;
+
+  // new test chunk
+  SeqOverlapCurrent = SeqOverlap;// reset current overlap
+  int start_test    = SeqT0+TimeRange/2-SeqOverlap;
+  int stop_test     = start_test+TimeRange;
+
+  // chunk ends after current segment end --> adjust overlap
+  if(stop_test>(int)SeqSegments->GetEnd(SeqSeg)){
+    SeqT0=(int)SeqSegments->GetEnd(SeqSeg)-TimeRange/2;
+    SeqOverlapCurrent=start_test+SeqOverlap-SeqT0+TimeRange/2;// --> adjust overlap
+    return true;
+  }
+
+  // OK  
+  SeqT0=start_test+TimeRange/2;
+  return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 bool Otile::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
@@ -106,14 +173,10 @@ bool Otile::ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, const double aRightTimePad, const double aT0){
+bool Otile::SaveTriggers(MakeTriggers *aTriggers){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
-    return false;
-  }
-  if(aLeftTimePad+aRightTimePad>=(double)TimeRange){
-    cerr<<"Otile::SaveTriggers: the padding is larger than the time range"<<endl;
     return false;
   }
 
@@ -121,22 +184,22 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aLeftTimePad, con
   int ntrig = 0;
   for(int p=0; p<nq; p++) ntrig+=qplanes[p]->GetNTriggers();
   if(ntrig>NTriggerMax){
-    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" ("<<aTriggers->GetName()<<") --> do not save segment "<<aT0-(double)(TimeRange/2)+aLeftTimePad<<"-"<<aT0+(double)(TimeRange/2)-aRightTimePad<<endl;
+    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" ("<<aTriggers->GetName()<<") --> do not save segment "<<SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2<<"-"<<SeqT0+(double)(TimeRange/2)-SeqOverlap/2<<endl;
     return true;
   }
 
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)
-    if(!qplanes[p]->SaveTriggers(aTriggers, aLeftTimePad,aRightTimePad,aT0)) return false;
+    if(!qplanes[p]->SaveTriggers(aTriggers,SeqOverlapCurrent-SeqOverlap/2,SeqOverlap/2,(double)SeqT0)) return false;
   
   // save segments
-  aTriggers->AddSegment(aT0-(double)(TimeRange/2)+aLeftTimePad,aT0+(double)(TimeRange/2)-aRightTimePad);
+  aTriggers->AddSegment((double)(SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2),(double)(SeqT0+TimeRange/2-SeqOverlap/2));
   
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, const string aFormat, vector <int> aWindows, const bool aThumb){
+double Otile::SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const bool aThumb){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!IsDirectory(aOutdir)){
     cerr<<"Otile::SaveMaps: the directory "<<aOutdir<<" is missing"<<endl;
@@ -144,7 +207,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
   }
   if(!aWindows.size()) aWindows.push_back(TimeRange);
    
-  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<aT0<<"..."<<endl;
+  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<SeqT0<<"..."<<endl;
   ostringstream tmpstream;
 
   // make maps and apply SNR threshold
@@ -166,7 +229,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
   // open root file
   TFile *froot;
   if(aFormat.find("root")!=string::npos){
-    tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_maps.root";
+    tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_maps.root";
     froot=TFile::Open(tmpstream.str().c_str(), "recreate");
     tmpstream.clear(); tmpstream.str("");
   }
@@ -196,8 +259,8 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
     if(form.size()){
       // draw map
       if(fVerbosity>2) cout<<"\t\t- Draw map"<<endl;
-      ApplyOffset(qplanes[q],(double)aT0);
-      qplanes[q]->GetXaxis()->SetRange((double)aT0-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)aT0+(double)aWindows[(int)aWindows.size()-1]/2.0);
+      ApplyOffset(qplanes[q],(double)SeqT0);
+      qplanes[q]->GetXaxis()->SetRange((double)SeqT0-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)SeqT0+(double)aWindows[(int)aWindows.size()-1]/2.0);
       Draw(qplanes[q],"COLZ");
 
       // title
@@ -210,7 +273,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
       for(int w=0; w<(int)aWindows.size(); w++){
 	
 	// zoom in
-	qplanes[q]->GetXaxis()->SetRangeUser((double)aT0-(double)aWindows[w]/2.0,(double)aT0+(double)aWindows[w]/2.0);
+	qplanes[q]->GetXaxis()->SetRangeUser((double)SeqT0-(double)aWindows[w]/2.0,(double)SeqT0+(double)aWindows[w]/2.0);
 	
 	// loudest tile
 	qplanes[q]->GetMaximumBin(xmax, ymax, zmax);
@@ -224,11 +287,11 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
 
 	// save plot
 	for(int f=0; f<(int)form.size(); f++){
-	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"."<<form[f];
+	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str());
 	  tmpstream.clear(); tmpstream.str("");
 	  if(aThumb){ //thumbnail
-	    tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"th."<<form[f];
+	    tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"th."<<form[f];
 	    Print(tmpstream.str(),0.5);
 	    tmpstream.clear(); tmpstream.str("");
 	  }
@@ -237,7 +300,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
 
       // unzoom
       qplanes[q]->GetXaxis()->UnZoom();
-      ApplyOffset(qplanes[q],-(double)aT0);
+      ApplyOffset(qplanes[q],-(double)SeqT0);
     }
 
   }
@@ -250,7 +313,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
     if(fVerbosity>1) cout<<"\t- full map"<<endl;
     TH2D* fullmap;
     for(int w=0; w<(int)aWindows.size(); w++){
-      fullmap = MakeFullMap(aWindows[w],(double)aT0);
+      fullmap = MakeFullMap(aWindows[w]);
       
       // draw map
       Draw(fullmap,"COLZ");
@@ -270,11 +333,11 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const int aT0, 
 
       // save plot
       for(int f=0; f<(int)form.size(); f++){
-	tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"."<<form[f];
+	tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_fullmapdt"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());
 	tmpstream.clear(); tmpstream.str("");
 	if(aThumb){ //thumbnail
-	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<aT0<<"_fullmapdt"<<aWindows[w]<<"th."<<form[f];
+	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_fullmapdt"<<aWindows[w]<<"th."<<form[f];
 	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}
@@ -341,7 +404,7 @@ vector <double> Otile::ComputeQs(const double aQMin, const double aQMax, const d
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-TH2D* Otile::MakeFullMap(const int aTimeRange, const double aT0){
+TH2D* Otile::MakeFullMap(const int aTimeRange){
 ////////////////////////////////////////////////////////////////////////////////////  
   
   // create combined tiling
@@ -351,7 +414,7 @@ TH2D* Otile::MakeFullMap(const int aTimeRange, const double aT0){
   double FrequencyMax=qplanes[nq-1]->GetFrequencyMax();
   double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)nfbins;
   for(int f=0; f<=nfbins; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
-  TH2D *fullmap = new TH2D("fullmap","Full map",350,aT0-(double)aTimeRange/2.0,aT0+(double)aTimeRange/2.0,nfbins,fbins);
+  TH2D *fullmap = new TH2D("fullmap","Full map",350,SeqT0-(double)aTimeRange/2.0,SeqT0+(double)aTimeRange/2.0,nfbins,fbins);
   delete fbins;
   fullmap->GetXaxis()->SetTitle("Time [s]");
   fullmap->GetYaxis()->SetTitle("Frequency [Hz]");
@@ -378,8 +441,8 @@ TH2D* Otile::MakeFullMap(const int aTimeRange, const double aT0){
 
       for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
 	if(!qplanes[q]->GetTileTag(t,f)) continue;
-	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+aT0);
-	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+aT0);
+	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+SeqT0);
+	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+SeqT0);
 	
 	content=qplanes[q]->GetTileContent(t,f);
 	
