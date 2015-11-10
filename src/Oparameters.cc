@@ -185,6 +185,15 @@ void Omicron::ReadOptions(void){
   else        tile->SetSaveSelection(v[1],v[0],trmax*tile->GetTimeRange());
   //*****************************
   
+  //***** set spectrum *****
+  double psdlength;
+  if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)) psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
+  if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
+    spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  else // increase the resolution not to extrapolate the PSD.
+    spectrum = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  //*****************************
+  
   //***** set clustering *****
   double cldt=0.1;
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)) fClusterAlgo="none";

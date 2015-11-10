@@ -98,7 +98,7 @@ bool Otile::SetSegments(Segments *aSegments){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::NewChunk(void){
+bool Otile::NewChunk(bool &aNewSegFlag){
 ////////////////////////////////////////////////////////////////////////////////////
   if(SeqSeg>=SeqSegments->GetNsegments()){
     cerr<<"Otile::NewChunk: end of segments"<<endl;
@@ -109,18 +109,22 @@ bool Otile::NewChunk(void){
   if((int)SeqSegments->GetEnd(SeqSeg)-(int)SeqSegments->GetStart(SeqSeg)<TimeRange){
     SeqSeg++; //  --> move to next segment
     SeqT0=0;
-    return NewChunk();
+    return NewChunk(aNewSegFlag);
   }
 
   // end of current segment
   if(SeqT0+TimeRange/2==(int)SeqSegments->GetEnd(SeqSeg)){
     SeqSeg++; //  --> move to next segment
     SeqT0=0;
-    return NewChunk();
+    return NewChunk(aNewSegFlag);
   }
 
   // initialization = start of current segment
-  if(!SeqT0) SeqT0=(int)SeqSegments->GetStart(SeqSeg)-TimeRange/2+SeqOverlap;
+  if(!SeqT0){
+    SeqT0=(int)SeqSegments->GetStart(SeqSeg)-TimeRange/2+SeqOverlap;
+    aNewSegFlag=true;
+  }
+  else aNewSegFlag=false;
 
   // new test chunk
   SeqOverlapCurrent = SeqOverlap;// reset current overlap

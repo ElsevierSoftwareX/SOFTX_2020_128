@@ -262,8 +262,9 @@ class Otile: public GwollumPlot {
    * The chunks are loaded following the definition presented in the description of this class. This function should be called iteratively to cover the full data set defined with SetSegments(). The returned value indicates the status of this operation:
    * - true : a new chunk has been loaded
    * - false : no more chunk to load
+   * @param aNewSegFlag set to true if a new segment is started 
    */
-  bool NewChunk(void);
+  bool NewChunk(bool &aNewSegFlag);
 
   /**
    * Returns the GPS center time of current chunk.

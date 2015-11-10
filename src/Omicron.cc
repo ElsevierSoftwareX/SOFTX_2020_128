@@ -27,7 +27,7 @@ Omicron::Omicron(const string aOptionFile){
   maindir=fMaindir;
   for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
 
-  // load ffl if any (CHECKME: can we load lcf directly?)
+  // load ffl if any
   if(FFL!=NULL){
     status_OK*=FFL->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
     status_OK*=FFL->LoadFrameFile();
@@ -37,11 +37,7 @@ Omicron::Omicron(const string aOptionFile){
   // FIXME: to move in Otile
   std::sort(fWindows.begin(), fWindows.end());
 
-  // data spectrum
-  if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
-    spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(),tile->GetTimeRange()-tile->GetOverlapDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
-  else // increase the resolution not to extrapolate the PSD.
-    spectrum = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),tile->GetTimeRange()-tile->GetOverlapDuration(),triggers[0]->GetWorkingFrequency(),fVerbosity);
+  // spectrum status
   status_OK*=spectrum->GetStatus();
 
   // data containers
@@ -70,6 +66,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_OVERLAPDURATION"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");     fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_SNRTHRESHOLD");    fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_PSDLENGTH");       fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_TILEDOWN");        fOptionType.push_back("i");
@@ -106,15 +103,16 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],tile->GetOverlapDuration());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],tile->GetMismatchMax());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetSNRTriggerThr());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fTileDown);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],tile->GetNTriggerMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],spectrum->GetDataBufferLength());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],triggers[c]->GetClusterizeDt());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetNTriggerMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],GPlot->GetCurrentStyle());
     triggers[c]->SetMprocessname("Omicron");
   }
   
@@ -274,11 +272,19 @@ bool Omicron::NewChunk(void){
     return false;
   }
 
+  bool newseg;
+  
   // load new chunk
   if(fVerbosity) cout<<"Omicron::NewChunk: call a new chunk..."<<endl;
-  if(!tile->NewChunk()) return false;
-  if(fVerbosity>1) cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded"<<endl;
+  if(!tile->NewChunk(newseg)) return false;
+  if(fVerbosity>1){
+    if(newseg) cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded (start a new segment)"<<endl;
+    else cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded"<<endl;
+  }
 
+  // new segment --> reset PSD buffer
+  if(newseg) spectrum->Reset();
+    
   chunk_ctr++;// one more chunk
   return true;
 }
@@ -428,9 +434,9 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   int chunksize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
   for(int i=0; i<chunksize; i++) ChunkVect[i] *= TukeyWindow[i];
 
-  // Make spectrum
+  // update spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
-  if(!spectrum->LoadData((tile->GetTimeRange()-tile->GetOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetOverlapDuration()/2)) return 5;
+  if(!spectrum->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 5;
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
