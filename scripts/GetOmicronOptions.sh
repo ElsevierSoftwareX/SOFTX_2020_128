@@ -20,14 +20,12 @@ printhelp(){
     echo ""
     echo "KEYWORD  FMIN[Hz]  FMAX[Hz]  SNR_THRESHOLD        OTHER"
     echo "-----------------------------------------------------------"
-    echo " STD1        8      2048             7"
-    echo " STD2        8      1024             7"
-    echo " STD3        8       512             7"
-    echo " LOW1      0.1        64             7         block=512s"
-    echo " LOW2      0.1        64             7         block=8192s"
-    echo " HIGH     1024      8192             7"
-    echo " FINE        8      4096             6         fine tiling"
-    echo " GW         32      4096             5         fine tiling"
+    echo " LOW1      0.1       100             7         chunk=512s"
+    echo " GW1        32      4000             5         fine tiling"
+    echo " GW2        32      2000             5         fine tiling"
+    echo " STD1        8      2000             7"
+    echo " STD2        8      1000             7"
+    echo " STD3        8       500             7"
     echo ""
     echo "The '-o' flag should be used for online analyses:"
     echo "Chunks are forced to 16s and overlaps to 2s (except for LOW)"
@@ -53,115 +51,84 @@ printhelp(){
 
 printoption(){
     if [ $1 = "LOW1" ]; then
-	# online and offline configs are the same
-	sampling=128
+	sampling=256
 	freqmin=0.1
-	freqmax=64
-	chunk=512
-	block=512
+	freqmax=100
+	chunk=512  # required to go at low frequency
 	overlap=112
 	mmmax=0.35
 	snrthr=7
-    elif [ $1 = "LOW2" ]; then
-	# online and offline configs are the same
-	sampling=128
-	freqmin=0.1
-	freqmax=64
-	chunk=8192
-	block=8192
-	overlap=192
-	mmmax=0.35
-	snrthr=7
-    elif [ $1 = "HIGH" ]; then
-	sampling=16384
-	freqmin=1024
-	freqmax=8192
-	if [ $4 -eq 0 ]; then # offline
-	    chunk=312
-	    block=64
-	    overlap=2
-	else                  # online
-	    chunk=16
-	    block=16
-	    overlap=2
-	fi
-	mmmax=0.35
-	snrthr=7
-    elif [ $1 = "GW" ]; then
+	psdlength=512
+    elif [ $1 = "GW1" ]; then
 	sampling=8192
 	freqmin=32
-	freqmax=4096
+	freqmax=4000
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=544
-	    block=64
+	    chunk=64
 	    overlap=4
 	else                  # online
 	    chunk=16
-	    block=16
 	    overlap=2
 	fi
 	mmmax=0.2
 	snrthr=5	
-    elif [ $1 = "FINE" ]; then
-	sampling=8192
-	freqmin=8
-	freqmax=4096
+	psdlength=300
+    elif [ $1 = "GW2" ]; then
+	sampling=4096
+	freqmin=16
+	freqmax=2000
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=544
-	    block=64
+	    chunk=64
 	    overlap=4
 	else                  # online
 	    chunk=16
-	    block=16
 	    overlap=2
 	fi
 	mmmax=0.2
-	snrthr=6	
-    elif [ $1 = "STD2" ]; then
-	sampling=2048
-	freqmin=8
-	freqmax=1024
-	if [ $4 -eq 0 ]; then # offline
-	    chunk=544
-	    block=64
-	    overlap=4
-	else                  # online
-	    chunk=16
-	    block=16
-	    overlap=2
-	fi
-	mmmax=0.35
-	snrthr=7
+	snrthr=5	
+	psdlength=300
     elif [ $1 = "STD3" ]; then
         sampling=1024
         freqmin=8
-        freqmax=512
+        freqmax=500
         if [ $4 -eq 0 ]; then # offline
-            chunk=544
-            block=64
+            chunk=64
             overlap=4
         else                  # online
             chunk=16
-            block=16
             overlap=2
         fi
         mmmax=0.35
         snrthr=7
+	psdlength=300
+    elif [ $1 = "STD2" ]; then
+        sampling=2048
+        freqmin=8
+        freqmax=1000
+        if [ $4 -eq 0 ]; then # offline
+            chunk=64
+            overlap=4
+        else                  # online
+            chunk=16
+            overlap=2
+        fi
+        mmmax=0.35
+        snrthr=7
+	psdlength=300
     else
 	sampling=4096
 	freqmin=8
-	freqmax=2048
+	freqmax=2000
 	if [ $4 -eq 0 ]; then # offline
-	    chunk=544
-	    block=64
+	    chunk=64
 	    overlap=4
 	else                  # online
 	    chunk=16
-	    block=16
 	    overlap=2
 	fi
 	mmmax=0.35
 	snrthr=7
+	psdlength=300
     fi
     	
     # Static parameters
@@ -174,31 +141,27 @@ printoption(){
     if [ $4 -eq 0 ]; then 
 	echo "DATA       FFL              $5"                                    >> ./parameters_${1}_${2}.txt
     fi
-    for chan in $3; do
-	echo "DATA       CHANNELS         $chan"                                 >> ./parameters_${1}_${2}.txt
-    done
+
     echo "DATA       SAMPLEFREQUENCY  ${sampling}"                               >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  CHUNKDURATION    ${chunk}"                                  >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  SEGMENTDURATION  ${block}"                                  >> ./parameters_${1}_${2}.txt
-    echo "PARAMETER  OVERLAPDURATION  ${overlap}"                                >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  TIMING           ${chunk} ${overlap}"                       >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  QRANGE           3.3166  100.0"                             >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  FREQUENCYRANGE   ${freqmin}  ${freqmax}"                    >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  MISMATCHMAX      ${mmmax}"                                  >> ./parameters_${1}_${2}.txt
     echo "PARAMETER  SNRTHRESHOLD     ${snrthr}"                                 >> ./parameters_${1}_${2}.txt
+    echo "PARAMETER  PSDLENGTH        ${psdlength}"                              >> ./parameters_${1}_${2}.txt
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     DIRECTORY        $6"                                        >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     PRODUCTS         triggers"                                  >> ./parameters_${1}_${2}.txt
     echo "OUTPUT     VERBOSITY        1"                                         >> ./parameters_${1}_${2}.txt
-    if [ $7 -eq 1 ]; then # LIGO-specific
-	echo "OUTPUT     FORMAT           rootxml"                               >> ./parameters_${1}_${2}.txt
-	echo ""                                                                  >> ./parameters_${1}_${2}.txt
-	echo "// clustering is only applied to XML"                              >> ./parameters_${1}_${2}.txt
-	echo "PARAMETER  CLUSTERING       TIME"                                  >> ./parameters_${1}_${2}.txt
-    else
-	echo "OUTPUT     TRIGGERRATEMAX   1000"                                  >> ./parameters_${1}_${2}.txt
-	echo "OUTPUT     FORMAT           root"                                  >> ./parameters_${1}_${2}.txt
-    fi
+    echo "OUTPUT     TRIGGERRATEMAX   1000"                                      >> ./parameters_${1}_${2}.txt
+    echo "OUTPUT     FORMAT           root"                                      >> ./parameters_${1}_${2}.txt
+    echo ""                                                                      >> ./parameters_${1}_${2}.txt
+
+    for chan in $3; do
+	echo "DATA       CHANNELS         $chan"                                 >> ./parameters_${1}_${2}.txt
+    done
+
     echo ""                                                                      >> ./parameters_${1}_${2}.txt
 } 
 
@@ -275,7 +238,7 @@ if [ $online -eq 0 ]; then # offline
 fi
 
 ##### user channel lists
-for conf in STD1 STD2 STD3 LOW1 LOW2 HIGH GW FINE; do
+for conf in STD1 STD2 STD3 LOW1 GW1 GW2; do
 
     # select channels for this config
     if [ "$conf" = "STD1" ]; then
