@@ -134,10 +134,16 @@ class Omicron {
   
   /**
    * Writes output products to disk.
-   * The output data products selected by the user in the option file are written to disk.
+   * The output data products selected by the user in the option file and for the current chunk/channel are written to disk.
    */
   bool WriteOutput(void);
-  
+
+  /**
+   * Writes output triggers to disk.
+   * The triggers accumulated so far are written to disk (for the current channel). The trigger object in then flushed.
+   */
+  bool WriteTriggers(void);
+
   /**
    * Prints a progress report of the processing.
    */
@@ -174,6 +180,12 @@ class Omicron {
    */
   inline int GetSampleFrequency(void){return triggers[0]->GetWorkingFrequency();};
  
+  /**
+   * Resets PSD buffer.
+   * (for the current channel)
+   */
+  inline void RestPSDBuffer(void) { spectrum[chanindex]->Reset(); };
+
   /**
    * Prints a formatted message with a timer.
    * @param aMessage message to print
@@ -232,7 +244,7 @@ class Omicron {
   
   // COMPONENTS
   GwollumPlot *GPlot;           ///< Gwollum plots
-  Spectrum *spectrum;           ///< spectrum structure
+  Spectrum **spectrum;          ///< spectrum structure
   ffl *FFL;                     ///< ffl
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
@@ -241,10 +253,11 @@ class Omicron {
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
   double *WhiteChunkVect;       ///< chunk for whitened data (time domain)
+  double *DataRe;               ///< whitened data vector (Re)
+  double *DataIm;               ///< whitened data vector (Im)
    
   // CONDITIONING & WHITENING
-  bool Whiten(double **aDataRe, 
-	      double **aDataIm);///< whiten data vector
+  bool Whiten(void);            ///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
   fft *offt;                    ///< FFT plan to FFT the input data
@@ -252,10 +265,10 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   vector <string> outdir;       ///< output directories per channel
-  void SaveAPSD(const string type="PSD", const bool aWhite=false);///< Save current PSD/ASD
+  void SaveAPSD(const string aType);///< Save current PSD/ASD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
+  void SaveSpectral(void);      ///< Save current spectral plots
   void MakeHtml(void);          ///< make html report
-  bool WriteTriggers(void);     ///< write triggers to disk
 
   // MISC
   void PrintASCIIlogo(void);    ///< print ascii logo

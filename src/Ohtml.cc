@@ -212,13 +212,19 @@ void Omicron::MakeHtml(void){
 	  if(!type_first.compare("")) type_first="";
 	}
 
+	// Spectral
+	if(fOutProducts.find("spectral")!=string::npos){
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_spec."<<form<<"\" target=\"_blank\">Spectral</a></td>"<<endl;
+	  if(!type_first.compare("")) type_first="";
+	}
+
 	// time-series
 	if(fOutProducts.find("timeseries")!=string::npos){
 	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_ts', "<<windowset<<", '"<<form<<"');\">Conditionned time series</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="ts";
 	}
 	
-	// whitened time-series
+	// whitened data
 	if(fOutProducts.find("white")!=string::npos){
 	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_whitets', "<<windowset<<", '"<<form<<"');\">Whitened time series</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="whitets";

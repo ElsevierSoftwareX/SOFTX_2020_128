@@ -188,10 +188,13 @@ void Omicron::ReadOptions(void){
   //***** set spectrum *****
   double psdlength;
   if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)) psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
-  if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
-    spectrum = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
-  else // increase the resolution not to extrapolate the PSD.
-    spectrum = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  spectrum = new Spectrum* [(int)fChannels.size()];
+  for(int c=0; c<(int)fChannels.size(); c++){
+    if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
+      spectrum[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+    else // increase the resolution not to extrapolate the PSD.
+      spectrum[c] = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  }
   //*****************************
   
   //***** set clustering *****

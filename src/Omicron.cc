@@ -38,11 +38,13 @@ Omicron::Omicron(const string aOptionFile){
   std::sort(fWindows.begin(), fWindows.end());
 
   // spectrum status
-  status_OK*=spectrum->GetStatus();
-
+  for(int c=0; c<(int)fChannels.size(); c++) status_OK*=spectrum[c]->GetStatus();
+    
   // data containers
   ChunkVect     = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
   WhiteChunkVect= new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
+  DataRe        = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
+  DataIm        = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
   TukeyWindow   = GetTukeyWindow(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
 				 tile->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
   offt          = new fft(       tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
@@ -103,7 +105,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],tile->GetOverlapDuration());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],tile->GetMismatchMax());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetSNRTriggerThr());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],spectrum->GetDataBufferLength());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],spectrum[c]->GetDataBufferLength());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],triggers[c]->GetClusterizeDt());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
@@ -153,6 +155,7 @@ Omicron::~Omicron(void){
   for(int c=0; c<(int)fChannels.size(); c++){
     delete outSegments[c];
     delete triggers[c];
+    delete spectrum[c];
   }
   delete outSegments;
   delete spectrum;
@@ -166,6 +169,8 @@ Omicron::~Omicron(void){
   delete GPlot;
   delete ChunkVect;
   delete WhiteChunkVect;
+  delete DataRe;
+  delete DataIm;
   delete TukeyWindow;
   delete offt;
 
@@ -281,9 +286,14 @@ bool Omicron::NewChunk(void){
     if(newseg) cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded (start a new segment)"<<endl;
     else cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded"<<endl;
   }
+  
+  // save info for html report
+  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
 
   // new segment --> reset PSD buffer
-  if(newseg) spectrum->Reset();
+  if(newseg){
+    for(int c=0; c<(int)fChannels.size(); c++) spectrum[c]->Reset();
+  }
     
   chunk_ctr++;// one more chunk
   return true;
@@ -436,14 +446,11 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // update spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
-  if(!spectrum->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 5;
+  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 5;
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
-  if(!tile->SetPower(spectrum)) return 6;
-
-  // whiten data vector
-  if(fVerbosity>1) cout<<"\t- whiten data vector..."<<endl;
+  if(!tile->SetPower(spectrum[chanindex])) return 6;
 
   chan_cond_ctr[chanindex]++;
   return 0;
@@ -459,35 +466,22 @@ bool Omicron::Project(void){
 
   if(fVerbosity) cout<<"Omicron::Project: project data onto the tiles..."<<endl;
   
-  //locals
-  double *dataRe;
-  double *dataIm;
-
   // whitening
   if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
-  if(!Whiten(&dataRe, &dataIm)) return false;
+  if(!Whiten()) return false;
     
   // project data
   if(fVerbosity>1) cout<<"\t- project chunk"<<endl;
-  if(!tile->ProjectData(dataRe, dataIm, fTileDown)){
-    delete dataRe; delete dataIm;
-    return false;
-  }
+  if(!tile->ProjectData(DataRe, DataIm, fTileDown)) return false;
 
   // save whiten data for condition data products
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
-    if(!offt->Backward(dataRe, dataIm)){// Back in time domain
-      delete dataRe; delete dataIm;
-      return false;
-    }
-    int chunksize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-    for(int i=0; i<chunksize; i++) WhiteChunkVect[i]=2.0*offt->GetReOut(i)/(double)chunksize;
+    if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
+    int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
+    for(int i=0; i<csize; i++) WhiteChunkVect[i]=2.0*offt->GetReOut(i)/(double)csize;
   }
   
-  // not used anymore
-  delete dataRe; delete dataIm;
-
   // save triggers
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- save triggers"<<endl;
@@ -525,12 +519,16 @@ bool Omicron::WriteOutput(void){
     SaveTS(false);
   }
 
+  //*** SPECTRAL DATA
+  if(fOutProducts.find("spectral")!=string::npos){
+    if(fVerbosity>1) cout<<"\t- write spectral data..."<<endl;
+    SaveSpectral();
+  }
+
   //*** WHITENED DATA
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write whitened data..."<<endl;
-    SaveTS(true);// save whitened time series
-    //if(!spectrum->LoadData((tile->GetCurrentChunkDuration()-tile->GetOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), CondChunkVect, tile->GetOverlapDuration()/2*triggers[chanindex]->GetWorkingFrequency())) return false;// compute spectrum excluding both chunk ends ov/2
-    //SaveAPSD("ASD",true);// save whiten PSD
+    SaveTS(true);
   }
 
   //*** MAPS
@@ -547,9 +545,6 @@ bool Omicron::WriteOutput(void){
 			 fOutFormat,fWindows,true);
     if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
   }
-
-  // save info for html report
-  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
 
   //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
@@ -622,7 +617,7 @@ void Omicron::PrintStatusInfo(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Whiten(double **aDataRe, double **aDataIm){
+bool Omicron::Whiten(void){
 ////////////////////////////////////////////////////////////////////////////////////
   // fft-forward
   if(!offt->Forward(ChunkVect)){
@@ -633,70 +628,60 @@ bool Omicron::Whiten(double **aDataRe, double **aDataIm){
   // NOTE: no FFT normalization when forwarding
   // the normalization (/N) is performed (by convention) after backwarding
 
-  // get ffted data
-  *aDataRe=offt->GetRe();
-  *aDataIm=offt->GetIm();
-  if(*aDataRe==NULL||*aDataIm==NULL){
-    cerr<<"Omicron::Whiten: cannot retrieve FFT data"<<endl;
-    return false;
-  }
- 
+  // reset
   int i=0;
  
   // zero-out below highpass frequency
   int n = (int)(tile->GetFrequencyMin()*tile->GetTimeRange());
   for(; i<n; i++){
-    (*aDataRe)[i] = 0.0;
-    (*aDataIm)[i] = 0.0;
+    DataRe[i] = 0.0;
+    DataIm[i] = 0.0;
   }
  
   // normalize data by the ASD
   n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2;
   double asdval;
   for(; i<n; i++){
-    asdval=spectrum->GetPower((double)i/(double)tile->GetTimeRange());
+    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange());
     if(asdval<=0){
       cerr<<"Omicron::Whiten: could not retrieve power"<<endl;
-      delete *aDataRe; delete *aDataIm;
-      *aDataRe=NULL; *aDataIm=NULL;
       return false;
     }
     asdval=sqrt(asdval);
-    (*aDataRe)[i] /= asdval;
-    (*aDataIm)[i] /= asdval;
-
+    DataRe[i] = offt->GetReOut(i) / asdval;
+    DataIm[i] = offt->GetImOut(i) / asdval;
   }
  
   // zero-out negative frequencies
   n*=2;
   for(; i<n; i++){
-    (*aDataRe)[i] = 0.0;
-    (*aDataIm)[i] = 0.0;
+    DataRe[i] = 0.0;
+    DataIm[i] = 0.0;
   }
  
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::SaveAPSD(const string type, const bool aWhite){
+void Omicron::SaveAPSD(const string aType){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // extract A/PSD 
   TGraph *GAPSD;
-  if(!type.compare("ASD")) GAPSD = spectrum->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
-  else                     GAPSD = spectrum->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(!aType.compare("ASD")) GAPSD = spectrum[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  else                     GAPSD = spectrum[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD==NULL) return;
 
   // extract sub-segment A/PSD
   TGraph **G;
-  G = new TGraph* [spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1)];
-  if(!type.compare("ASD")){
-    for(int i=0; i<spectrum->GetNSubSegmentsMax(0); i++) G[i] = spectrum->GetSubASD(0,i);
-    for(int i=0; i<spectrum->GetNSubSegmentsMax(1); i++) G[spectrum->GetNSubSegmentsMax(0)+i] = spectrum->GetSubASD(1,i);
+  G = new TGraph* [spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1)];
+  if(!aType.compare("ASD")){
+    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0); i++) G[i] = spectrum[chanindex]->GetSubASD(0,i);
+    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(1); i++) G[spectrum[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum[chanindex]->GetSubASD(1,i);
   }
   else{
-    for(int i=0; i<spectrum->GetNSubSegmentsMax(0); i++) G[i] = spectrum->GetSubPSD(0,i);
-    for(int i=0; i<spectrum->GetNSubSegmentsMax(1); i++) G[spectrum->GetNSubSegmentsMax(0)+i] = spectrum->GetSubPSD(1,i);
+    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0); i++) G[i] = spectrum[chanindex]->GetSubPSD(0,i);
+    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(1); i++) G[spectrum[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum[chanindex]->GetSubPSD(1,i);
   }
 
   // cosmetics
@@ -705,11 +690,11 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
   GPlot->Draw(GAPSD,"AP");
-  for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++){
+  for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++){
     if(G[i]!=NULL) GPlot->Draw(G[i],"Lsame");
   }
   GAPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
-  if(type.compare("ASD")){
+  if(aType.compare("ASD")){
     GAPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
     GAPSD->SetTitle((fChannels[chanindex]+": Power spectrum density").c_str());
   }
@@ -720,7 +705,6 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   GPlot->Draw(GAPSD,"PLsame");
   GPlot->RedrawAxis();
   GPlot->RedrawAxis("g");
-  if(aWhite) GAPSD->SetTitle(((string)GAPSD->GetTitle()+" (after whitening)").c_str());
   GAPSD->SetLineWidth(1);
   GAPSD->GetXaxis()->SetTitleOffset(1.1);
   GAPSD->GetXaxis()->SetLabelSize(0.045);
@@ -731,8 +715,7 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   
   // set new name
   stringstream ss;
-  ss<<type;
-  if(aWhite) ss<<"white";
+  ss<<aType;
   ss<<"_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
   GAPSD->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
@@ -740,14 +723,13 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<type;
-    if(aWhite) ss<<"white";
+    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
     ss<<".root";
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fpsd->cd();
     GAPSD->Write();
-    for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++){
+    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++){
       if(G[i]!=NULL) G[i]->Write();
     }
     fpsd->Close();
@@ -765,8 +747,7 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<type;
-      if(aWhite) ss<<"white";
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
       ss<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
@@ -775,10 +756,80 @@ void Omicron::SaveAPSD(const string type, const bool aWhite){
   
   form.clear();
   delete GAPSD;
-  for(int i=0; i<spectrum->GetNSubSegmentsMax(0)+spectrum->GetNSubSegmentsMax(1); i++)
+  for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++)
     if(G[i]!=NULL) delete G[i];
   delete G;
 
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Omicron::SaveSpectral(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // locals
+  int n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2;
+  stringstream ss;
+
+  // amplitude graph
+  TGraph *Gamp   = new TGraph(n-1);
+  for(int i=1; i<n; i++)
+    Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)n, sqrt((DataRe[i]*DataRe[i]+DataIm[i]*DataIm[i])/(double)n/(double)triggers[chanindex]->GetWorkingFrequency()));
+  ss<<"SpecAmp_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
+  Gamp->SetName(ss.str().c_str());
+  ss.str(""); ss.clear();
+  Gamp->SetTitle((fChannels[chanindex]+": spectral density").c_str());
+  Gamp->GetHistogram()->SetXTitle("Frequency [Hz]");
+  Gamp->GetHistogram()->SetYTitle("Amplitude /#sqrt{Hz}");
+  Gamp->SetLineWidth(1);
+  Gamp->GetXaxis()->SetTitleOffset(1.1);
+  Gamp->GetXaxis()->SetLabelSize(0.045);
+  Gamp->GetYaxis()->SetLabelSize(0.045);
+  Gamp->GetXaxis()->SetTitleSize(0.045);
+  Gamp->GetYaxis()->SetTitleSize(0.045);
+  Gamp->GetXaxis()->SetLimits(tile->GetFrequencyMin(), tile->GetFrequencyMax());
+
+  // ROOT
+  if(fOutFormat.find("root")!=string::npos){
+    TFile *fspec;
+    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec.root";
+    fspec=new TFile((ss.str()).c_str(),"RECREATE");
+    ss.str(""); ss.clear();
+    fspec->cd();
+    Gamp->Write();
+    fspec->Close();
+  }
+
+  // Graphix
+  vector <string> form;
+  if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
+  if(fOutFormat.find("png")!=string::npos) form.push_back("png");
+  if(fOutFormat.find("pdf")!=string::npos) form.push_back("pdf");
+  if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
+  if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
+  if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
+
+  // draw
+  GPlot->Draw(Gamp,"APL");
+  GPlot->SetLogx(1);
+  GPlot->SetLogy(1);
+  GPlot->SetGridx(1);
+  GPlot->SetGridy(1);
+
+  // save
+  if(form.size()){
+    for(int f=0; f<(int)form.size(); f++){
+      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
+      GPlot->Print(ss.str().c_str());
+      ss.str(""); ss.clear();
+    }
+  }
+
+  // clean and exit
+  form.clear();
+  delete Gamp;
   return;
 }
 
