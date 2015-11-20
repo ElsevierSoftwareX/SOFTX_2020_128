@@ -184,7 +184,7 @@ class Omicron {
    * Resets PSD buffer.
    * (for the current channel)
    */
-  inline void RestPSDBuffer(void) { spectrum[chanindex]->Reset(); };
+  inline void ResetPSDBuffer(void) { spectrum[chanindex]->Reset(); };
 
   /**
    * Prints a formatted message with a timer.
