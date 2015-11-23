@@ -60,6 +60,10 @@ void Omicron::ReadOptions(void){
   GPlot = new GwollumPlot ("Omicron",outstyle);
   //*****************************
 
+  //***** set output style *****
+  if(!io->GetOpt("OUTPUT","NOLOGO", fNoLogo)) fNoLogo=false;
+  //*****************************
+
   //***** Trigger limit *****
   double ntmax, trmax=10;
   if(!io->GetOpt("OUTPUT","NTRIGGERMAX", ntmax)){

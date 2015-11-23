@@ -10,7 +10,8 @@ void Omicron::MakeHtml(void){
   // import material
   system(("cp -f ${OMICRON_HTML}/style/style."+GPlot->GetCurrentStyle()+".css "+maindir+"/style.css").c_str());
   system(("cp -f ${GWOLLUM_DOC}/Pics/gwollum_logo_min_trans.gif "+maindir+"/icon.gif").c_str());
-  system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+GPlot->GetCurrentStyle()+".gif "+maindir+"/logo.gif").c_str());
+  if(!fNoLogo) system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+GPlot->GetCurrentStyle()+".gif "+maindir+"/logo.gif").c_str());
+  else system(("rm -f "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
   // select web supported image format

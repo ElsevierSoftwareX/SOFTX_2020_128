@@ -223,6 +223,7 @@ class Omicron {
   string fMaindir;              ///< main output directory
   string fOutFormat;            ///< output format string
   string fOutProducts;          ///< output product string
+  bool fNoLogo;                 ///< no logo flag
   vector <string> fChannels;    ///< list of channel names
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
