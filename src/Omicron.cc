@@ -300,6 +300,44 @@ bool Omicron::NewChunk(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const bool aResetPSDBuffer){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::DefineNewChunk: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+  if(aTimeEnd-aTimeStart!=tile->GetTimeRange()){
+    cerr<<"Omicron::DefineNewChunk: the input chunk is not the right duration"<<endl;
+    return false;
+  }
+
+  if(fVerbosity) cout<<"Omicron::DefineNewChunk: "<<aTimeStart<<"-"<<aTimeEnd<<"..."<<endl;
+
+  // make segment for this chunk
+  Segments *Stmp = new Segments(aTimeStart,aTimeEnd);
+  if(!InitSegments(Stmp)){
+    cerr<<"Omicron::DefineNewChunk: the input time segment is not correct"<<endl;
+    delete Stmp;
+    return false;
+  }
+  delete Stmp;
+
+  // set tiling for this segment
+  bool newseg; // not used
+  if(!tile->NewChunk(newseg)) return false;
+    
+  // save info for html report
+  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
+
+  // reset PSD buffer
+  if(aResetPSDBuffer)
+    for(int c=0; c<(int)fChannels.size(); c++) spectrum[c]->Reset();
+      
+  chunk_ctr++;// one more chunk
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::NewChannel(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){

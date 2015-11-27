@@ -88,6 +88,19 @@ class Omicron {
   bool NewChunk(void);
 
   /**
+   * Defines a new time chunk.
+   * Instead of defining a list of input segments (see InitSegments()) and processing sequentially the data (see NewChunk()), it is possible to define any time chunk.
+   *
+   * Optionally, it is possible to reset the PSD buffer (for all channels).
+   *
+   * The chunk duration must match the one defined in the option file.
+   * @param aTimeStart GPS start time of the chunk
+   * @param aTimeEnd GPS end time of the chunk
+   * @param aResetPSDBuffer flag to reset the PSD buffers
+   */
+  bool DefineNewChunk(const int aTimeStart, const int aTimeEnd, const bool aResetPSDBuffer=false);
+
+  /**
    * Calls a new channel.
    * The channels defined in the option file are called incrementally. If this function is called after the last channel, false is returned and the channel sequence is reset: the next call will call the first channel again.
    */
