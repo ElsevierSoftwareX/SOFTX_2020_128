@@ -116,9 +116,10 @@ class Omicron {
    * -  1 = the input vector is NULL
    * -  2 = the input vector size is 0
    * -  3 = the input vector appears to be flat
-   * -  4 = the vector transformation failed (resampling+highpassing)
-   * -  5 = the spectrum could not be updated
-   * -  6 = the tiling power could not be computed
+   * -  4 = the native sampling frequency cannot be updated
+   * -  5 = the vector transformation failed (resampling+highpassing)
+   * -  6 = the spectrum could not be updated
+   * -  7 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */

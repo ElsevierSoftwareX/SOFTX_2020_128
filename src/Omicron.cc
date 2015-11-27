@@ -434,10 +434,16 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     
   if(fVerbosity) cout<<"Omicron::Condition: condition data vector..."<<endl;
 
+  // test native sampling (and update if necessary)
+  int nativesampling = aInVectSize/(tile->GetTimeRange());
+  if(!triggers[chanindex]->SetNativeFrequency(nativesampling)){
+    cerr<<"Omicron::Condition: incompatible native/working frequency ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    return 4;
+  }
 
   // transform data vector
   if(fVerbosity>1) cout<<"\t- transform data vector..."<<endl;
-  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 4;
+  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 5;
 
   // apply Tukey Window
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
@@ -446,11 +452,11 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // update spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
-  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 5;
+  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 6;
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
-  if(!tile->SetPower(spectrum[chanindex])) return 6;
+  if(!tile->SetPower(spectrum[chanindex])) return 7;
 
   chan_cond_ctr[chanindex]++;
   return 0;
