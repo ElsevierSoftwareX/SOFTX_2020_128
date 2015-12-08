@@ -1,0 +1,48 @@
+\appendix
+\section{Parameter file}\label{appx:parameters}
+In this appendix, we give an example of a parameter file compatible with Omicron v2r2. This set of parameters was used to produce the examples and the plots in this paper.
+
+\begin{verbatim}
+// path to the frame file list file
+DATA FFL                        /home/florent/Data/frames/hoft-data.ffl
+
+// list of channels to process
+DATA CHANNELS                   H1:LDAS-STRAIN
+DATA CHANNELS                   L1:LDAS-STRAIN
+
+// working sampling frequency [Hz]
+DATA SAMPLEFREQUENCY            1024
+
+// timing definition (chunk duration and overlap duration [s])
+PARAMETER TIMING                64      4
+
+// Q range
+PARAMETER QRANGE                4       100
+
+// Frequency range [Hz]
+PARAMETER FREQUENCYRANGE        40      512
+
+// Maximal mismatch between tiles
+PARAMETER MISMATCHMAX           0.2
+
+// SNR thresholds
+PARAMETER SNRTHRESHOLD          5
+
+// PSD buffer length [s]
+PARAMETER PSDLENGTH             300
+
+// path to output directory
+OUTPUT DIRECTORY                ./output
+
+// format for output files
+OUTPUT FORMAT                   png root
+
+// list of output data products
+OUTPUT PRODUCTS                 html triggers asd white
+
+// verbisity level
+OUTPUT VERBOSITY                1
+
+// html report graphical style
+OUTPUT STYLE                    FIRE
+\end{verbatim}
