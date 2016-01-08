@@ -1,6 +1,39 @@
 \section{The Q transform} \label{sec:qtransform}
+To conduct the multi-resolution analysis motivated in the previous section, data is processed using the Q transform~\cite{Brown:1991}. The Q transform is a modification of the standard short time Fourier transform~\cite{Gabor:1946} in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant Q.
 
-The Q transform consists of projecting a data time series, $s(t)$, onto a basis of windowed sinusoids:
+The data time series, $s(t)$, is projected onto a basis of windowed sinusoids:
 \begin{equation}
-  S(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ s(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}
+  S(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ s(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}.
+  \label{eq:qtransform1}
 \end{equation}
+The transformed coefficient, $S$, measures the average signal amplitude and phase within a time-frequency region centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor Q and the particular choice of analysis window, $w$. This region is called a \textit{tile}.
+
+The Q transform of Eq.~\ref{eq:qtransform1} can be re-formulated in the frequency domain~\cite{Chatterji:2004}:
+\begin{equation}
+  S(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ \tilde{s}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df},
+  \label{eq:qtransform2}
+\end{equation}
+where tilded variables represent Fourier-transformed variables. This expression is favored when it comes to implement an efficient discrete Q transform, as with the Omicron algorithm. When working with data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
+\begin{equation}
+  S(m,l,q) = \frac{1}{N}\sum_{k=0}^{N-1}{\tilde{s}[k+l]\tilde{w}^{*}[k,l,q]e^{+2i\pi mk/N}},
+  \label{eq:qtransform3}
+\end{equation}
+where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. By convention, the $1/N$ normalization factor is only applied for the inverse discrete Fourier transform.
+
+Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm implements a bisquare window which has the simple form:
+\begin{equation}
+  \tilde{w}(f) = 
+  \begin{cases}
+    A\left(1 - (f/\Delta f)^2 \right)^2 & |f| < \Delta f, \\
+    0 & \textrm{otherwise},
+  \end{cases}
+  \label{eq:bisquare}
+\end{equation}
+where $A$ is a normalization factor and $\Delta f$ is the half bandwidth of the window. This window is plotted in Fig.~\ref{} and compared to a Gaussian window.
+
+
+\begin{itemize}
+\item use a window that has finite non-zero extent in the frequency-domain, the length of these inverse transforms need only be equal to the number of non-zero frequency-domain window coefficients.
+\item The discrete Fourier transform of the original time series $s$ is only computed once.
+  \item The inverse Fourier transform is only performed for a limited number of frequencies and Q values.
+\end{itemize}

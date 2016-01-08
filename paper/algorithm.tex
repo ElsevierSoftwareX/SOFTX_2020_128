@@ -68,12 +68,11 @@ For a given chunk and a given channel\footnote{Chunks and channels are internall
 \subsection{The data conditioning} \label{sec:algorithm:conditionnig}
 The chunk data vector is transformed to optimize the performance of the subsequent processing. It is downsampled to a lower working frequency, $f_w$, to maximize the processing speed and lower the memory usage. It is then high-pass filtered to reduce the signal dynamic range. The filtering C++ code is inspired from the routines developed in the LSC Algorithm Library Suite~\cite{LALSUITE}.
 
-To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see, Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $f_w \times T_c$.
+To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $f_w \times T_c$.
 
-The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration (see, Sec.~\ref{sec:algorithm:data}) must be long enough to remove the filtering artifacts. The filter frequency cutoff is determined by the search frequency range defined by the user in the parameter file: the minimum frequency is used.
+The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be long enough to remove the filtering artifacts. The filter frequency cutoff is determined by the search frequency range defined by the user in the parameter file: the minimum frequency is used.
 
-The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omicron is run using the parameter file given in Appx.~\ref{appx:parameters}. The input data is originally sampled at 16384~Hz, the spectrum of which is represented in black in the upper plot. First, it is downsampled at a working frequency of 1024~Hz. The resulting spectrum is represented in blue and stops at the Nyquist frequency of 512~Hz. After the high-pass filter, frequencies below 40~Hz are attenuated as shown by the red spectrum. The ratio of spectra of the different filtering steps are plotted in the middle and at the bottom of Fig.~\ref{fig:conditioning}.
-
+The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omicron is run using the parameter file given in Appx.~\ref{appx:parameters}. The input data is originally sampled at 16384~Hz, the spectrum of which is represented in black in the upper plot. First, it is downsampled at a working frequency of 1024~Hz. The resulting spectrum is represented in blue and ends at the Nyquist frequency of 512~Hz. After the high-pass filter, frequencies below 40~Hz are attenuated as shown by the red spectrum. The ratio of spectra of the different filtering steps are plotted in the middle and at the bottom of Fig.~\ref{fig:conditioning}.
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/conditioning.eps}
@@ -81,29 +80,53 @@ The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omic
   \label{fig:conditioning}
 \end{figure}
 
+The final step of the conditioning process consist of applying a Tukey window to the time-series, offering a smooth transition to 0 at both chunk ends. The expression of the Tukey window implemented in \texttt{Omicron} is:
+\begin{equation}
+  w_{\mathrm{tukey}}(t) = 
+  \begin{cases}
+     \frac{1}{2}\left[ 1+\cos{\left(2\pi\frac{t}{T_o}-\pi\right)}\right]& t < T_o/2, \\
+     \frac{1}{2}\left[ 1+\cos{\left(2\pi\frac{(t-T_c)}{T_o}+\pi\right)}\right]& t > T_c-T_o/2, \\
+     1.0 & \mathrm{otherwise}.
+  \end{cases}
+\end{equation}
+Fig.~\ref{fig:tukey} presents examples of Tukey windows using several overlap durations.
+\begin{figure}
+  \center
+  \epsfig{width=12cm, file=./figures/tukey.eps}
+  \caption{Tukey windows used to smoothly transition the data time series to 0. A cosine function is applied at both chunk ends over half the overlap duration. Here, we used $T_c=64$~s and $T_o = 4$, 8, 16 and 32 s.}
+  \label{fig:tukey}
+\end{figure}
+
+The data conditioning is performed using the \texttt{Condition()} function of the \texttt{Omicron} class. Before leaving this function the data spectrum is updated using the new conditioned data vector. The spectrum computation is described in the next section. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  DATA WHITENING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data whitening} \label{sec:algorithm:whitening}
-- PSD definition - PSD implementation (size, FT...).
 
-To obtain a reliable PSD estimation, we use the procedure defined in~\cite{psd}.
-The data chunk is divided into N segments overlapping by half, as represented in Fig.~\ref{fig:mmm}. The PSD of each segment is computed. This set of PSDs is divided into two groups corresponding to non-overlapping segments: the 'odd' (resp. 'even') group is defined with segments with an odd (resp. even) index.
+The conditioned chunk data vector is whitened by weighting the data by the inverse of the detector’s power spectral density (PSD). \bluenote{Add intro, motivate whitening.}
+The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
+
+A time-domain data vector $x$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-segments of duration $T_\mathrm{spec}$, indexed by $s$ and overlapping by 50\%, as represented in Fig.~\ref{fig:psdseg}. The normalized periodograms $P_s$, are computed for all sub-segments and using a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
+\begin{equation}
+  P_s[k] = \frac{2}{f_w^2T_\mathrm{spec}}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{x_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
+\end{equation}
+
+To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, the resulting median value must be corrected by a bias factor $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$: $S^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S[k]=(N^eS^e[k]+N^oS^o[k])/(N^e+N^o)$.
 \begin{figure}
   \center
-  \epsfig{width=15cm, file=./figures/mmm.eps}
-  \caption{Power spectral density estimation. The data chunk is divided into.}
-  \label{fig:mmm}
+  \epsfig{width=15cm, file=./figures/psdseg.eps}
+  \caption{Data segmentation used to estimate the power spectral density. The data segment of duration $T_\mathrm{PSD}$ is divided into two sets of non-overlapping sub-segments of duration $T_\mathrm{spec}$: the ``odd'' and ``even'' sets. The ``odd'' sub-segments are shifted by $T_\mathrm{spec}/2$ with respect to the ``even'' sub-segments. Note that a small time segment at the end of the data segment might be left unsed. The ``odd'' and ``even'' PSDs are estimated separately and averaged into a final PSD $S$.}
+  \label{fig:psdseg}
 \end{figure}
 
+\bluenote{Transition: need to connect this with the tiling section.} When running Omicron over 1~Hz, the PSD frequency resolution is fixed at 0.5~Hz. To obtain such a resolution, it is required to estimate the PSD with $T_\mathrm{spec}=2$~s. The segment duration $T_\mathrm{PSD}$ is user-defined in the parameter file (\texttt{PARAMETER/PSDLENGTH} option). The number of sub-segments used to estimate the PSD is therefore: $N^e=\lfloor T_\mathrm{PSD}/2 \rfloor$ and $N^e=\lfloor(T_\mathrm{PSD}-T_\mathrm{spec}/2)/2\rfloor$. Below 1~Hz, the PSD resolution is not fixed but is detrmined by the starting frequency of the tiling structure $f^t_{min}$. \bluenote{Continue this after tiling section is done.}
 
 
-\subsection{The filtering} \label{sec:algorithm:conditioning}
+
+\subsection{The data projection} \label{sec:algorithm:projection}
 
 \subsection{The triggering} \label{sec:algorithm:triggering}
-
-\subsection{The clustering} \label{sec:algorithm:conditioning}
 
 \subsection{The mapping} \label{sec:algorithm:mapping}
