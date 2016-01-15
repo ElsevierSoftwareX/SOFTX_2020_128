@@ -116,14 +116,14 @@ A time-domain data vector $x$ of duration $T_\mathrm{PSD}$ and sampled at the Om
 To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, the resulting median value must be corrected by a bias factor $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$: $S^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S[k]=(N^eS^e[k]+N^oS^o[k])/(N^e+N^o)$.
 \begin{figure}
   \center
-  \epsfig{width=15cm, file=./figures/psdseg.eps}
-  \caption{Data segmentation used to estimate the power spectral density. The data segment of duration $T_\mathrm{PSD}$ is divided into two sets of non-overlapping sub-segments of duration $T_\mathrm{spec}$: the ``odd'' and ``even'' sets. The ``odd'' sub-segments are shifted by $T_\mathrm{spec}/2$ with respect to the ``even'' sub-segments. Note that a small time segment at the end of the data segment might be left unsed. The ``odd'' and ``even'' PSDs are estimated separately and averaged into a final PSD $S$.}
+  \epsfig{width=15cm, file=./figures/psdseg.eps} \\
+  \epsfig{width=8cm, file=./figures/psd_even.eps}
+  \epsfig{width=8cm, file=./figures/psd_odd.eps}
+  \caption{The top panel presents the data segmentation used to estimate the noise power spectral density. The data segment of duration $T_\mathrm{PSD}$ is divided into two sets of non-overlapping sub-segments of duration $T_\mathrm{spec}$: the ``odd'' and ``even'' sets. The odd sub-segments are shifted by $T_\mathrm{spec}/2$ with respect to the even sub-segments. Note that a small time segment at the end of the data segment is left unused. The power spectral density is estimated for even sub-segments (bottom-left panel) and for odd subsegments (bottom-right pannel). The individual periodograms are displayed with dimmed lines while the resulting median PSD is plotted with a thick line. The odd and even PSDs are averaged into the final PSD. This example was obtained using the Omicron configuration given in Appx.~\ref{appx:parameters}: 150 even subsegments and 149 odd sub-segments were used to cover an input data vector of duration $T_\mathrm{PSD}=300$~s.}
   \label{fig:psdseg}
 \end{figure}
 
 \bluenote{Transition: need to connect this with the tiling section.} When running Omicron over 1~Hz, the PSD frequency resolution is fixed at 0.5~Hz. To obtain such a resolution, it is required to estimate the PSD with $T_\mathrm{spec}=2$~s. The segment duration $T_\mathrm{PSD}$ is user-defined in the parameter file (\texttt{PARAMETER/PSDLENGTH} option). The number of sub-segments used to estimate the PSD is therefore: $N^e=\lfloor T_\mathrm{PSD}/2 \rfloor$ and $N^e=\lfloor(T_\mathrm{PSD}-T_\mathrm{spec}/2)/2\rfloor$. Below 1~Hz, the PSD resolution is not fixed but is detrmined by the starting frequency of the tiling structure $f^t_{min}$. \bluenote{Continue this after tiling section is done.}
-
-
 
 \subsection{The data projection} \label{sec:algorithm:projection}
 

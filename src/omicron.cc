@@ -114,9 +114,6 @@ int main (int argc, char* argv[]){
   double *dvector;
   int res;
   
-  // channel list
-  vector <string> Channels = O->GetChannels();
-
   // init segments
   if(!O->InitSegments(segments)) return 1;
 

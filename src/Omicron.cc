@@ -52,8 +52,8 @@ Omicron::Omicron(const string aOptionFile){
   for(int i=0; i<tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(); i++) WhiteChunkVect[i]=0.0;
 
   // metadata field definition
-  vector <string> fOptionName;  ///< option name (metadata)
-  vector <string> fOptionType;  ///< option type (metadata)
+  vector <string> fOptionName;
+  vector <string> fOptionType;
   fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_CHANNEL");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
@@ -523,7 +523,7 @@ bool Omicron::Project(void){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
     if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
     int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-    for(int i=0; i<csize; i++) WhiteChunkVect[i]=2.0*offt->GetReOut(i)/(double)csize;
+    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/(double)csize;
   }
   
   // save triggers

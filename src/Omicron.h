@@ -55,7 +55,7 @@ class Omicron {
   /**
      @}
   */
-
+  
 
   /**
    * Initializes the segments to process.

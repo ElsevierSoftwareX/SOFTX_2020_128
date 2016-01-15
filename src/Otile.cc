@@ -257,7 +257,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     // write root
     if(aFormat.find("root")!=string::npos){
       froot->cd();
-      ((TH2D*)qplanes[q])->Write();
+      qplanes[q]->Write();
     }
 
     if(form.size()){

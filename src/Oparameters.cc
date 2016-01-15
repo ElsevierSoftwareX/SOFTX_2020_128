@@ -138,14 +138,14 @@ void Omicron::ReadOptions(void){
     FRange.clear();
     FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
+  if(FRange[1]>(double)triggers[0]->GetWorkingFrequency()/2.0){// check for Nyquist
+    FRange.pop_back();
+    FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
+  }
   if(FRange[0]>=FRange[1]){// check the order
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
     FRange.clear();
     FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
-  }
-  if(FRange[1]>(double)triggers[0]->GetWorkingFrequency()/2.0){// check for Nyquist
-    FRange.pop_back();
-    FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
   //*****************************
 
