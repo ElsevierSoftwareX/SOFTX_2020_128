@@ -147,7 +147,7 @@ while [ $p -lt $nproc ]; do # loop over parameters
     rm -f ${workdir}/segments/segments${usertag}_${p}_*.txt
   
     # overlap
-    overlapduration=`grep -m1 OVERLAPDURATION ${workdir}/parameters/parameters${usertag}_${p}.txt | awk '{print $3}'`
+    overlapduration=`grep -m1 TIMING ${workdir}/parameters/parameters${usertag}_${p}.txt | awk '{print $4}'`
 
     # loop over segments
     while read line; do
