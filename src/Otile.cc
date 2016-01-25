@@ -363,6 +363,15 @@ bool Otile::DrawMapTiling(const int aQindex){
   }
   qplanes[aQindex]->MakeMapDisplay();
   Draw(qplanes[aQindex],"COL");
+  /*
+  qplanes[aQindex]->GetXaxis()->SetRangeUser(-0.1,0.1);
+  TLine *lf;
+  for(int f=0; f<qplanes[aQindex]->GetNBands(); f++){
+    lf = new TLine(-0.1,qplanes[aQindex]->GetBandStart(f),0.1,qplanes[aQindex]->GetBandStart(f));
+    lf->SetLineStyle(3);
+    Draw(lf,"same");
+  }
+  */
   return true;
 }
 

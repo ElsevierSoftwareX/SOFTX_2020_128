@@ -99,12 +99,12 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   tilephase   = new double* [GetNBands()];
   tiletag     = new bool*   [GetNBands()];
 
-  // 
+  //
   for(int f=0; f<GetNBands(); f++){
+    bandCenter[f] = GetYaxis()->GetBinCenterLog(f+1);
     TimeCumulativeMismatch = (double)aTimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / aQ;
     Nt = NextPowerOfTwo(TimeCumulativeMismatch / aMismatchStep);
     bandMultiple[f] = GetNbinsX() / Nt;
-    bandCenter[f] = GetYaxis()->GetBinCenterLog(aBandIndex+1);
   
     tilecontent[f] = new double [Nt];
     for(int t=0; t<Nt; t++) tilecontent[f][t]=0.0;
