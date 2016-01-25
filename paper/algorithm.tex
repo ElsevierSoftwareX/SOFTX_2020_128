@@ -6,12 +6,12 @@
 \subsection{Overview} \label{sec:algorithm:overview}
 The Omicron algorithm is developed in C++ and the code lives in the Virgo software repository~\cite{VirgoSVN}. Omicron is built upon GWOLLUM~\cite{GWOLLUM} libraries used to perform every step of an Omicron analysis (see Fig.~\ref{fig:omicron_incl} for a dependency diagram). The GWOLLUM package depends on external libraries. The FrameL~\cite{FrameL} library is used to perform IO operations on data frame files~\footnote{The frame format was developed for interferometric gravitational-wave detectors' data.}. Mathematical routines developed in the GNU Scientific Library~\cite{GSL} are commonly used by GWOLLUM functions. Discrete Fourier transforms are performed using the FFTW~\cite{FFTW} algorithm. Finally, the GWOLLUM and Omicron codes heavily rely on C++ classes developed in the ROOT~\cite{Brun:1997pa} framework. For example, ROOT classes are used for plotting purposes, for event storage or for data access. To deal with package dependencies, the CMT~\cite{CMT} configuration management tool was chosen.
 
-A fully object-oriented framework is adopted when developing GWOLLUM and Omicron, in which C++ classes and inheritance features are extensively used. The Omicron algorithm is entirely based on the \texttt{Omicron} C++ class which member functions are used to perform the analysis steps. A typical Omicron application can be represented by the sequence of functions represented in Fig.~\ref{fig:omicron_flowchart}. The \texttt{Omicron} constructor must be called using an input option file listing all the parameters defining the search one wants to perform. Then, the Omicron object must be provided with time segments to process. This is done with the \texttt{Omicron::InitSegment()} function. These time segments are processed sequentially with the \texttt{Omicron::NewChunk()} function. For every chunk, the list of channels to process is looped over with the \texttt{Omicron::NewChannel()} function. The input data is loaded with the \texttt{Omicron::LoadData()} function. The data is then conditioned; it is down-sampled to a working frequency and high-pass filtered. This is performed with the  \texttt{Omicron::Condition()} function. Before applying the Q-transform, the data is whitened by normalizing the data spectrum by the noise power spectrum density. The whitened data is finally projected onto a basis of windowed complex exponentials. This is done using the \texttt{Omicron::Project()} function. When calling the \texttt{Omicron::WriteOutput()} function, the Omicron data products are saved to disk\footnote{The html report is saved when calling the \texttt{Omicron} destructor.}.
+A fully object-oriented framework is adopted when developing GWOLLUM and Omicron, in which C++ classes and inheritance features are extensively used. The Omicron algorithm is entirely based on the \texttt{Omicron} C++ class which member functions are used to perform the analysis steps. A typical Omicron application can be represented by the sequence of functions represented in Fig.~\ref{fig:omicron_flowchart}. The \texttt{Omicron} constructor must be called using an input option file listing all the parameters defining the search one wants to perform. Then, the Omicron object must be provided with time segments to process. This is done with the \texttt{Omicron::InitSegment()} function. These time segments are processed sequentially with the \texttt{Omicron::NewChunk()} function. For every chunk, the list of channels to process is looped over with the \texttt{Omicron::NewChannel()} function. The input data is loaded with the \texttt{Omicron::LoadData()} function. The data is then conditioned; it is down-sampled to a working frequency and high-pass filtered. This is performed with the  \texttt{Omicron::Condition()} function. Before applying the $Q$-transform, the data is whitened by normalizing the data spectrum by the noise power spectrum density. The whitened data is finally projected onto a basis of windowed complex exponentials. This is done using the \texttt{Omicron::Project()} function. When calling the \texttt{Omicron::WriteOutput()} function, the Omicron data products are saved to disk\footnote{The html report is saved when calling the \texttt{Omicron} destructor.}.
 
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/omicron_flowchart.eps}
-  \caption{Standard \texttt{Omicron} flowchart. The standard sequence of class functions is presented. Loops must be perfomed over data chunks and channels. They are represented by the pink rectangles.}
+  \caption{Standard \texttt{Omicron} analysis flowchart. The standard sequence of class functions is presented. Loops must be perfomed over data chunks and channels. They are represented by the pink rectangles.}
   \label{fig:omicron_flowchart}
 \end{figure}
 
@@ -21,7 +21,7 @@ This sequence of actions is performed by the \texttt{omicron.exe} executable. Th
   \item \texttt{omicron.exe /path/to/segments.file /path/to/parameters.file}. The Omicron algorithm is run over all the time segments listed in \texttt{/path/to/segments.file} and using the parameters listed in the file \texttt{/path/to/parameters.file}.
   \item \texttt{omicron.exe gps\_center /path/to/parameters.file}. The Omicron algorithm is run over a single time chunk centered on GPS time \texttt{gps\_center} and using the parameters listed in the file \texttt{/path/to/parameters.file}.
 \end{itemize}
-The \texttt{Omicron} class offers more methods which can be used to tailor specfic application. For an up-to-date and extensive description of these methods, refer to the doxygen documentation~\cite{Omicron_doxygen}.
+The \texttt{Omicron} class offers more methods which can be used to tailor specfic applications. For an up-to-date and extensive description of these methods, refer to the doxygen documentation~\cite{Omicron_doxygen}.
 
 \begin{figure}
   \center
@@ -31,10 +31,25 @@ The \texttt{Omicron} class offers more methods which can be used to tailor specf
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%  DATA ACCESS
+%%%%%%%%%%  TILING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The tiling} \label{sec:algorithm:tiling}
 
+When the \texttt{Omicron} constructor is called, the tiling structure is created using the parameters defined in the user option file. The tiling stucture is designed to cover a limited parameter space defined by a $Q$ range, $[Q_{min}; Q_{max}]$, a frequency range, $[\phi_{min}; \phi_{max}]$ and a time range. The tiling time range corresponds to the characteristic duration used to sequentially analyze the data (see Sec.~\ref{sec:algorithm:data}). It is called a \textit{chunk} and the time duration of a chunk is noted $T_c$. The chunk duration must be a power of two to provide optimized and fast Fourier transforms. If this condition is not met, the time range will be automatically updated to the next power of two value. In addition, it is required to have $T_c\ge 4$~s to allow for the overlap structure defined in Sec.~\ref{sec:algorithm:data}.
+
+As described in Sec.~\ref{sec:qtransform}, the parameter space must be tiled into $N_\tau \times N_\phi \times N_Q$ tiles. Eq.~\ref{eq:tiledistance} suggests to tile the parameter space starting with the $Q$ parameter. The $Q$ range is divided into $N_Q = \lceil \ln(Q_{max}/Q_{min})/(\sqrt{2}\delta s_{max})\rceil$ logarithmically-spaced bins centered on:
+\begin{equation}
+  Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, 0\le q < N_Q.
+\end{equation}
+For each $Q_q$ value, the frequency range is divided into $N_\phi = \lceil \frac{\sqrt{2+Q_q^2}}{2\delta s_{max}}\ln(\phi_{max}/\phi_{min})\rceil$ logarithmically-spaced bins centered on:
+\begin{equation}
+  \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, 0\le l < N_\phi.
+\end{equation}
+Finally, for each $Q_q$ and $\phi_l$ value, the chunk, by convention centered on 0, is divided into $N_\tau =  \lceil \frac{2\pi\phi_lT_c}{Q_q\delta s_{max}}\rceil$ time bins centered on:
+\begin{equation}
+  \tau_m = -\frac{T_c}{2}+\frac{m+0.5}{N_\tau}T_c, 0\le m < N_\tau.
+\end{equation}
+Such a basis is represented in Fig.~\ref{}: it can be thought as a set of $Q$ planes divided into frequency rows containing a sequence of time bins covering the chunk. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  DATA ACCESS
@@ -44,7 +59,7 @@ The input data time series is read using the FrameL~\cite{FrameL} library, devel
 
 The \texttt{ffl} class is used by Omicron to load data by time chunks. The \textit{chunk} is an important charactistic time scale which is user-defined in the parameter file. It defines the time sequence adopted to analyze the data. It is also used as a characteric time scale by many Omicron internal structures; the chunk duration (which we note $T_c$) directly impacts the tiling resolution, determines the output files size, and is used to allocate memory for data containers.
 
-Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration is also defined in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk, the overlap is adjusted to fit the segment size. The overlapping structure was introduced to manage edge artifacts due to forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
+Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration is also defined in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk, the overlap is adjusted to fit the current segment size. The overlapping structure was introduced to manage edge artifacts due to forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
 \begin{figure}
   \center
   \epsfig{width=15cm, file=./figures/segmentation.eps}
@@ -65,7 +80,7 @@ For a given chunk and a given channel\footnote{Chunks and channels are internall
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  DATA CONDITIONING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The data conditioning} \label{sec:algorithm:conditionnig}
+\subsection{The data conditioning} \label{sec:algorithm:conditioning}
 The chunk data vector is transformed to optimize the performance of the subsequent processing. It is downsampled to a lower working frequency, $f_w$, to maximize the processing speed and lower the memory usage. It is then high-pass filtered to reduce the signal dynamic range. The filtering C++ code is inspired from the routines developed in the LSC Algorithm Library Suite~\cite{LALSUITE}.
 
 To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $f_w \times T_c$.

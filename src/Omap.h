@@ -57,7 +57,7 @@ class Omap: public TH2D {
     return GetYaxis()->FindBin(aFrequency)-1;
   };
   inline double GetBandFrequency(const int aBandIndex){
-    return GetYaxis()->GetBinCenter(aBandIndex+1);
+    return bandCenter[aBandIndex];
   };
   inline double GetBandStart(const int aBandIndex){ 
     return GetYaxis()->GetBinLowEdge(aBandIndex+1);
@@ -111,6 +111,7 @@ class Omap: public TH2D {
 
   
   long int Ntiles;                  ///< number of tiles in the plane
+  double *bandCenter;               ///< frequency bin center log
   int *bandMultiple;                ///< band multiple (time resolution)
   double **tilecontent;             ///< tile content array
   double **tilephase;               ///< tile phase array

@@ -21,6 +21,7 @@ Omap::Omap(): TH2D(){
   GetZaxis()->SetTitleSize(0.045);
   Ntiles=0;
   bandMultiple = new int[0];
+  bandCenter = new double[0];
   tilephase = NULL;
   tilecontent = NULL;
   tiletag = NULL;
@@ -29,6 +30,7 @@ Omap::Omap(): TH2D(){
 ////////////////////////////////////////////////////////////////////////////////////
 Omap::~Omap(void){
 ////////////////////////////////////////////////////////////////////////////////////
+  delete bandCenter;
   delete bandMultiple;
   if(tilecontent!=NULL){
     for(int f=0; f<GetNBands(); f++){
@@ -57,7 +59,7 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   double FrequencyLogStep = log(aFrequencyMax/aFrequencyMin) / (double)Nf;
   double *fbins = new double [Nf+1];
   for(int f=0; f<=Nf; f++) fbins[f] = aFrequencyMin * exp((double)f*FrequencyLogStep);
-
+  
   // number of time bins
   double TimeCumulativeMismatch = (double)aTimeRange * 2.0*TMath::Pi() * sqrt(fbins[Nf-1]*fbins[Nf]) / aQ;
   int Nt = NextPowerOfTwo(TimeCumulativeMismatch / aMismatchStep);
@@ -85,9 +87,11 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   delete fbins;
   delete tbins;
  
-  // band multiple
+  // band parameters
+  delete bandCenter;
+  bandCenter = new double [GetNBands()];
   delete bandMultiple;
-  bandMultiple  = new int [GetNBands()];
+  bandMultiple = new int [GetNBands()];
   Ntiles=0;
 
   // create content / phase / tag array
@@ -100,7 +104,8 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
     TimeCumulativeMismatch = (double)aTimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / aQ;
     Nt = NextPowerOfTwo(TimeCumulativeMismatch / aMismatchStep);
     bandMultiple[f] = GetNbinsX() / Nt;
-
+    bandCenter[f] = GetYaxis()->GetBinCenterLog(aBandIndex+1);
+  
     tilecontent[f] = new double [Nt];
     for(int t=0; t<Nt; t++) tilecontent[f][t]=0.0;
 

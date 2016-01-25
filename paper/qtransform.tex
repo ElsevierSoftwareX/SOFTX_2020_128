@@ -13,12 +13,31 @@ To optimize the algorithmic implementation of the Q transform, we use an alterna
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df},
   \label{eq:qtransform2}
 \end{equation}
-where tilded variables represent Fourier-transformed variables. When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
+where tilded variables represent Fourier-transformed quantities. When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
 \begin{equation}
   X(m,l,q) = \frac{1}{N}\sum_{j=0}^{N-1}{\tilde{x}[j+l]\tilde{w}^{*}[j,l,q]e^{+2i\pi mj/N}},
   \label{eq:qtransform3}
 \end{equation}
 where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. By convention, the $1/N$ normalization factor is only applied for inverse discrete Fourier transforms. In Eq.~\ref{eq:qtransform3}, the signal time series is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform. This expression is favored when it comes to implement an efficient discrete Q transform, as with the Omicron algorithm. Indeed, the input time series $x(t)$ is only Fourier-transformed once. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
+
+The tiles, indexed by $(m,l,q)$, must be chosen to cover a limited region of parameter space and to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast computing processing. To meet these two competitive requirements, the parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$, is tiled so that the fractional energy loss between two neighboring tiles is less than a maximal value $\delta s_{max}$. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the basis functions are distributed over a cubic lattice described by the following metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which have been neglected.}:
+\begin{equation}
+  \delta s^2 =
+  \frac{4\pi^2\phi^2}{Q^2}\delta \tau^2
+  + \frac{2+Q^2}{4\phi^2}\delta \phi^2
+  + \frac{1}{2Q^2}\delta Q^2.
+  \label{eq:tilemetric}
+\end{equation}
+The number of tiles, $N_\tau \times N_\phi \times N_Q$, is then given by the distances integrated over the three dimensions of the parameter space: $N_\tau = s_\tau/\delta s_{max}$, $N_\phi = s_\phi/\delta s_{max}$ and $N_Q = s_Q/\delta s_{max}$. The integrated distances are given by:
+\begin{equation}
+  \begin{array}{ll}
+    s_\tau & = \frac{2\pi\phi}{Q}(\tau_{max} - \tau_{min}) \\
+    s_\phi & = \frac{\sqrt{2+Q^2}}{2}\ln(\phi_{max}/\phi_{min}) \\
+    s_Q   & = \frac{1}{\sqrt{2}}\ln(Q_{max}/Q_{min})
+  \end{array}
+  \label{eq:tiledistance}
+\end{equation}
+
 
 Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm implements a bisquare window which has the simple form:
 \begin{equation}
@@ -29,6 +48,8 @@ Using a Gaussian window is a natural choice to provide a good time-frequency res
   \end{cases}
   \label{eq:bisquare}
 \end{equation}
-where $A$ is a normalization factor and $\Delta f$ is the half bandwidth of the window. This window is plotted in Fig.~\ref{} and compared to a Gaussian window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is null for $|f| > \Delta f$, so that shorter inverse Fourier transforms are computed in Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes.
+where $A$ is a normalization factor and $\Delta f$ is the half bandwidth of the window.
+%This window is plotted in Fig.~\ref{} and compared to a Gaussian window.
+There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is null for $|f| > \Delta f$, so that shorter inverse Fourier transforms are perform to compute $\tilde{w}$ in Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes.
 
 
