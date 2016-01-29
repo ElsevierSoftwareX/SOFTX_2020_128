@@ -523,7 +523,7 @@ bool Omicron::Project(void){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
     if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
     int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/(double)csize;
+    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/csize/sqrt(2*(double)tile->GetTimeRange());
   }
   
   // save triggers
@@ -818,7 +818,7 @@ void Omicron::SaveSpectral(void){
   // amplitude graph
   TGraph *Gamp   = new TGraph(n-1);
   for(int i=1; i<n; i++)
-    Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)n, sqrt((DataRe[i]*DataRe[i]+DataIm[i]*DataIm[i])/(double)n/(double)triggers[chanindex]->GetWorkingFrequency()));
+    Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)n, sqrt((DataRe[i]*DataRe[i]+DataIm[i]*DataIm[i])*2.0/tile->GetTimeRange())/triggers[chanindex]->GetWorkingFrequency());
   ss<<"SpecAmp_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
   Gamp->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
