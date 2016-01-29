@@ -23,42 +23,50 @@ This sequence of actions is performed by the \texttt{omicron.exe} executable. Th
 \end{itemize}
 The \texttt{Omicron} class offers more methods which can be used to tailor specfic applications. For an up-to-date and extensive description of these methods, refer to the doxygen documentation~\cite{Omicron_doxygen}.
 
-\begin{figure}
-  \center
-  \includegraphics[angle=90, scale=0.4]{./figures/omicron_incl}
-  \caption{Diagram presenting the Omicron code dependencies. Header files starting with a ``O'' are part of the Omicron Package. Header files starting with a ``T'' are taken from the ROOT~\cite{Brun:1997pa} libraries. \bluenote{Clean this!}}
-  \label{fig:omicron_incl}
-\end{figure}
+%\begin{figure}
+%  \center
+%  \includegraphics[angle=90, scale=0.4]{./figures/omicron_incl}
+%  \caption{Diagram presenting the Omicron code dependencies. Header files starting with a ``O'' are part of the Omicron Package. Header files starting with a ``T'' are taken from the ROOT~\cite{Brun:1997pa} libraries. \bluenote{Clean this!}}
+%  \label{fig:omicron_incl}
+%\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  TILING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The tiling} \label{sec:algorithm:tiling}
+\subsection{The tiles} \label{sec:algorithm:tiling}
 
-When the \texttt{Omicron} constructor is called, the tiling structure is created using the parameters defined in the user option file. The tiling stucture is designed to cover a limited parameter space defined by a $Q$ range, $[Q_{min}; Q_{max}]$, a frequency range, $[\phi_{min}; \phi_{max}]$ and a time range. The tiling time range corresponds to the characteristic duration used to sequentially analyze the data (see Sec.~\ref{sec:algorithm:data}). It is called a \textit{chunk} and the time duration of a chunk is noted $T_c$. The chunk duration must be a power of two to provide optimized and fast Fourier transforms. If this condition is not met, the time range will be automatically updated to the next power of two value. In addition, it is required to have $T_c\ge 4$~s to allow for the overlap structure defined in Sec.~\ref{sec:algorithm:data}.
+When the \texttt{Omicron} constructor is called, the tiling structure is created using the parameters listed in the user option file. The targeted parameter space must be specified: the $Q$ range, $[Q_{min}; Q_{max}]$, the frequency range, $[\phi_{min}; \phi_{max}]$ and the time range. The time range is fixed to a characteristic duration used to sequentially analyze the data (see Sec.~\ref{sec:algorithm:data}). It is called a \textit{chunk}. The duration of a chunk is noted $T_c$ and, by convention, the chunk is centered on 0. If necessary, the $Q_{min}$ and $\phi_{max}$ parameters are automatically adjusted so that they verify the anti-aliasing conditions~\ref{eq:antialias1} and~\ref{eq:antialias2}. In addition, in order to get a reasonable time resolution, it is required to work with an integrated mismatch distance along the time dimension $s_\tau\ge50$, which translates into a minimum permissible frequency, $\phi_{min} \ge 50Q/(2\pi T_c)$.
+The user options must also include the maximum fractional energy loss due mismatch, $\mu_{max}$, from witch the number of tiles used to cover the parameter space is determined.
 
-As described in Sec.~\ref{sec:qtransform}, the parameter space must be tiled into $N_\tau \times N_\phi \times N_Q$ tiles. Eq.~\ref{eq:tiledistance} suggests to tile the parameter space starting with the $Q$ parameter. The $Q$ range is divided into $N_Q = \lceil \ln(Q_{max}/Q_{min})/(\sqrt{2}\delta s_{max})\rceil$ logarithmically-spaced bins centered on:
+A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying the condition~\ref{eq:tiledistanceq} and the $Q$ value associated to the plane indexed by $q$ is
 \begin{equation}
-  Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, 0\le q < N_Q.
+  Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, \qquad 0\le q < N_Q.
 \end{equation}
-For each $Q_q$ value, the frequency range is divided into $N_\phi = \lceil \frac{\sqrt{2+Q_q^2}}{2\delta s_{max}}\ln(\phi_{max}/\phi_{min})\rceil$ logarithmically-spaced bins centered on:
-\begin{equation}
-  \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, 0\le l < N_\phi.
-\end{equation}
-Finally, for each $Q_q$ and $\phi_l$ value, the chunk, by convention centered on 0, is divided into $N_\tau =  \lceil \frac{2\pi\phi_lT_c}{Q_q\delta s_{max}}\rceil$ time bins centered on:
-\begin{equation}
-  \tau_m = -\frac{T_c}{2}+\frac{m+0.5}{N_\tau}T_c, 0\le m < N_\tau.
-\end{equation}
-Such a basis is represented in Fig.~\ref{}: it can be thought as a set of $Q$ planes divided into frequency rows containing a sequence of time bins covering the chunk.
+The $Q$ plane histogram is first binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi$, is equal to the next integer verifying the condition~\ref{eq:tiledistancephi}. The time axis is divided into $N_\tau$ linear bins. $N_\tau$, is taken to be the next power of two verifying the condition~\ref{eq:tiledistancetau}. As we will see in Sec.~\ref{sec:algorithm:projection}, working with a power-of-two number of tiles is computationally more efficient. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center:
+\begin{align}
+  &\tau_m = -\frac{T_c}{2}+(m+0.5)\frac{T_c}{N_\tau}, \qquad 0\le m < N_\tau, \\
+  &\phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, \qquad 0\le l < N_\phi.
+\end{align}
+In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths:
+\begin{align}
+  &\Delta\tau_m = T_c / N_\tau, \\
+  &\Delta\phi_l = \phi_{l} \left[ \left(\frac{\phi_{max}}{\phi_{min}}\right)^{0.5/N_\phi} - \left(\frac{\phi_{max}}{\phi_{min}}\right)^{-0.5/N_\phi} \right].
+\end{align}
 
+A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,098,688 tiles over 64 s and between 40.0 Hz and 489.2 Hz. For the plane with the lowest $Q$ value, the time resolution varies between 0.98~ms and 7.81~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz. For the highest $Q$ plane, the time resolution varies between 7.81~ms and 125.00~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz.
 \begin{figure}
   \center
   \epsfig{width=7.5cm, file=./figures/q0.eps} \epsfig{width=7.5cm, file=./figures/q1.eps} \\
   \epsfig{width=7.5cm, file=./figures/q2.eps} \epsfig{width=7.5cm, file=./figures/q3.eps} \\
   \epsfig{width=7.5cm, file=./figures/q4.eps}
-  \caption{Example of a ``real-life'' tiling structure using parameters given in Appx~\ref{appx:parameters}. When requiring a maximal energy loss of $\mu_{max}=20\%$, 5 $Q$ planes are needed to cover the Q range $[\sqrt{11}; 100]$. Each $Q$ plane is then tiled (black and white rectangles) along frequency rows delimited by the blue dashed lines. To distinguish the tiles, the chunk is zoomed in $\pm 100$~ms.}
+  \caption{Example of a realistic tiling structure using parameters given in Appx~\ref{appx:parameters}. When requiring a maximal energy loss of $\mu_{max}=20\%$, 5 $Q$ planes are needed to cover the $Q$ range $[\sqrt{11}; 100]$. Each $Q$ plane is then tiled (black and white rectangles) along frequency rows delimited by the blue dashed lines. To distinguish the tiles, the chunk is zoomed in $\pm 100$~ms.}
   \label{fig:tiling}
 \end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  Basis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The basis functions} \label{sec:algorithm:basis}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
