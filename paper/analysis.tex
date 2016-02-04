@@ -1,4 +1,31 @@
-\section{The $Q$ transform} \label{sec:qtransform}
+\section{Data analysis} \label{sec:analysis}
+
+\subsection{The input data} \label{sec:analysis:data}
+
+The Omicron algorithm is designed to process any data time series $x(t)$ associated to a detector channel, e.g. the detector output channel, an environmental sensor, a photodiode signal, etc. The data consists of a discrete time sequence, $x[j]$, which is identified by a channel name and a native sampling frequency, $f_s$, defining the time separation between two consecutive data points $\delta t = t_{j+1}-t_j = 1/f_s$. The Omicron algorithm includes a data conditioning step where the input data is downsampled to a working sampling frequency $f_w$, allowing for an optimized subsequent processing. The data is then iteratively analyzed by time chunks of fixed duration $T_c$, corresponding to $N=T_cf_w$ data samples. With Omicron, the sampling frequency $f_w$ and the chunk duration $T_c$ are required to each be a power of two. Therefore $N$ is a power of two in order to take advantage of the computational efficiency of the fast Fourier transform.
+
+In the following, we will see that Omicron analysis makes use of Fourier transforms to decompose the signal into characteristic frequencies and to construct spectra. The discrete forward and inverse normalized Fourier transforms are written as
+\begin{equation}
+  \tilde{x}[k]=\frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}}
+\end{equation}
+and
+\begin{equation}
+  x[j]=\frac{f_w}{N}\sum_{j=0}^{N-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N}}.
+\end{equation}
+The input data is a real time series. As a result, the spectrum of the data is symmetrical around DC. The negative frequencies are ignored and only the one-sided data vector is considered. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_w/2$. 
+
+From these definitions, the one-sided periodogram of $x$ is computed as:
+\begin{equation}
+  P[k]= \frac{2}{T_c}\left| \frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}} \right|^2,
+\end{equation}
+where the factor 2 accounts for both negative and positive frequencies. When averaging multiple periodograms, one gets an estimate of the signal power spectral density (PSD), $S[k]$. Sec.~\ref{sec:analysis:whitening} describes in detail how the PSD is estimated. 
+
+Before being applied the $Q$ transform, the data chunk is whitened such that individual samples of the discrete time sequence are statistically independent random variables. To achieve this, a simple method consists of dividing the 
+\begin{equation}
+  \tilde{x}_{white}[k] = \tilde{x}[k]/S_n[k]
+\end{equation}
+
+\subsection{The $Q$ transform} \label{sec:analysis:qtransform}
 To conduct the multi-resolution analysis motivated in the previous section, the data are processed using the $Q$ transform~\cite{Brown:1991}. The $Q$ transform is a modification of the standard short time Fourier transform~\cite{Gabor:1946} in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant quality factor $Q$. The signal time series, $x(t)$, is projected onto a basis of windowed sine waves:
 \begin{equation}
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ x(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}.
