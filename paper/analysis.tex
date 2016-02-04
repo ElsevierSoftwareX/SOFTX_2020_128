@@ -1,10 +1,12 @@
 \section{Data analysis} \label{sec:analysis}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The input data} \label{sec:analysis:data}
 
-The Omicron algorithm is designed to process any data time series $x(t)$ associated to a detector channel, e.g. the detector output channel, an environmental sensor, a photodiode signal, etc. The data consists of a discrete time sequence, $x[j]$, which is identified by a channel name and a native sampling frequency, $f_s$, defining the time separation between two consecutive data points $\delta t = t_{j+1}-t_j = 1/f_s$. The Omicron algorithm includes a data conditioning step where the input data is downsampled to a working sampling frequency $f_w$, allowing for an optimized subsequent processing. The data is then iteratively analyzed by time chunks of fixed duration $T_c$, corresponding to $N=T_cf_w$ data samples. With Omicron, the sampling frequency $f_w$ and the chunk duration $T_c$ are required to each be a power of two. Therefore $N$ is a power of two in order to take advantage of the computational efficiency of the fast Fourier transform.
+The Omicron algorithm is designed to process any data time series $x(t)$ associated to a gravitational-wave detector channel, e.g. the detector output channel, an environmental sensor, a photodiode signal, etc. The data consists of a discrete time sequence, $x[j]$, which is identified by a channel name and a native sampling frequency, $f_s$, defining the time separation between two consecutive data points $\delta t = t_{j+1}-t_j = 1/f_s$. As we will see in Sec.~\ref{sec:algorithm:conditioning}, the Omicron algorithm includes a data conditioning step where the input data is downsampled to a working sampling frequency $f_w$, allowing for an optimized subsequent processing. The data is then iteratively analyzed by time chunks of fixed duration $T_c$, corresponding to $N=T_cf_w$ data samples. With Omicron, the working sampling frequency $f_w$ and the chunk duration $T_c$ are required to each be a power of two. Therefore $N$ is a power of two in order to take advantage of the computational efficiency of the fast Fourier transform.
 
-In the following, we will see that Omicron analysis makes use of Fourier transforms to decompose the signal into characteristic frequencies and to construct spectra. The discrete forward and inverse normalized Fourier transforms are written as
+The Omicron analysis makes use of Fourier transforms~\cite{Gabor:1946} to decompose the signal into characteristic frequencies and to construct spectra. The discrete forward and inverse normalized Fourier transforms are written as
 \begin{equation}
   \tilde{x}[k]=\frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}}
 \end{equation}
@@ -12,7 +14,7 @@ and
 \begin{equation}
   x[j]=\frac{f_w}{N}\sum_{j=0}^{N-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N}}.
 \end{equation}
-The input data is a real time series. As a result, the spectrum of the data is symmetrical around DC. The negative frequencies are ignored and only the one-sided data vector is considered. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_w/2$. 
+The input data is a real time series whereas the frequency-domain data vector is complex-valued. As a result, the spectrum of the data is symmetrical around DC. The negative frequencies are ignored and only the one-sided data vector is considered. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_w/2$. 
 
 From these definitions, the one-sided periodogram of $x$ is computed as:
 \begin{equation}
@@ -25,44 +27,60 @@ Before being applied the $Q$ transform, the data chunk is whitened such that ind
   \tilde{x}_{white}[k] = \tilde{x}[k]/S_n[k]
 \end{equation}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The $Q$ transform} \label{sec:analysis:qtransform}
-To conduct the multi-resolution analysis motivated in the previous section, the data are processed using the $Q$ transform~\cite{Brown:1991}. The $Q$ transform is a modification of the standard short time Fourier transform~\cite{Gabor:1946} in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant quality factor $Q$. The signal time series, $x(t)$, is projected onto a basis of windowed sine waves:
+To conduct the multi-resolution analysis motivated in the introduction, the data are processed using the $Q$ transform~\cite{Brown:1991}. The $Q$ transform is a modification of the standard short time Fourier transform in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant quality factor $Q$. The signal time series, $x(t)$, is projected onto a basis of windowed sine waves:
 \begin{equation}
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ x(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}.
   \label{eq:qtransform1}
 \end{equation}
 The transformed coefficient, $X$, measures the average signal amplitude and phase within a time-frequency region centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor $Q$ and the particular choice of analysis window, $w$. This region is called a \textit{tile}.
 
-To optimize the algorithmic implementation of the $Q$ transform, we use an alternative form of Eq.~\ref{eq:qtransform1}. The $Q$ transform of Eq.~\ref{eq:qtransform1} can be re-formulated in the frequency domain~\cite{Chatterji:2004}:
+To optimize the algorithmic implementation of the $Q$ transform, we use an alternative form of Eq.~\ref{eq:qtransform1}, which can be formulated in the frequency domain as~\cite{Chatterji:2004}:
 \begin{equation}
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df},
   \label{eq:qtransform2}
 \end{equation}
 where tilded variables represent Fourier-transformed quantities. When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
 \begin{equation}
-  X(m,l,q) = \frac{1}{N}\sum_{j=0}^{N-1}{\tilde{x}[j+l]\tilde{w}^{*}[j,l,q]e^{+2i\pi mj/N}},
+  X(m,l,q) = \frac{f_w}{N}\sum_{k=0}^{N-1}{\tilde{x}[k+l]\tilde{w}^{*}[k,l,q]e^{+2i\pi mk/N}},
   \label{eq:qtransform3}
 \end{equation}
-where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. By convention, the $1/N$ normalization factor is only applied for inverse discrete Fourier transforms. In Eq.~\ref{eq:qtransform3}, the signal time series is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform. This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x(t)$ is only Fourier-transformed once. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
+where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. In Eq.~\ref{eq:qtransform3}, the signal time series is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform. This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x$ is only Fourier-transformed once and used as such for all the tiles. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
 
-Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The Gaussian window} \label{sec:analysis:window}
+
+\bluenote{Explain the best-case scenario of a Gaussian window}. Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
 \begin{equation}
-  \tilde{w}(f) = 
+  \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) =
   \begin{cases}
-    A\left(1 - (f/\Delta f)^2 \right)^2 & |f| < \Delta f, \\
+    W\left[1 - \left(f/\Delta f(\phi,Q)\right)^2 \right]^2 & |f| < \Delta f(\phi,Q), \\
     0 & \textrm{otherwise},
   \end{cases}
   \label{eq:bisquare}
 \end{equation}
-where $A$ is a normalization factor and $\Delta f=\phi\sqrt{11}/Q$ is the half bandwidth of the window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is null for $|f| > \Delta f$, so that shorter inverse Fourier transforms are performed to compute $\tilde{w}$ in Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes. Fourth, thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
+where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is zero for $|f| > \Delta f(\phi,Q)$, so that shorter inverse Fourier transforms are performed to compute $\tilde{w}$ in Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes. Fourth, thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
 \begin{align}
   &Q\ge\sqrt{11} \qquad \text{and}\label{eq:antialias1} \\
   &\phi \le \frac{f_{\text{Nyquist}}}{1+\sqrt{11}/Q}, \label{eq:antialias2}
 \end{align}
 the zero frequency and the Nyquist frequency, $f_{\text{Nyquist}}$, are never exceeded.
+
+In a discrete analysis, the bisquare window writes:
+\begin{equation}
+  \tilde{w}[k,l,q] = W \left[1 - \left(\frac{2k}{M[l,q]-1}-1\right)^2 \right]^2, \qquad 0\le k < M[l,q],
+  \label{eq:dbisquare}
+\end{equation}
+where $M[l,q] = 2\lfloor{T_c\Delta f(\phi,Q)\rfloor} +1$ is the number of points where the bisquare function is non zero.
+
 In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms although bisquare windows are actually used for the Omicron implementation.
 
-The tiles, indexed by $(m,l,q)$, must be chosen to cover the region of parameter space of interest, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast computing processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The tiles} \label{sec:analysis:tiles}
+The tiles, indexed by $(m,l,q)$, must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast computing processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
 \begin{equation}
   \delta s^2 =
   \frac{4\pi^2\phi^2}{Q^2}\delta \tau^2
@@ -76,6 +94,31 @@ To guarantee a fractional energy loss smaller than $\mu_{max}$, the minimum numb
   N_\phi \ge \frac{s_\phi}{2\sqrt{\mu_{max}/3}},  & \qquad s_\phi = \frac{\sqrt{2+Q^2}}{2}\ln(\phi_{max}/\phi_{min}), \label{eq:tiledistancephi} \\
   N_Q \ge \frac{s_Q}{2\sqrt{\mu_{max}/3}},  & \qquad s_Q = \frac{1}{\sqrt{2}}\ln(Q_{max}/Q_{min}). \label{eq:tiledistanceq}
 \end{align}
-This tiling structure can also be depicted as a set of $N_Q$ logarithmically-spaced $Q$ planes. Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency rows. Each of these row is finally sub-divided into $N_\tau$ time bins of equal width. In fact, Omicron adopts the $Q$ plane representation to provide a graphical representation of the $Q$ transform decomposition.
+This Omicron tiling structure can be depicted as a set of $N_Q$ logarithmically-spaced $Q$ planes:
+\begin{equation}
+  Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, \qquad 0\le q < N_Q.
+  \label{eq:q}
+\end{equation}
+Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency rows:
+\begin{equation}
+  \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, \qquad 0\le l < N_\phi.
+  \label{eq:phi}
+\end{equation}
+A characteristic bandwidth is defined as the row width:
+\begin{equation}
+  \Delta\phi_l = \phi_{l} \left[ \left(\frac{\phi_{max}}{\phi_{min}}\right)^{0.5/N_\phi} - \left(\frac{\phi_{max}}{\phi_{min}}\right)^{-0.5/N_\phi} \right].
+  \label{eq:dphi}
+\end{equation}
+Each frequency row is finally sub-divided into $N_\tau$ linearly-spaced time bins:
+\begin{equation}
+  \tau_m = -\frac{T_c}{2}+(m+0.5)\frac{T_c}{N_\tau}, \qquad 0\le m < N_\tau.
+  \label{eq:tau}
+\end{equation}
+A characteristic tile duration is defined as the bin width:
+\begin{equation}
+  \Delta\tau_m = T_c / N_\tau,
+  \label{eq:dtau}
+\end{equation}
 
-Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
+
+%Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
