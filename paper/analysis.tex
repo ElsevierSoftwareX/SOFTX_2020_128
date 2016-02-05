@@ -50,7 +50,7 @@ where tilded variables represent Fourier-transformed quantities. When working wi
 where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. In Eq.~\ref{eq:qtransform3}, the signal time series is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform. This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x$ is only Fourier-transformed once and used as such for all the tiles. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The Gaussian window} \label{sec:analysis:window}
+\subsection{The window} \label{sec:analysis:window}
 
 \bluenote{Explain the best-case scenario of a Gaussian window}. Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
 \begin{equation}
@@ -74,6 +74,18 @@ In a discrete analysis, the bisquare window writes:
   \label{eq:dbisquare}
 \end{equation}
 where $M[l,q] = 2\lfloor{T_c\Delta f(\phi,Q)\rfloor} +1$ is the number of points where the bisquare function is non zero.
+
+The normalization factor is such that
+\begin{equation}
+  \int_{-\infty}^{+\infty}{|\tilde{w}(f,\phi,Q)|^2df} = 2.
+  \label{eq:winnorm}
+\end{equation}
+Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:analysis:snr}. This yields the normalization factor
+\begin{equation}
+  W = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}A_1},
+  \label{eq:W}
+\end{equation}
+where $A_1$ is a correction factor to account for the fact that tiles overlap (See~Eq.~5.55 of~\cite{Chatterji:2004}).
 
 In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms although bisquare windows are actually used for the Omicron implementation.
 
@@ -120,5 +132,27 @@ A characteristic tile duration is defined as the bin width:
   \label{eq:dtau}
 \end{equation}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Signal to noise ratio} \label{sec:analysis:snr}
 
+Let's consider a signal which is a burst of energy of amplitude $B$ with a sinusoidal Gaussian waveform parameterized by $\tau_b$, $\phi_b$ and $Q_b$:
+\begin{align}
+  b(t) &= Bw(t-\tau_b, \phi_b, Q_b)\cos(2\pi\phi_b t + \theta_b),\\
+  \tilde{b}(f) &= B\left[ \tilde{w}(f-\phi_b,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right]/2
+\end{align}
+This signal lives on top of a stationary stochastic noise $n(t)$: $x(t) = b(t) + n(t)$. Assuming that the burst signal parameters are exactly matched by a tile, the squared magnitude of the Q transform coefficient for this tile is
+\begin{equation}
+  |X(\tau_b, \phi_b, Q_b)|^2 = |X_n(\tau_b, \phi_b, Q_b)|^2 + |X_b(\tau_b, \phi_b, Q_b)|^2 + 2|X_n(\tau_b, \phi_b, Q_b)|\ |X_b(\tau_b, \phi_b, Q_b)|\cos{\theta},
+\end{equation}
+where $X_b$ and $X_n$ are the $Q$-transform coefficients for the burst and noise components. The phase between the two signals, $\theta$, is a random variable. The expectation value for multiple measurements is
+\begin{equation}
+  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle + \langle |X_b(\tau_b, \phi_b, Q_b)|^2 \rangle,
+\end{equation}
+as the $\cos{\theta}$ term vanishes.  Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we write
+\begin{align}
+  X_b(\tau_b, \phi_b, Q_b) &= \int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+2\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right] \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \\
+  &= \int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b} \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \\
+  &= B
+\end{align}
+where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that.
 %Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
