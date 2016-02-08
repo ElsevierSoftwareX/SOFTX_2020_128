@@ -82,10 +82,9 @@ The normalization factor is such that
 \end{equation}
 Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:analysis:snr}. This yields the normalization factor
 \begin{equation}
-  W = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}A_1},
+  W = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}}.
   \label{eq:W}
 \end{equation}
-where $A_1$ is a correction factor to account for the fact that tiles overlap (See~Eq.~5.55 of~\cite{Chatterji:2004}).
 
 In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms although bisquare windows are actually used for the Omicron implementation.
 
@@ -135,24 +134,57 @@ A characteristic tile duration is defined as the bin width:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Signal to noise ratio} \label{sec:analysis:snr}
 
-Let's consider a signal which is a burst of energy of amplitude $B$ with a sinusoidal Gaussian waveform parameterized by $\tau_b$, $\phi_b$ and $Q_b$:
+Let's consider a signal which is a burst of energy of amplitude $B$ with a sinusoidal Gaussian waveform, the parameters of which exactly match the tile indexed by $b$:
 \begin{align}
   b(t) &= Bw(t-\tau_b, \phi_b, Q_b)\cos(2\pi\phi_b t + \theta_b),\\
-  \tilde{b}(f) &= B\left[ \tilde{w}(f-\phi_b,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right]/2
+  \tilde{b}(f) &= B\left[ \tilde{w}(f-\phi_b,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right]/2,
 \end{align}
-This signal lives on top of a stationary stochastic noise $n(t)$: $x(t) = b(t) + n(t)$. Assuming that the burst signal parameters are exactly matched by a tile, the squared magnitude of the Q transform coefficient for this tile is
+where $\theta_b$ is the arbitrary phase between the burst and tile $b$. The burst signal lives on top of a stationary stochastic noise $n(t)$: $x(t) = b(t) + n(t)$. The squared magnitude of the Q transform coefficient for tile $b$ is
 \begin{equation}
   |X(\tau_b, \phi_b, Q_b)|^2 = |X_n(\tau_b, \phi_b, Q_b)|^2 + |X_b(\tau_b, \phi_b, Q_b)|^2 + 2|X_n(\tau_b, \phi_b, Q_b)|\ |X_b(\tau_b, \phi_b, Q_b)|\cos{\theta},
 \end{equation}
-where $X_b$ and $X_n$ are the $Q$-transform coefficients for the burst and noise components. The phase between the two signals, $\theta$, is a random variable. The expectation value for multiple measurements is
+where $X_b$ and $X_n$ are the $Q$-transform coefficients for the burst and noise components. The phase between the two signals, $\theta$, is a random variable. The last term vanishes when we consider the expectation value for multiple measurements:
 \begin{equation}
-  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle + \langle |X_b(\tau_b, \phi_b, Q_b)|^2 \rangle,
+  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle + \langle |X_b(\tau_b, \phi_b, Q_b)|^2 \rangle.
 \end{equation}
-as the $\cos{\theta}$ term vanishes.  Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we write
+Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we write the burst contribution as
 \begin{align}
-  X_b(\tau_b, \phi_b, Q_b) &= \int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+2\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right] \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \\
-  &= \int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b} \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \\
-  &= B
+  |X_b(\tau_b, \phi_b, Q_b)|^2 &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+2\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right] \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \right|^2\\
+  &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b} \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df}\right|^2 \\
+  &= B^2
+  \label{eq:qtransform_signal}
 \end{align}
-where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that.
+where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation and verify condition~\ref{eq:antialias1}.
+
+The expectation value for the noise contribution can be written as
+\begin{equation}
+  \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle =  \int_{-\infty}^{+\infty}{ \int_{-\infty}^{+\infty}{ \langle n(t)n^*(t') \rangle w(t,\phi_b,Q_b) w^*(t',\phi_b,Q_b) e^{-2i\pi\phi_b(t-t')}dt}dt'}.
+  \label{eq:qtransform_noise1}
+\end{equation}
+Then, working with a stationary process, we can use the Wiener-Khinchin theorem,
+\begin{equation}
+  S_n(f)=2\int_{0}^{+\infty}{ \langle n(t)n^*(t-T) \rangle e^{-2i\pi fT}dT},
+\end{equation}
+and the Fourier transform translation relation valid for a symmetrical function $w$,
+\begin{equation}
+  \int_{-\infty}^{+\infty}{w(t)w^*(t-T)dt} = -\int_{-\infty}^{+\infty}{|\tilde{w}(f)|^2e^{-2i\pi fT}df},
+\end{equation}
+and re-write Eq.~\ref{eq:qtransform_noise1}:
+\begin{equation}
+  \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle =  \frac{1}{2}\int_{0}^{+\infty}{ |\tilde{w}(f-\phi_b,\phi_b,Q_b)|^2S_n(f) df }.
+  \label{eq:qtransform_noise}
+\end{equation}
+Thanks to the normalization condition~\ref{eq:winnorm}, the squared magnitude of the $Q$ transform coefficients for a stationary stochastic process can be interpreted as a measure of the noise power density over the frequency-shifted tile.
+For tile $b$, it is possible to define an amplitude signal-to-noise ratio:
+\begin{align}
+  \rho(\tau_b, \phi_b, Q_b) &=  \sqrt{\frac{\langle|X_b(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}} \label{eq:snr1} \\
+  &=  \sqrt{\frac{\langle|X(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr2} \\
+  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
+\end{align}
+For a noise spectrum which is approximately constant over the bandwidth of the tile, we obtain the intuitive result:
+\begin{equation}
+  \rho(\tau_b, \phi_b, Q_b) \simeq \frac{B}{\sqrt{S_n}}
+\end{equation}
+
+
 %Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
