@@ -13,7 +13,7 @@ DATA CHANNELS                   L1:LDAS-STRAIN
 // working sampling frequency [Hz]
 DATA SAMPLEFREQUENCY            1024
 
-// timing definition (chunk duration and overlap duration [s])
+// timing definition (chunk duration T_c and overlap duration T_o [s])
 PARAMETER TIMING                64      4
 
 // Q range
@@ -22,13 +22,13 @@ PARAMETER QRANGE                4       100
 // Frequency range [Hz]
 PARAMETER FREQUENCYRANGE        40      512
 
-// Maximal fractional energy loss due to mismatch
+// Maximal fractional energy loss due to mismatch \mu_{max}
 PARAMETER MISMATCHMAX           0.2
 
 // SNR thresholds
 PARAMETER SNRTHRESHOLD          5
 
-// PSD buffer length [s]
+// PSD buffer length T_{PSD}[s]
 PARAMETER PSDLENGTH             300
 
 // path to output directory

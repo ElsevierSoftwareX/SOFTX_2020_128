@@ -17,15 +17,19 @@ and
 The input data is a real time series whereas the frequency-domain data vector is complex-valued. As a result, the spectrum of the data is symmetrical around DC. The negative frequencies are ignored and only the one-sided data vector is considered. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_w/2$. 
 
 From these definitions, the one-sided periodogram of $x$ is computed as:
-\begin{equation}
-  P[k]= \frac{2}{T_c}\left| \frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}} \right|^2,
-\end{equation}
-where the factor 2 accounts for both negative and positive frequencies. When averaging multiple periodograms, one gets an estimate of the signal power spectral density (PSD), $S[k]$. Sec.~\ref{sec:analysis:whitening} describes in detail how the PSD is estimated. 
+\begin{align}
+  P[k] &= \frac{2}{T_c}\left|\tilde{x}[k]\right|^2 \\
+  &= \frac{2}{T_c}\left| \frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}} \right|^2,
+  \label{eq:periodogram}
+\end{align}
+where the factor 2 accounts for both negative and positive frequencies. When averaging multiple periodograms, one gets an estimate of the signal power spectral density (PSD), $S[k]$. Sec.~\ref{sec:algorithm:whitening} describes in detail how the PSD is estimated in Omicron. 
 
-Before being applied the $Q$ transform, the data chunk is whitened such that individual samples of the discrete time sequence are statistically independent random variables. To achieve this, a simple method consists of dividing the 
+Before being applied the $Q$ transform, the data chunk is whitened such that individual samples of the discrete time sequence are statistically independent random variables. To achieve this, a simple method consists of re-weighting the individual frequency-domain data sample by the inverse two-sided amplitude spectral density:
 \begin{equation}
-  \tilde{x}_{white}[k] = \tilde{x}[k]/S_n[k]
+  \tilde{x}_{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S[k]/2}}.
+  \label{eq:white}
 \end{equation}
+After this transformation, the power is equally distributed over the frequencies and the power spectral density of $x_{white}$ is flat.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

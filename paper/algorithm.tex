@@ -40,7 +40,7 @@ The user options must also include the maximum fractional energy loss due mismat
 
 A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes are given a $Q$ value obtained from Eq.~\ref{eq:q}.
 
-A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. The time horizontal axis is divided into $N_\tau(Q,\phi)$ linear bins, $N_\tau(Q,\phi)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Working with a power-of-two number of tiles along a frequency row is computationally more efficient when performing the discrete inverse Fourier transform of Eq.~\ref{eq:qtransform3}. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths derived from Eq.~\ref{eq:dtau} and~\ref{eq:dphi}
+A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. The horizontal time axis is divided into $N_\tau(Q,\phi)$ linear bins, $N_\tau(Q,\phi)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Working with a power-of-two number of tiles along a frequency row is computationally more efficient when performing the discrete inverse Fourier transform of Eq.~\ref{eq:qtransform3}. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths derived from Eq.~\ref{eq:dtau} and~\ref{eq:dphi}. \bluenote{comment about bandwidth/duration.}
 
 
 A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,098,688 tiles over 64 s and between 40.0 Hz and 489.2 Hz. For the plane with the lowest $Q$ value, the time resolution varies between 0.98~ms and 7.81~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz. For the highest $Q$ plane, the time resolution varies between 7.81~ms and 125.00~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz.
@@ -59,7 +59,7 @@ A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling
 \subsection{The windows} \label{sec:algorithm:window}
 As presented in Eq.~\ref{eq:qtransform3}, the data vector is windowed in the frequency domain. In Sec.\ref{sec:analysis:window}, we discussed the possibility of using a bisquare window to approximate the Gaussian window. The window expression, given in Eq.~\ref{eq:dbisquare}, only depends on $Q_q$ and $\phi_l$, it is therefore computed for each frequency row and each $Q$ plane.
 
-\bluenote{explaiin M/N FT.}
+As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\Delta f(\phi_l,Q_q) T_c+ 1$.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -85,7 +85,7 @@ The chunk and overlap structure must verify some conditions:
 \item The overlap duration must be an even value and shorter than the chunk duration for obvious reasons.
 \end{enumerate}
 
-For a given chunk and a given channel\footnote{Chunks and channels are internally looped over using the \texttt{Omicron::NewChunk()} and \texttt{Omicron::NewChannel()} functions.}, a chunk data vector is filled with the raw time series. The native sampling frequency for this channel data stream, $f_s$ is directly given by the size of the vector and is checked for evey chunk. This way, a change of the channel sampling frequency is automatically accounted for when looping over the chunks.
+For a given chunk and a given channel\footnote{Chunks and channels are internally looped over using the \texttt{Omicron::NewChunk()} and \texttt{Omicron::NewChannel()} functions.}, a chunk data vector is filled with the raw time series. The native sampling frequency for this channel data stream, $f_s$ is directly given by the size of the vector and is checked for evey chunk. This way, a change of the channel native sampling frequency is automatically accounted for when looping over the chunks.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,10 +131,9 @@ The data conditioning is performed using the \texttt{Condition()} function of th
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data whitening} \label{sec:algorithm:whitening}
 
-The conditioned chunk data vector is whitened by weighting the data by the inverse of the detector’s power spectral density (PSD). \bluenote{Add intro, motivate whitening.}
-The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
+As introduced in Sec.~\ref{sec:analysis:data}, the conditioned chunk data vector is whitened by weighting the data by the inverse of the detector's power spectral density (PSD). The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
 
-A time-domain data vector $x$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-segments of duration $T_\mathrm{spec}$, indexed by $s$ and overlapping by 50\%, as represented in Fig.~\ref{fig:psdseg}. The normalized periodograms $P_s$, are computed for all sub-segments and using a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
+A time-domain data vector $x$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-segments of duration $T_\mathrm{spec}$, indexed by $s$ and overlapping by 50\%, as represented at the top of Fig.~\ref{fig:psdseg}. The periodograms defined by Eq.~\ref{eq:periodogram} are computed for all segments using $f_wT_\mathrm{spec}$ data points and a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
 \begin{equation}
   P_s[k] = \frac{2}{f_w^2T_\mathrm{spec}}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{x_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
 \end{equation}
@@ -149,7 +148,18 @@ To work with independent random quantities, the sub-segments are separated into 
   \label{fig:psdseg}
 \end{figure}
 
-\bluenote{Transition: need to connect this with the tiling section.} When running Omicron over 1~Hz, the PSD frequency resolution is fixed at 0.5~Hz. To obtain such a resolution, it is required to estimate the PSD with $T_\mathrm{spec}=2$~s. The segment duration $T_\mathrm{PSD}$ is user-defined in the parameter file (\texttt{PARAMETER/PSDLENGTH} option). The number of sub-segments used to estimate the PSD is therefore: $N^e=\lfloor T_\mathrm{PSD}/2 \rfloor$ and $N^e=\lfloor(T_\mathrm{PSD}-T_\mathrm{spec}/2)/2\rfloor$. Below 1~Hz, the PSD resolution is not fixed but is detrmined by the starting frequency of the tiling structure $f^t_{min}$. \bluenote{Continue this after tiling section is done.}
+For Omicron, the time scale to estimate the PSD is decoupled from the chunk structure; $T_\mathrm{PSD}$ can be set independently from the $T_c$ parameter, using the option file. When a new data chunk is loaded, the data vector, excluding half the overlap on both chunk edges, is saved in a circular buffer of duration $T_\mathrm{PSD}$. For each chunk, the PSD is then estimated using the data available in the buffer. If $T_\mathrm{PSD} > T_c-T_o$, the PSD is not optimally estimated for the first chunks as the circular buffer is not full. Using $T_\mathrm{PSD} < T_c-T_o$ is equivalent to a situation where $T_\mathrm{PSD} = T_c-T_o$. The PSD circular buffer is flushed whenever a new time segment starts (the time segments are described in Sec.~\ref{sec:algorithm:data}). 
+
+The PSD frequency resolution must be compatible with the Omicron tiling structure described in Sec.~\ref{sec:algorithm:tiling} and be high enough to resolve all the $Q$ plane frequency rows. It is set by the hard-coded parameter $T_\mathrm{spec}$. If the search frequency range, $[\phi_{min}; \phi_{max}]$, is above 1~Hz, $T_\mathrm{spec}=2$~s. The PSD frequency resolution is then fixed at $1/T_\mathrm{spec}=0.5$~Hz. If the search frequency range goes below 1~Hz, $T_\mathrm{spec}=\lceil4/\phi_{min}\rceil$.
+
+Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:white}. However, the PSD, $S$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data data sample $x[k]$, a linear interpolation is used to estimate the PSD value at the frequency $k/T_c$. Fig.~\ref{fig:white} illustrates the effect of the whitening method on th power spectral density. \bluenote{comment fifure.}
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/white_1.eps} \\
+  \epsfig{width=10cm, file=./figures/white_2.eps}
+  \caption{Power spectral density before (top) and after (bottom) whitening the input data chunk.}
+  \label{fig:white}
+\end{figure}
 
 \subsection{The data projection} \label{sec:algorithm:projection}
 
