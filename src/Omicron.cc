@@ -523,7 +523,11 @@ bool Omicron::Project(void){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
     if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
     int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/csize/sqrt(2*(double)tile->GetTimeRange());
+    //for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/csize/sqrt(2*(double)tile->GetTimeRange());
+    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/(double)tile->GetTimeRange();
+    //spectrum[chanindex]->Reset();
+    //spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), WhiteChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2);
+
   }
   
   // save triggers
@@ -674,35 +678,34 @@ bool Omicron::Whiten(void){
 
   // reset
   int i=0;
+  int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
  
-  // zero-out below highpass frequency
+  // zero-out DC and below highpass frequency
   int n = (int)(tile->GetFrequencyMin()*tile->GetTimeRange());
   for(; i<n; i++){
     DataRe[i] = 0.0;
     DataIm[i] = 0.0;
+    DataRe[csize-1-i] = 0.0;
+    DataIm[csize-1-i] = 0.0;
   }
  
   // normalize data by the ASD
-  n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2;
+  // + /f_w (FFT definition)
+  n = csize/2;
   double asdval;
   for(; i<n; i++){
-    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange());
+    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;// two-sided
     if(asdval<=0){
       cerr<<"Omicron::Whiten: could not retrieve power"<<endl;
       return false;
     }
     asdval=sqrt(asdval);
-    DataRe[i] = offt->GetReOut(i) / asdval;
-    DataIm[i] = offt->GetImOut(i) / asdval;
+    DataRe[i] =  offt->GetReOut(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
+    DataIm[i] =  offt->GetImOut(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
+    DataRe[csize-1-i] = DataRe[i];
+    DataIm[csize-1-i] = DataIm[i];
   }
- 
-  // zero-out negative frequencies
-  n*=2;
-  for(; i<n; i++){
-    DataRe[i] = 0.0;
-    DataIm[i] = 0.0;
-  }
- 
+
   return true;
 }
 

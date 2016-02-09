@@ -58,7 +58,7 @@ class Oqplane: public Omap {
 
   // INTERNAL
   double GetMeanEnergy(const int aBandIndex, double *aEnergies);
-  void GetPlaneNormalization(void);
+  double GetA1(void);
  
   // Q-PLANE
   double Q;                         ///< Q value

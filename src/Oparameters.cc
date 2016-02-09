@@ -197,7 +197,7 @@ void Omicron::ReadOptions(void){
     if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
       spectrum[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
     else // increase the resolution not to extrapolate the PSD.
-      spectrum[c] = new Spectrum(2*(int)floor((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+      spectrum[c] = new Spectrum(2*(int)ceil((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
   }
   //*****************************
   

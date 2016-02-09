@@ -43,9 +43,6 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     FrequencyMax=MaximumAllowableFrequency;
   }
 
-  // get plane normalization
-  GetPlaneNormalization();
-
   // Q plane definition
   ostringstream titlestream;
   titlestream<<"qplane_"<<setprecision(5)<<fixed<<Q;
@@ -70,7 +67,8 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   double winnormalization;
   double ifftnormalization;
   double delta_f;// Connes window 1/2-width
-  
+  //double A1 = GetA1(); // not used
+ 
   for(int f=0; f<GetNBands(); f++){
     
     // no power
@@ -82,10 +80,11 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
 
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
+    //delta_f=GetBandWidth(f);
     bandWindowSize[f] = 2 * (int)floor(delta_f*(double)TimeRange) + 1;
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
-    winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26 (for localized bursts only!!!)
+    winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26 Localized bursts only!!!
  
     // Connes window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
     for(int i=0; i<bandWindowSize[f]; i++){
@@ -347,38 +346,24 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Oqplane::GetPlaneNormalization(void){
+double Oqplane::GetA1(void){
 ////////////////////////////////////////////////////////////////////////////////////  
 
-  //polynomial coefficients for plane normalization factor
+  if(QPrime > 10.0) return 1.0; // use asymptotic value of planeNormalization (Fig. 5.3)
+
   double logfact = log((QPrime + 1) / (QPrime - 1));
-  double coefficients[9] = {logfact,
-			    -2.0,
-			    -4.0*logfact,
-			    22.0/3.0,
-			    6.0*logfact,
-			    -146.0/15.0,
-			    -4.0*logfact,
-			    186.0/35.0,
-			    logfact};// see eq. 5.55
+  double a =
+    logfact*pow(QPrime,8)
+    -2.0*pow(QPrime,7)
+    -4.0*logfact*pow(QPrime,6)
+    +22.0/3.0*pow(QPrime,5)
+    +6.0*logfact*pow(QPrime,4)
+    -146.0/15.0*pow(QPrime,3)
+    -4.0*logfact*pow(QPrime,2)
+    +186.0/35.0*QPrime+
+    +logfact;// eq. 5.55
 
-  // for large qPrime
-  if(QPrime > 10.0) PlaneNormalization = 1.0; // use asymptotic value of planeNormalization (Fig. 5.3)
-
-  else{
-    PlaneNormalization = sqrt(256.0 / (315.0 * QPrime * (
-						      coefficients[0]*pow(QPrime,8)+
-						      coefficients[1]*pow(QPrime,7)+
-						      coefficients[2]*pow(QPrime,6)+
-						      coefficients[3]*pow(QPrime,5)+
-						      coefficients[4]*pow(QPrime,4)+
-						      coefficients[5]*pow(QPrime,3)+
-						      coefficients[6]*pow(QPrime,2)+
-						      coefficients[7]*QPrime+
-						      coefficients[8])));// eq. 5.55
-  }
-
-  return;
+  return sqrt(256.0 / 315.0 / QPrime / a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
