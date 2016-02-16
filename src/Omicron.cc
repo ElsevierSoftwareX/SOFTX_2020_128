@@ -43,8 +43,8 @@ Omicron::Omicron(const string aOptionFile){
   // data containers
   ChunkVect     = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
   WhiteChunkVect= new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
-  DataRe        = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
-  DataIm        = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
+  DataRe        = new double    [tile->GetTimeRange()/2*triggers[0]->GetWorkingFrequency()/2];
+  DataIm        = new double    [tile->GetTimeRange()/2*triggers[0]->GetWorkingFrequency()/2];
   TukeyWindow   = GetTukeyWindow(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
 				 tile->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
   offt          = new fft(       tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
@@ -522,9 +522,9 @@ bool Omicron::Project(void){
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
     if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
-    int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
+    uint csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
     //for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/csize/sqrt(2*(double)tile->GetTimeRange());
-    for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/(double)tile->GetTimeRange();
+    for(uint i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetTimeVector(i)/(double)tile->GetTimeRange();
     //spectrum[chanindex]->Reset();
     //spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), WhiteChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2);
 
@@ -677,21 +677,19 @@ bool Omicron::Whiten(void){
   // the normalization (/N) is performed (by convention) after backwarding
 
   // reset
-  int i=0;
-  int csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
+  uint i=0;
+  uint csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
  
   // zero-out DC and below highpass frequency
-  int n = (int)(tile->GetFrequencyMin()*tile->GetTimeRange());
+  uint n = (uint)(tile->GetFrequencyMin()*tile->GetTimeRange());
   for(; i<n; i++){
     DataRe[i] = 0.0;
     DataIm[i] = 0.0;
-    DataRe[csize-1-i] = 0.0;
-    DataIm[csize-1-i] = 0.0;
   }
  
   // normalize data by the ASD
   // + /f_w (FFT definition)
-  n = csize/2;
+  n = csize/2+1;
   double asdval;
   for(; i<n; i++){
     asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;// two-sided
@@ -700,10 +698,8 @@ bool Omicron::Whiten(void){
       return false;
     }
     asdval=sqrt(asdval);
-    DataRe[i] =  offt->GetReOut(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
-    DataIm[i] =  offt->GetImOut(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
-    DataRe[csize-1-i] = DataRe[i];
-    DataIm[csize-1-i] = DataIm[i];
+    DataRe[i] =  offt->GetRe(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
+    DataIm[i] =  offt->GetIm(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
   }
 
   return true;
@@ -815,7 +811,7 @@ void Omicron::SaveSpectral(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  int n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2;
+  int n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2+1;
   stringstream ss;
 
   // amplitude graph

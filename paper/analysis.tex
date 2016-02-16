@@ -60,12 +60,12 @@ where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequenc
 \begin{equation}
   \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) =
   \begin{cases}
-    W\left[1 - \left(f/\Delta f(\phi,Q)\right)^2 \right]^2 & |f| < \Delta f(\phi,Q), \\
+    W\left[1 - \left(\frac{f}{\Delta f(\phi,Q)}\right)^2 \right]^2 & |f| < \Delta f(\phi,Q), \\
     0 & \textrm{otherwise},
   \end{cases}
   \label{eq:bisquare}
 \end{equation}
-where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is zero for $|f| > \Delta f(\phi,Q)$, so that shorter inverse Fourier transforms are performed to compute $\tilde{w}$ in Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes. Fourth, thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
+where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is zero for $|f| > \Delta f(\phi,Q)$, so that shorter inverse Fourier transforms are performed to compute Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes. Fourth, thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
 \begin{align}
   &Q\ge\sqrt{11} \qquad \text{and}\label{eq:antialias1} \\
   &\phi \le \frac{f_{\text{Nyquist}}}{1+\sqrt{11}/Q}, \label{eq:antialias2}
@@ -79,7 +79,7 @@ In a discrete analysis, the bisquare window writes:
 \end{equation}
 where $M[l,q] = 2\lfloor{T_c\Delta f(\phi,Q)\rfloor} +1$ is the number of points where the bisquare function is non zero.
 
-The normalization factor is such that
+The normalization factor, $W$, is such that
 \begin{equation}
   \int_{-\infty}^{+\infty}{|\tilde{w}(f,\phi,Q)|^2df} = 2.
   \label{eq:winnorm}

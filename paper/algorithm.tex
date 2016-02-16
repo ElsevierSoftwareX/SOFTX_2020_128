@@ -59,7 +59,7 @@ A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling
 \subsection{The windows} \label{sec:algorithm:window}
 As presented in Eq.~\ref{eq:qtransform3}, the data vector is windowed in the frequency domain. In Sec.\ref{sec:analysis:window}, we discussed the possibility of using a bisquare window to approximate the Gaussian window. The window expression, given in Eq.~\ref{eq:dbisquare}, only depends on $Q_q$ and $\phi_l$, it is therefore computed for each frequency row and each $Q$ plane.
 
-As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\Delta f(\phi_l,Q_q) T_c+ 1$.
+As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -152,7 +152,7 @@ For Omicron, the time scale to estimate the PSD is decoupled from the chunk stru
 
 The PSD frequency resolution must be compatible with the Omicron tiling structure described in Sec.~\ref{sec:algorithm:tiling} and be high enough to resolve all the $Q$ plane frequency rows. It is set by the hard-coded parameter $T_\mathrm{spec}$. If the search frequency range, $[\phi_{min}; \phi_{max}]$, is above 1~Hz, $T_\mathrm{spec}=2$~s. The PSD frequency resolution is then fixed at $1/T_\mathrm{spec}=0.5$~Hz. If the search frequency range goes below 1~Hz, $T_\mathrm{spec}=\lceil4/\phi_{min}\rceil$.
 
-Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:white}. However, the PSD, $S$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data data sample $x[k]$, a linear interpolation is used to estimate the PSD value at the frequency $k/T_c$. Fig.~\ref{fig:white} illustrates the effect of the whitening method on th power spectral density. \bluenote{comment fifure.}
+Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:white}. However, the PSD, $S$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data data sample $\tilde{x}[k]$, a linear interpolation is used to estimate the PSD value at the frequency $k/T_c$. Fig.~\ref{fig:white} illustrates the effect of the whitening method on the power spectral density. \bluenote{comment figure.}
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/white_1.eps} \\
@@ -162,6 +162,9 @@ Before projecting the data onto the tiling structure, the data chunk, $x$, is Fo
 \end{figure}
 
 \subsection{The data projection} \label{sec:algorithm:projection}
+
+The whitened frequency-domain data vector $\tilde{x}$ must be applied the $Q$ transform of Eq.~\ref{eq:qtransform3} for each tile $(m, l, q)$. As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
+
 
 \subsection{The triggering} \label{sec:algorithm:triggering}
 

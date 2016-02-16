@@ -85,13 +85,13 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     bandWindow[f]     = new double [bandWindowSize[f]];
     bandWindowFreq[f] = new double [bandWindowSize[f]];
     winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26 Localized bursts only!!!
- 
-    // Connes window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
+
+    // bisquare window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
     for(int i=0; i<bandWindowSize[f]; i++){
       bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) / (double)TimeRange;// centered on 0
       //windowargument=bandWindowFreq[f][i]/delta_f;// f/delta_f (same as below)
       windowargument=2.0*(double)i/((double)bandWindowSize[f] - 1.0) -1.0;
-      bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// connes window (1-x^2)^2
+      bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
       bandWindowFreq[f][i]+=GetBandFrequency(f);// now centered on band frequency
     }
   }
@@ -156,7 +156,7 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 
   // locals
   double *working_vector[2];    // working vector RE&IM
-  int i, index, dataindex, end; // indexes
+  int i, ishift, end; // indexes
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
   double *phases;               // vector of phases
@@ -173,10 +173,18 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // number of tiles in this row
     Nt = GetBandNtiles(f);
     
-    // make working vector
-    working_vector[0] = new double [Nt];
-    working_vector[1] = new double [Nt];
-    
+    // make working vector (frequency domain, complex values)
+    working_vector[0] = new double [Nt/2+1];
+    working_vector[1] = new double [Nt/2+1];
+
+    // no DC
+    working_vector[0][0]=0.0;
+    working_vector[1][0]=0.0;
+
+    for(int i=0; i<Nt/2+1; i++){
+      freq=;
+    }
+            
     // padding sizes
     ZeroPadSize = Nt-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
@@ -193,7 +201,7 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // |----|---------------|---------------|----| Nt
     i=0, index=0, end=0;
     end=Nt/2-RightZeroPadSize;
-    for(; i<end; i++){
+    for(; i<bandWindowSize[f]/2; i++){
       index=i+Nt/2-LeftZeroPadSize;
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
       working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
