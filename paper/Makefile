@@ -1,7 +1,7 @@
 TEX	= pdflatex
 BIBTEX  = bibtex
 
-SOURCES = paper.tex introduction.tex analysis.tex algorithm.tex characterization.tex conclusion.tex parameters.tex references.bib
+SOURCES = paper.tex introduction.tex method.tex algorithm.tex characterization.tex conclusion.tex parameters.tex references.bib
 
 all : paper.pdf
 

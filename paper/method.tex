@@ -1,62 +1,46 @@
-\section{Data analysis} \label{sec:analysis}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The input data} \label{sec:analysis:data}
-
-The Omicron algorithm is designed to process any data time series $x(t)$ associated to a gravitational-wave detector channel, e.g. the detector output channel, an environmental sensor, a photodiode signal, etc. The data consists of a discrete time sequence, $x[j]$, which is identified by a channel name and a native sampling frequency, $f_s$, defining the time separation between two consecutive data points $\delta t = t_{j+1}-t_j = 1/f_s$. As we will see in Sec.~\ref{sec:algorithm:conditioning}, the Omicron algorithm includes a data conditioning step where the input data is downsampled to a working sampling frequency $f_w$, allowing for an optimized subsequent processing. The data is then iteratively analyzed by time chunks of fixed duration $T_c$, corresponding to $N=T_cf_w$ data samples. With Omicron, the working sampling frequency $f_w$ and the chunk duration $T_c$ are required to each be a power of two. Therefore $N$ is a power of two in order to take advantage of the computational efficiency of the fast Fourier transform.
-
-The Omicron analysis makes use of Fourier transforms~\cite{Gabor:1946} to decompose the signal into characteristic frequencies and to construct spectra. The discrete forward and inverse normalized Fourier transforms are written as
-\begin{equation}
-  \tilde{x}[k]=\frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}}
-\end{equation}
-and
-\begin{equation}
-  x[j]=\frac{f_w}{N}\sum_{j=0}^{N-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N}}.
-\end{equation}
-The input data is a real time series whereas the frequency-domain data vector is complex-valued. As a result, the spectrum of the data is symmetrical around DC. The negative frequencies are ignored and only the one-sided data vector is considered. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_w/2$. 
-
-From these definitions, the one-sided periodogram of $x$ is computed as:
-\begin{align}
-  P[k] &= \frac{2}{T_c}\left|\tilde{x}[k]\right|^2 \\
-  &= \frac{2}{T_c}\left| \frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}} \right|^2,
-  \label{eq:periodogram}
-\end{align}
-where the factor 2 accounts for both negative and positive frequencies. When averaging multiple periodograms, one gets an estimate of the signal power spectral density (PSD), $S[k]$. Sec.~\ref{sec:algorithm:whitening} describes in detail how the PSD is estimated in Omicron. 
-
-Before being applied the $Q$ transform, the data chunk is whitened such that individual samples of the discrete time sequence are statistically independent random variables. To achieve this, a simple method consists of re-weighting the individual frequency-domain data sample by the inverse two-sided amplitude spectral density:
-\begin{equation}
-  \tilde{x}_{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S[k]/2}}.
-  \label{eq:white}
-\end{equation}
-After this transformation, the power is equally distributed over the frequencies and the power spectral density of $x_{white}$ is flat.
-
+\section{The method} \label{sec:method}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The $Q$ transform} \label{sec:analysis:qtransform}
-To conduct the multi-resolution analysis motivated in the introduction, the data are processed using the $Q$ transform~\cite{Brown:1991}. The $Q$ transform is a modification of the standard short time Fourier transform in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant quality factor $Q$. The signal time series, $x(t)$, is projected onto a basis of windowed sine waves:
+\subsection{The $Q$ transform} \label{sec:method:qtransform}
+To conduct the multi-resolution analysis motivated in the introduction, the data are processed using the $Q$ transform~\cite{Brown:1991}. The $Q$ transform is a modification of the standard short time Fourier transform in which the analysis window duration varies inversely with frequency such that the time-frequency plane is covered by tiles of constant quality factor $Q$. The signal time series, $x(t)$, is projected onto a basis of complex-valued windowed sine waves:
 \begin{equation}
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ x(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}.
   \label{eq:qtransform1}
 \end{equation}
-The transformed coefficient, $X$, measures the average signal amplitude and phase within a time-frequency region centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor $Q$ and the particular choice of analysis window, $w$. This region is called a \textit{tile}.
+The transformed coefficient, $X$, measures the average signal amplitude and phase within a time-frequency region, called a \textit{tile}, centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor $Q$ and the particular choice of analysis window, $w$. In~\cite{Gabor:1946}, it is shown that the minimal time-frequency resolution is achieved by a Gaussian window:
+\begin{equation}
+  w(t-\tau,\phi,Q) = W\exp\left [ -\frac{1}{2\sigma_t^2}(t-\tau)^2 \right],
+  \label{eq:gausswindowt}
+\end{equation}
+where $W$ is a normalization factor and the Gaussian variance is $\sigma_t^2=\frac{Q^2}{8\pi^2\phi^2}$.
 
-To optimize the algorithmic implementation of the $Q$ transform, we use an alternative form of Eq.~\ref{eq:qtransform1}, which can be formulated in the frequency domain as~\cite{Chatterji:2004}:
-\begin{equation}
-  X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df},
+To optimize the algorithmic implementation of the $Q$ transform, we prefer an alternative form of Eq.~\ref{eq:qtransform1}, where the cross-correlation theorem and the Fourier transform translation relation are used:
+\begin{align}
+  X(\tau, \phi, Q) &= \int_{-\infty}^{+\infty}{\tilde{X}(f,\phi,Q) e^{+2i\pi f \tau}df} \\
+  &= \int_{-\infty}^{+\infty}{ \widetilde{\left (\int_{-\infty}^{+\infty}{(w^*)^*(t,\phi,Q)x(t+\tau)e^{-2i\pi\phi(t+\tau)}dt}\right)} e^{+2i\pi f \tau}df}\\
+  &= \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df}.
   \label{eq:qtransform2}
-\end{equation}
-where tilded variables represent Fourier-transformed quantities. When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
+\end{align}
+The tilde character is used to symbol the Fourier transform, defined as
 \begin{equation}
-  X(m,l,q) = \frac{f_w}{N}\sum_{k=0}^{N-1}{\tilde{x}[k+l]\tilde{w}^{*}[k,l,q]e^{+2i\pi mk/N}},
-  \label{eq:qtransform3}
+  \tilde{x}(f) = \int_{-\infty}^{+\infty}{ x(t) e^{-2i\pi f t}dt}, \label{eq:FTforward}
 \end{equation}
-where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively. In Eq.~\ref{eq:qtransform3}, the signal time series is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform. This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x$ is only Fourier-transformed once and used as such for all the tiles. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
+and reverse Fourier transform as
+\begin{equation}
+  x(t) = \int_{-\infty}^{+\infty}{ \tilde{x}(f) e^{2i\pi f t}df}.  \label{eq:FTbackward}
+\end{equation}
+With these definitions, in Eq.~\ref{eq:qtransform2}, the signal is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The window} \label{sec:analysis:window}
+\subsection{The window} \label{sec:method:window}
+To compute the $Q$ transform of Eq.~\ref{eq:qtransform2}, we need to apply the Fourier transform to the Gaussian window of Eq.~\ref{eq:gausswindowt}. In the frequency domain, the window is also Gaussian:
+\begin{equation}
+  \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) = W\exp\left [ -\frac{Q^2}{4\phi^2}f^2 \right],
+  \label{eq:gausswindowf}
+\end{equation}
+where additional factors were absorbed in the normalization factor $W$.
 
-\bluenote{Explain the best-case scenario of a Gaussian window}. Using a Gaussian window is a natural choice to provide a good time-frequency resolution. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
+The Gaussian window provides the best time-frequency resolution~\cite{Gabor:1946}. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
 \begin{equation}
   \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) =
   \begin{cases}
@@ -65,26 +49,21 @@ where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequenc
   \end{cases}
   \label{eq:bisquare}
 \end{equation}
-where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. There are many advantages in using such a window~\cite{Chatterji:2004}. First, it is zero for $|f| > \Delta f(\phi,Q)$, so that shorter inverse Fourier transforms are performed to compute Eq.~\ref{eq:qtransform3}. Second, it achieves a time-frequency localization that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. Third, it offers a limited energy leakage into time-domain side lobes. Fourth, thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
+where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. This window is a very good approximation to the Gaussian case~\cite{Chatterji:2004}. It achieves a time-frequency resolution that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. In addition, it offers a limited energy leakage into time-domain side lobes.
+
+Thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
 \begin{align}
   &Q\ge\sqrt{11} \qquad \text{and}\label{eq:antialias1} \\
   &\phi \le \frac{f_{\text{Nyquist}}}{1+\sqrt{11}/Q}, \label{eq:antialias2}
 \end{align}
-the zero frequency and the Nyquist frequency, $f_{\text{Nyquist}}$, are never exceeded.
-
-In a discrete analysis, the bisquare window writes:
-\begin{equation}
-  \tilde{w}[k,l,q] = W \left[1 - \left(\frac{2k}{M[l,q]-1}-1\right)^2 \right]^2, \qquad 0\le k < M[l,q],
-  \label{eq:dbisquare}
-\end{equation}
-where $M[l,q] = 2\lfloor{T_c\Delta f(\phi,Q)\rfloor} +1$ is the number of points where the bisquare function is non zero.
+the zero frequency and the Nyquist frequency, $f_{\text{Nyquist}}$, are never exceeded: $0 \le f + \phi \le f_{\text{Nyquist}}$. The $Q$ transform in Eq.~\ref{eq:qtransform2} can, therefore, be safely discretized.
 
 The normalization factor, $W$, is such that
 \begin{equation}
   \int_{-\infty}^{+\infty}{|\tilde{w}(f,\phi,Q)|^2df} = 2.
   \label{eq:winnorm}
 \end{equation}
-Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:analysis:snr}. This yields the normalization factor
+Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:method:snr}. This yields the normalization factor
 \begin{equation}
   W = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}}.
   \label{eq:W}
@@ -92,9 +71,10 @@ Using this normalization condition has many advantages which will be presented i
 
 In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms although bisquare windows are actually used for the Omicron implementation.
 
+\bluenote{Comment about bandwidth/duration.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The tiles} \label{sec:analysis:tiles}
+\subsection{The tiles} \label{sec:method:tiles}
 The tiles, indexed by $(m,l,q)$, must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast computing processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
 \begin{equation}
   \delta s^2 =
@@ -119,7 +99,7 @@ Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency r
   \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, \qquad 0\le l < N_\phi.
   \label{eq:phi}
 \end{equation}
-A characteristic bandwidth is defined as the row width:
+It leads to the definition of a characteristic bandwidth given by the row width:
 \begin{equation}
   \Delta\phi_l = \phi_{l} \left[ \left(\frac{\phi_{max}}{\phi_{min}}\right)^{0.5/N_\phi} - \left(\frac{\phi_{max}}{\phi_{min}}\right)^{-0.5/N_\phi} \right].
   \label{eq:dphi}
@@ -135,8 +115,25 @@ A characteristic tile duration is defined as the bin width:
   \label{eq:dtau}
 \end{equation}
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Signal to noise ratio} \label{sec:analysis:snr}
+\subsection{The data whiteing} \label{sec:method:whitening}
+
+As we will see in Sec.~\ref{sec:method:snr}, whitening the data before applying the $Q$ transform is useful for a subsequent statistical interpretation of the $Q$ transform coefficients. To achieve this, a simple method consists of re-weighting the frequency-domain data by the inverse amplitude spectral density:
+\begin{equation}
+  \tilde{x}_{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S(|f|)}},
+  \label{eq:whitening}
+\end{equation}
+where $S(f)$ is the one-sided ($f \ge 0$) power spectrum density (PSD). After this transformation, the power is equally distributed over the frequencies and the one-sided PSD of $x_{white}$ is flat and equal to 1. The one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$:
+\begin{equation}
+  P_T(f) = \frac{2}{T}\left|\tilde{x}_T(f)\right|^2, \qquad f \ge 0.
+  \label{eq:periodogram}
+\end{equation}
+The factor 2 accounts for negative frequencies of $\tilde{x}_T$ which are ignored in a one-sided convention.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The signal to noise ratio} \label{sec:method:snr}
 
 Let's consider a signal which is a burst of energy of amplitude $B$ with a sinusoidal Gaussian waveform, the parameters of which exactly match the tile indexed by $b$:
 \begin{align}
@@ -191,4 +188,13 @@ For a noise spectrum which is approximately constant over the bandwidth of the t
 \end{equation}
 
 
-%Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection{The $Q$ transform}
+
+%When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
+%\begin{equation}
+%  X(m,l,q) = \frac{f_w}{N}\sum_{k=0}^{N-1}{\tilde{x}[k+l]\tilde{w}^{*}[k,l,q]e^{+2i\pi mk/N}},
+%  \label{eq:qtransform3}
+%\end{equation}
+%where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively.  This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x$ is only Fourier-transformed once and used as such for all the tiles. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.

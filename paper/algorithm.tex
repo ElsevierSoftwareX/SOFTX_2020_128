@@ -4,14 +4,14 @@
 %%%%%%%%%%  OVERVIEW
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Overview} \label{sec:algorithm:overview}
-The Omicron algorithm is developed in C++ and the code lives in the Virgo software repository~\cite{VirgoSVN}. Omicron is built upon GWOLLUM~\cite{GWOLLUM} libraries used to perform every step of an Omicron analysis (see Fig.~\ref{fig:omicron_incl} for a dependency diagram). The GWOLLUM package depends on external libraries. The FrameL~\cite{FrameL} library is used to perform IO operations on data frame files~\footnote{The frame format was developed for interferometric gravitational-wave detectors' data.}. Mathematical routines developed in the GNU Scientific Library~\cite{GSL} are commonly used by GWOLLUM functions. Discrete Fourier transforms are performed using the FFTW~\cite{FFTW} algorithm. Finally, the GWOLLUM and Omicron codes heavily rely on C++ classes developed in the ROOT~\cite{Brun:1997pa} framework. For example, ROOT classes are used for plotting purposes, for event storage or for data access. To deal with package dependencies, the CMT~\cite{CMT} configuration management tool was chosen.
+The Omicron algorithm is developed in C++ and the code lives in the Virgo software repository~\cite{VirgoSVN}. Omicron is built upon GWOLLUM~\cite{GWOLLUM} libraries used to perform every step of an Omicron analysis. The GWOLLUM package depends on external libraries. The FrameL~\cite{FrameL} library is used to perform IO operations on data frame files~\footnote{The frame format was developed for interferometric gravitational-wave detectors' data.}. Mathematical routines developed in the GNU Scientific Library~\cite{GSL} are commonly used by GWOLLUM functions. Discrete Fourier transforms are performed using the FFTW~\cite{FFTW} algorithm. Finally, the GWOLLUM and Omicron codes heavily rely on C++ classes developed in the ROOT~\cite{Brun:1997pa} framework. For example, ROOT classes are used for plotting purposes, for event storage or for data access. To deal with package dependencies, the CMT~\cite{CMT} configuration management tool was chosen.
 
-A fully object-oriented framework is adopted when developing GWOLLUM and Omicron, in which C++ classes and inheritance features are extensively used. The Omicron algorithm is entirely based on the \texttt{Omicron} C++ class which member functions are used to perform the analysis steps. A typical Omicron application can be represented by the sequence of functions represented in Fig.~\ref{fig:omicron_flowchart}. The \texttt{Omicron} constructor must be called using an input option file listing all the parameters defining the search one wants to perform. Then, the Omicron object must be provided with time segments to process. This is done with the \texttt{Omicron::InitSegment()} function. These time segments are processed sequentially with the \texttt{Omicron::NewChunk()} function. For every chunk, the list of channels to process is looped over with the \texttt{Omicron::NewChannel()} function. The input data is loaded with the \texttt{Omicron::LoadData()} function. The data is then conditioned; it is down-sampled to a working frequency and high-pass filtered. This is performed with the  \texttt{Omicron::Condition()} function. Before applying the $Q$-transform, the data is whitened by normalizing the data spectrum by the noise power spectrum density. The whitened data is finally projected onto a basis of windowed complex exponentials. This is done using the \texttt{Omicron::Project()} function. When calling the \texttt{Omicron::WriteOutput()} function, the Omicron data products are saved to disk\footnote{The html report is saved when calling the \texttt{Omicron} destructor.}.
+A fully object-oriented framework is adopted when developing GWOLLUM and Omicron, in which C++ classes and inheritance features are extensively used. The Omicron algorithm is entirely based on the \texttt{Omicron} C++ class which member functions are used to perform the analysis steps. A typical Omicron application can be represented by the sequence of functions represented in Fig.~\ref{fig:omicron_flowchart}. The \texttt{Omicron} constructor must be called using an input option file listing all the parameters defining the search one wants to perform. Then, the Omicron object must be provided with time segments to process. This is done with the \texttt{Omicron::InitSegment()} function. These time segments are processed sequentially with the \texttt{Omicron::NewChunk()} function. For every chunk, the list of channels to process is looped over with the \texttt{Omicron::NewChannel()} function. The input data vector is loaded with the \texttt{Omicron::LoadData()} function. The data is then conditioned; it is down-sampled to a working frequency and high-pass filtered. This is performed with the  \texttt{Omicron::Condition()} function. Before applying the $Q$-transform, the data is whitened by normalizing the data spectrum by the noise power spectrum density. The whitened data is finally projected onto a basis of windowed complex exponentials, as described in Sec.~\ref{sec:method}. This is done using the \texttt{Omicron::Project()} function. When calling the \texttt{Omicron::WriteOutput()} function, the Omicron data products are saved to disk\footnote{The html report is saved when calling the \texttt{Omicron} destructor.}.
 
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/omicron_flowchart.eps}
-  \caption{Standard \texttt{Omicron} analysis flowchart. The standard sequence of class functions is presented. Loops must be perfomed over data chunks and channels. They are represented by the pink rectangles.}
+  \caption{Standard \texttt{Omicron} analysis flowchart. The standard sequence of class functions is presented. Loops must be perfomed over data chunks and channels. They are represented by the dashed-line rectangles.}
   \label{fig:omicron_flowchart}
 \end{figure}
 
@@ -31,6 +31,35 @@ The \texttt{Omicron} class offers more methods which can be used to tailor specf
 %\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  DISCRETE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The discrete analysis} \label{sec:algorithm:discrete}
+
+The Omicron algorithm is designed to process any data time series $x(t)$ associated to a gravitational-wave detector channel, e.g. the detector output channel, an environmental sensor, a photodiode signal, etc. The data consists of a discrete time sequence, $x[j]$, which is identified by a channel name and a native sampling frequency, $f_s$, defining the time separation between two consecutive data points $\delta t = t_{j+1}-t_j = 1/f_s$. As we will see in Sec.~\ref{sec:algorithm:conditioning}, the Omicron algorithm includes a data conditioning step where the input data is downsampled to a working sampling frequency $f_w$, allowing for an optimized subsequent processing. The data is then iteratively analyzed by time chunks of fixed duration $T_c$, corresponding to $N=T_cf_w$ data samples.
+
+%From these definitions, the one-sided periodogram of $x$ is computed as:
+%\begin{align}
+%  P[k] &= \frac{2}{T_c}\left|\tilde{x}[k]\right|^2 \\
+%  &= \frac{2}{T_c}\left| \frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}} \right|^2,
+%  \label{eq:periodogram}
+%\end{align}
+%where the factor 2 accounts for both negative and positive frequencies. When averaging multiple periodograms, one gets an estimate of the signal power spectral density (PSD), $S[k]$. Sec.~\ref{sec:algorithm:whitening} describes in detail how the PSD is estimated in Omicron. 
+
+As presented in Sec.~\ref{sec:method}, the Omicron analysis requires to perform multiple Fourier transforms. The forward and inverse Fourier transforms of Eq.~\ref{eq:FTforward} and~\ref{eq:FTbackward} are discretized as 
+\begin{equation}
+  \tilde{x}[k]=\frac{1}{f_w}\sum_{j=0}^{N-1}{x[j]\mathrm{e}^{-2i\pi jk/N}}
+\end{equation}
+and
+\begin{equation}
+  x[j]=\frac{f_w}{N}\sum_{j=0}^{N-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N}}.
+\end{equation}
+Discrete Fourier transforms are performed with the FFTW~\cite{FFTW} algorithm. They can be computationally expensive and care must be taken to optimize the use of FFTW routines.
+
+A first approach is to only work with sizes which are a power of two. In this configuration, the FFTW routines provide optimal performance. With Omicron, the working sampling frequency $f_w$ and the chunk duration $T_c$ are required to each be a power of two. Therefore $N$ is a power of two.
+
+Another possibility of optimization is to take advantage that the input data of Omicron, $x[j]$ is a real time series. As a result, the spectrum, $\tilde{x}[k]$, is symmetrical around DC. This redundancy is expoited by the FFTW algorithm to reduce the computing cost. The negative frequencies are ignored and only the one-sided data vector is considered. The frequency-domain data vector, $\tilde{x}$, is of size $N/2+1$. By convention, the first element, $\tilde{x}[0]$ is the DC component and the next elements, $\tilde{x}[k]$, $1\le k \le N/2$, are the spectrum coefficients for positive frequencies, $kf_w/N=k/T_c$. The last element, $\tilde{x}[N/2]$, is associated to the Nyquist frequency $f_{\text{Nyquist}}=f_w/2$. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  TILING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The tiles} \label{sec:algorithm:tiling}
@@ -40,10 +69,10 @@ The user options must also include the maximum fractional energy loss due mismat
 
 A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes are given a $Q$ value obtained from Eq.~\ref{eq:q}.
 
-A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. The horizontal time axis is divided into $N_\tau(Q,\phi)$ linear bins, $N_\tau(Q,\phi)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Working with a power-of-two number of tiles along a frequency row is computationally more efficient when performing the discrete inverse Fourier transform of Eq.~\ref{eq:qtransform3}. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths derived from Eq.~\ref{eq:dtau} and~\ref{eq:dphi}. \bluenote{comment about bandwidth/duration.}
+A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_l)$ linear bins, $N_\tau(Q_q,\phi_l)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Working with a power-of-two number of tiles along a frequency row is computationally more efficient when using a fast Fourier transform algorithm. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths derived from Eq.~\ref{eq:dtau} and~\ref{eq:dphi}.
 
 
-A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,098,688 tiles over 64 s and between 40.0 Hz and 489.2 Hz. For the plane with the lowest $Q$ value, the time resolution varies between 0.98~ms and 7.81~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz. For the highest $Q$ plane, the time resolution varies between 7.81~ms and 125.00~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz.
+A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,098,688 tiles over a chunk of 64 s and between 40.0 Hz and 489.2 Hz. For the plane with the lowest-$Q$ value, the time resolution varies between 0.98~ms and 7.81~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz. For the highest-$Q$ plane, the time resolution varies between 7.81~ms and 125.00~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz.
 \begin{figure}
   \center
   \epsfig{width=7.5cm, file=./figures/q0.eps} \epsfig{width=7.5cm, file=./figures/q1.eps} \\
@@ -56,10 +85,19 @@ A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  Windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The windows} \label{sec:algorithm:window}
-As presented in Eq.~\ref{eq:qtransform3}, the data vector is windowed in the frequency domain. In Sec.\ref{sec:analysis:window}, we discussed the possibility of using a bisquare window to approximate the Gaussian window. The window expression, given in Eq.~\ref{eq:dbisquare}, only depends on $Q_q$ and $\phi_l$, it is therefore computed for each frequency row and each $Q$ plane.
+\subsection{The Gaussian windows} \label{sec:algorithm:window}
+As presented in Eq.~\ref{eq:qtransform2}, the data vector is windowed in the frequency domain. In Sec.\ref{sec:method:window}, we discussed the possibility of using a bisquare window to approximate the Gaussian window. The window expression, given in Eq.~\ref{eq:bisquare}, only depends on $Q$ and $\phi$, it is therefore computed for each frequency row and each $Q$ plane.
 
-As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
+The frequency-domain window, $\tilde{w}(f,Q_q, \phi_l)$, is discretized with the convention defined in Sec.~\ref{sec:algorithm:discrete}. The window takes non-zero values between $\pm \Delta f(\phi_l,Q_q)$; the number of data points to consider is therefore $M_{ql}=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$. After discretization, the bisquare window of Eq.~\ref{eq:bisquare} then writes:
+\begin{equation}
+  \tilde{w}_{ql}[k] = W \left[1 - \left(\frac{2k}{M_{ql}-1}\right)^2 \right]^2, \qquad 0\le k < M_{ql}.
+%  \tilde{w}_{ql}[k] = W \left[1 - \left(\frac{2k}{M_{ql}-1}-1\right)^2 \right]^2, \qquad 0\le k < M_{ql}.
+  \label{eq:dbisquare}
+\end{equation}
+The window data vectors $\tilde{w}_{ql}$ are computed once when initiating the Q plane class objects in the \texttt{Omicron} constructor.
+
+
+%Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,9 +106,9 @@ As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorit
 \subsection{The data access} \label{sec:algorithm:data}
 The input data time series is read using the FrameL~\cite{FrameL} library, developed to perform read/write file operations using the Frame format\footnote{The frame format is a data format specifically developed for interferometric gravitational-wave detectors.}. The data must be provided through a Frame File List (FFL) file which consists in an ASCII file with the file extension ``.ffl''. This file must contain a list of frame files described over five columns: the path to the frame file, the GPS information for the file start, the file duration in seconds, the GPS time of the first event and the GPS time of the last event\footnote{A FFL file can be obtained using the FrameL program \texttt{FrDump.exe}: \texttt{FrDump.exe -i /path/to/frame/files/*.gwf -d 0 $>$ fflfile.ffl}}. The GWOLLUM class, \texttt{ffl}, was designed to offer an improved C++ interface to access frame data. For example, the \texttt{ffl} class provides compatibility with the specific LIGO lal-cache file format.
 
-The \texttt{ffl} class is used by Omicron to load data by time chunks. The \textit{chunk} is an important charactistic time scale which is user-defined in the parameter file. It defines the time sequence adopted to analyze the data. It is also used as a characteric time scale by many Omicron internal structures; the chunk duration (which we note $T_c$) directly impacts the tiling resolution, determines the output files size, and is used to allocate memory for data containers.
+The \texttt{ffl} class is used by Omicron to load data by time chunks. The chunk is an important charactistic time scale which is user-defined in the parameter file. It defines the time sequence adopted to analyze the data. The chunk duration, $T_c$, directly determines the size of Omicron data containers: $N=f_wT_c$ for time-domain real data vectors and $N/2+1$ for frequency-domain complex data vectors (see Sec.~\ref{sec:algorithm:discrete} for conventions).
 
-Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration is also defined in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk, the overlap is adjusted to fit the current segment size. The overlapping structure was introduced to manage edge artifacts due to forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
+Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration, $T_o$, is also defined in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk, the overlap is adjusted to fit the current segment size. The overlapping structure was introduced to manage edge artifacts due to forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
 \begin{figure}
   \center
   \epsfig{width=15cm, file=./figures/segmentation.eps}
@@ -85,7 +123,7 @@ The chunk and overlap structure must verify some conditions:
 \item The overlap duration must be an even value and shorter than the chunk duration for obvious reasons.
 \end{enumerate}
 
-For a given chunk and a given channel\footnote{Chunks and channels are internally looped over using the \texttt{Omicron::NewChunk()} and \texttt{Omicron::NewChannel()} functions.}, a chunk data vector is filled with the raw time series. The native sampling frequency for this channel data stream, $f_s$ is directly given by the size of the vector and is checked for evey chunk. This way, a change of the channel native sampling frequency is automatically accounted for when looping over the chunks.
+For a given chunk and a given channel\footnote{Chunks and channels are internally looped over using the \texttt{Omicron::NewChunk()} and \texttt{Omicron::NewChannel()} functions.}, a chunk data vector is filled with the raw time series. The native sampling frequency for this channel data stream, $f_s$ is directly given by the size of the vector and is checked for every chunk. \bluenote{Add flat test.} This way, a change of the channel native sampling frequency is automatically accounted for when looping over the chunks.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -94,9 +132,9 @@ For a given chunk and a given channel\footnote{Chunks and channels are internall
 \subsection{The data conditioning} \label{sec:algorithm:conditioning}
 The chunk data vector is transformed to optimize the performance of the subsequent processing. It is downsampled to a lower working frequency, $f_w$, to maximize the processing speed and lower the memory usage. It is then high-pass filtered to reduce the signal dynamic range. The filtering C++ code is inspired from the routines developed in the LSC Algorithm Library Suite~\cite{LALSUITE}.
 
-To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $f_w \times T_c$.
+To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $N=f_w \times T_c$.
 
-The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be long enough to remove the filtering artifacts. The filter frequency cutoff is determined by the search frequency range defined by the user in the parameter file: the minimum frequency is used.
+The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration must be long enough to remove the filtering artifacts. The filter frequency cutoff is determined by the lower end of the search frequency range, $\phi_{min}$, defined by the user in the parameter file.
 
 The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omicron is run using the parameter file given in Appx.~\ref{appx:parameters}. The input data is originally sampled at 16384~Hz, the spectrum of which is represented in black in the upper plot. First, it is downsampled at a working frequency of 1024~Hz. The resulting spectrum is represented in blue and ends at the Nyquist frequency of 512~Hz. After the high-pass filter, frequencies below 40~Hz are attenuated as shown by the red spectrum. The ratio of spectra of the different filtering steps are plotted in the middle and at the bottom of Fig.~\ref{fig:conditioning}.
 \begin{figure}
@@ -118,12 +156,12 @@ The final step of the conditioning process consist of applying a Tukey window to
 Fig.~\ref{fig:tukey} presents examples of Tukey windows using several overlap durations.
 \begin{figure}
   \center
-  \epsfig{width=12cm, file=./figures/tukey.eps}
+  \epsfig{width=10cm, file=./figures/tukey.eps}
   \caption{Tukey windows used to smoothly transition the data time series to 0. A cosine function is applied at both chunk ends over half the overlap duration. Here, we used $T_c=64$~s and $T_o = 4$, 8, 16 and 32 s.}
   \label{fig:tukey}
 \end{figure}
 
-The data conditioning is performed using the \texttt{Condition()} function of the \texttt{Omicron} class. Before leaving this function the data spectrum is updated using the new conditioned data vector. The spectrum computation is described in the next section. 
+The data conditioning is performed using the \texttt{Condition()} function of the \texttt{Omicron} class. Before leaving this function, the data power spectrum density is updated using the newly conditioned data vector. This is described in the next section. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,12 +169,13 @@ The data conditioning is performed using the \texttt{Condition()} function of th
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data whitening} \label{sec:algorithm:whitening}
 
-As introduced in Sec.~\ref{sec:analysis:data}, the conditioned chunk data vector is whitened by weighting the data by the inverse of the detector's power spectral density (PSD). The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
+As described in Sec.~\ref{sec:method:whitening}, the $Q$ transform is applied over whitened data. The conditioned chunk data vector elements are re-weighted using the power spectral density. The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
 
-A time-domain data vector $x$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-segments of duration $T_\mathrm{spec}$, indexed by $s$ and overlapping by 50\%, as represented at the top of Fig.~\ref{fig:psdseg}. The periodograms defined by Eq.~\ref{eq:periodogram} are computed for all segments using $f_wT_\mathrm{spec}$ data points and a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
-\begin{equation}
-  P_s[k] = \frac{2}{f_w^2T_\mathrm{spec}}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{x_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
-\end{equation}
+A time-domain data vector $d$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-vectors $d_s$. The corresponding sub-segments of duration $T_\mathrm{spec}$, are indexed by $s$ and overlap by 50\%, as represented at the top of Fig.~\ref{fig:psdseg}. The one-sided periodograms are computed for all sub-segments using $f_wT_\mathrm{spec}$ data points and a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
+\begin{align}
+  P_s[k] &= \frac{2}{T_\mathrm{spec}}\left|\widetilde{(w_Hd_s)}[k]\right|^2 \\
+  &= \frac{2}{T_\mathrm{spec}f_w^2}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{d_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
+\end{align}
 
 To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, the resulting median value must be corrected by a bias factor $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$: $S^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S[k]=(N^eS^e[k]+N^oS^o[k])/(N^e+N^o)$.
 \begin{figure}
@@ -163,7 +202,7 @@ Before projecting the data onto the tiling structure, the data chunk, $x$, is Fo
 
 \subsection{The data projection} \label{sec:algorithm:projection}
 
-The whitened frequency-domain data vector $\tilde{x}$ must be applied the $Q$ transform of Eq.~\ref{eq:qtransform3} for each tile $(m, l, q)$. As suggested in Sec.~\ref{sec:analysis:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
+The whitened frequency-domain data vector $\tilde{x}$ must be applied the $Q$ transform of Eq.~\ref{eq:qtransform3} for each tile $(m, l, q)$. As suggested in Sec.~\ref{sec:method:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
 
 
 \subsection{The triggering} \label{sec:algorithm:triggering}
