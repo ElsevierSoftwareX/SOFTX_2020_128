@@ -39,18 +39,15 @@ Omicron::Omicron(const string aOptionFile){
 
   // spectrum status
   for(int c=0; c<(int)fChannels.size(); c++) status_OK*=spectrum[c]->GetStatus();
-    
-  // data containers
-  ChunkVect     = new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
-  WhiteChunkVect= new double    [tile->GetTimeRange()*triggers[0]->GetWorkingFrequency()];
-  DataRe        = new double    [tile->GetTimeRange()/2*triggers[0]->GetWorkingFrequency()/2];
-  DataIm        = new double    [tile->GetTimeRange()/2*triggers[0]->GetWorkingFrequency()/2];
-  TukeyWindow   = GetTukeyWindow(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
-				 tile->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
-  offt          = new fft(       tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(),
-				 "FFTW_MEASURE");
-  for(int i=0; i<tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(); i++) WhiteChunkVect[i]=0.0;
 
+  // chunk FFT
+  offt = new fft(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(), "FFTW_MEASURE", "r2c");
+ 
+  // data containers
+  ChunkVect     = new double    [offt->GetSize_t()];
+  TukeyWindow   = GetTukeyWindow(offt->GetSize_t(),
+				 tile->GetOverlapDuration()*triggers[0]->GetWorkingFrequency());
+ 
   // metadata field definition
   vector <string> fOptionName;
   vector <string> fOptionType;
@@ -168,9 +165,6 @@ Omicron::~Omicron(void){
   delete tile;
   delete GPlot;
   delete ChunkVect;
-  delete WhiteChunkVect;
-  delete DataRe;
-  delete DataIm;
   delete TukeyWindow;
   delete offt;
 
@@ -465,7 +459,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     cerr<<"Omicron::Condition: input vector is empty ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 2;
   }
-  if(aInVect[0]==aInVect[aInVectSize-1]){
+  if(aInVect[0]==aInVect[aInVectSize-1]){// FIXME: use mean/min/max
     cerr<<"Omicron::Condition: input vector appears to be flat ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 3;
   }
@@ -481,12 +475,11 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // transform data vector
   if(fVerbosity>1) cout<<"\t- transform data vector..."<<endl;
-  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency(), ChunkVect)) return 5;
+  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, offt->GetSize_t(), ChunkVect)) return 5;
 
   // apply Tukey Window
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
-  int chunksize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-  for(int i=0; i<chunksize; i++) ChunkVect[i] *= TukeyWindow[i];
+  for(int i=0; i<offt->GetSize_t(); i++) ChunkVect[i] *= TukeyWindow[i];
 
   // update spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
@@ -496,6 +489,10 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
   if(!tile->SetPower(spectrum[chanindex])) return 7;
 
+  // fft-forward the chunk data
+  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
+  if(!offt->Forward(ChunkVect)) return 8;
+  
   chan_cond_ctr[chanindex]++;
   return 0;
 }
@@ -516,18 +513,14 @@ bool Omicron::Project(void){
     
   // project data
   if(fVerbosity>1) cout<<"\t- project chunk"<<endl;
-  if(!tile->ProjectData(DataRe, DataIm, fTileDown)) return false;
+  if(!tile->ProjectData(offt, fTileDown)) return false;
 
   // save whiten data for condition data products
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
-    if(!offt->Backward(DataRe, DataIm)) return false;// Back in time domain
-    uint csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
-    //for(int i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetReOut(i)/csize/sqrt(2*(double)tile->GetTimeRange());
-    for(uint i=0; i<csize; i++) WhiteChunkVect[i]=offt->GetTimeVector(i)/(double)tile->GetTimeRange();
-    //spectrum[chanindex]->Reset();
-    //spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), WhiteChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2);
-
+    offt->Backward();// Back in time domain
+    // apply FFT normalization
+    for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)/(double)offt->GetSize_t());
   }
   
   // save triggers
@@ -667,39 +660,33 @@ void Omicron::PrintStatusInfo(void){
 ////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::Whiten(void){
 ////////////////////////////////////////////////////////////////////////////////////
-  // fft-forward
-  if(!offt->Forward(ChunkVect)){
-    cerr<<"Omicron::Whiten: FFT-forward failed"<<endl;
-    return false;
-  }
 
-  // NOTE: no FFT normalization when forwarding
-  // the normalization (/N) is performed (by convention) after backwarding
-
-  // reset
-  uint i=0;
-  uint csize=tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency();
+  int i=0;
  
-  // zero-out DC and below highpass frequency
-  uint n = (uint)(tile->GetFrequencyMin()*tile->GetTimeRange());
+  // zero-out DC
+  offt->SetRe_f(i,0.0);
+  offt->SetIm_f(i,0.0);
+  i++;
+  
+  // zero-out below highpass frequency
+  int n = (int)(tile->GetFrequencyMin()*tile->GetTimeRange());
   for(; i<n; i++){
-    DataRe[i] = 0.0;
-    DataIm[i] = 0.0;
+    offt->SetRe_f(i,0.0);
+    offt->SetIm_f(i,0.0);
   }
  
   // normalize data by the ASD
   // + /f_w (FFT definition)
-  n = csize/2+1;
   double asdval;
-  for(; i<n; i++){
-    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;// two-sided
+  for(; i<offt->GetSize_f(); i++){
+    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange());// one-sided
     if(asdval<=0){
-      cerr<<"Omicron::Whiten: could not retrieve power"<<endl;
+      cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz"<<endl;
       return false;
     }
-    asdval=sqrt(asdval);
-    DataRe[i] =  offt->GetRe(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
-    DataIm[i] =  offt->GetIm(i) / asdval /(double)triggers[chanindex]->GetWorkingFrequency();
+    asdval=sqrt(asdval/2.0);// 2: one-sided --> two-sided
+    offt->SetRe_f(i,offt->GetRe_f(i) / asdval);
+    offt->SetIm_f(i,offt->GetIm_f(i) / asdval);
   }
 
   return true;
@@ -811,13 +798,12 @@ void Omicron::SaveSpectral(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  int n = tile->GetTimeRange()*triggers[chanindex]->GetWorkingFrequency()/2+1;
   stringstream ss;
 
-  // amplitude graph
-  TGraph *Gamp   = new TGraph(n-1);
-  for(int i=1; i<n; i++)
-    Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)n, sqrt((DataRe[i]*DataRe[i]+DataIm[i]*DataIm[i])*2.0/tile->GetTimeRange())/triggers[chanindex]->GetWorkingFrequency());
+  // amplitude graph (without DC)
+  TGraph *Gamp   = new TGraph(offt->GetSize_f()-1);
+  for(int i=1; i<offt->GetSize_f(); i++)
+    Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)offt->GetSize_f(), offt->GetNorm_f(i));
   ss<<"SpecAmp_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
   Gamp->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
@@ -881,7 +867,7 @@ void Omicron::SaveTS(const bool aWhite){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // create graph 
-  TGraph *GDATA = new TGraph(triggers[chanindex]->GetWorkingFrequency()*tile->GetTimeRange());
+  TGraph *GDATA = new TGraph(offt->GetSize_t());
   if(GDATA==NULL) return;
 
   stringstream ss;
@@ -889,12 +875,12 @@ void Omicron::SaveTS(const bool aWhite){
   // whitened data
   if(aWhite){
     ss<<"whitets_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
-    for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*tile->GetTimeRange(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),WhiteChunkVect[i]);
+    for(int i=0; i<offt->GetSize_t(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),offt->GetRe_t(i));
   }
   // conditioned data
   else{
     ss<<"ts_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
-    for(int i=0; i<triggers[chanindex]->GetWorkingFrequency()*tile->GetTimeRange(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),ChunkVect[i]);
+    for(int i=0; i<offt->GetSize_t(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),ChunkVect[i]);
   }
  
   // plot name

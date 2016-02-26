@@ -76,7 +76,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
             
     // band fft
     ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
-    bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE");
+    bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE", "c2c");
 
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
@@ -151,12 +151,12 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
+bool Oqplane::ProjectData(fft *aFft){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
   double *working_vector[2];    // working vector RE&IM
-  int i, ishift, end; // indexes
+  int i, index, dataindex, end; // indexes
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
   double *phases;               // vector of phases
@@ -166,25 +166,17 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
 
   // reset
   nTriggers=0;
-  
+ 
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
 
     // number of tiles in this row
     Nt = GetBandNtiles(f);
-    
-    // make working vector (frequency domain, complex values)
-    working_vector[0] = new double [Nt/2+1];
-    working_vector[1] = new double [Nt/2+1];
-
-    // no DC
-    working_vector[0][0]=0.0;
-    working_vector[1][0]=0.0;
-
-    for(int i=0; i<Nt/2+1; i++){
-      freq=;
-    }
-            
+   
+    // make working vector
+    working_vector[0] = new double [Nt];
+    working_vector[1] = new double [Nt];
+   
     // padding sizes
     ZeroPadSize = Nt-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
@@ -201,11 +193,11 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // |----|---------------|---------------|----| Nt
     i=0, index=0, end=0;
     end=Nt/2-RightZeroPadSize;
-    for(; i<bandWindowSize[f]/2; i++){
+    for(; i<end; i++){
       index=i+Nt/2-LeftZeroPadSize;
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
-      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
+      working_vector[0][i]=bandWindow[f][index]*aFft->GetRe_f(dataindex);// window data
+      working_vector[1][i]=bandWindow[f][index]*aFft->GetIm_f(dataindex);// window data
     }
     end+=ZeroPadSize;
     for(; i<end; i++){
@@ -216,8 +208,8 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     for(; i<end; i++){
       index=i-(LeftZeroPadSize+Nt/2);
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aDataRe[dataindex];// window data
-      working_vector[1][i]=bandWindow[f][index]*aDataIm[dataindex];// window data
+      working_vector[0][i]=bandWindow[f][index]*aFft->GetRe_f(dataindex);// window data
+      working_vector[1][i]=bandWindow[f][index]*aFft->GetIm_f(dataindex);// window data
     }
 
     // fft-backward
@@ -228,10 +220,10 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     }
     delete working_vector[0];
     delete working_vector[1];
-  
+ 
     // get energies/phases
-    energies = bandFFT[f]->GetNorm2();
-    phases   = bandFFT[f]->GetPhase();
+    energies = bandFFT[f]->GetNorm2_t();
+    phases   = bandFFT[f]->GetPhase_t();
 
     // get mean energy
     meanenergy=GetMeanEnergy(f,energies);
@@ -245,9 +237,9 @@ bool Oqplane::ProjectData(double *aDataRe, double *aDataIm){
     // fill tile content
     for(int t=0; t<GetBandNtiles(f); t++){
       if(2.0*energies[t]>meanenergy){
-	snr=sqrt(2.0*energies[t]/meanenergy-1);
-	SetTileContent(t,f,snr,phases[t],true);// eq. 5.79
-	if(snr>=SNRThr) nTriggers++;
+        snr=sqrt(2.0*energies[t]/meanenergy-1);
+        SetTileContent(t,f,snr,phases[t],true);// eq. 5.79
+        if(snr>=SNRThr) nTriggers++;
       }
       else SetTileContent(t,f,0.0);
     }

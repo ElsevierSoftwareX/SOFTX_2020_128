@@ -136,15 +136,15 @@ class Otile: public GwollumPlot {
   /**
    * Projects a data vector onto the Q planes.
    * A complex data vector is projected onto all the Q-planes. The tiles are populated with the resulting SNR values.
+   * The data are provided through a fft object. The fft:Forward() must be done before calling this function.
    *
    * If requested, tiles are de-activated if they overlap (in time or frequency) another tile. This process is call down-tiling.
    *
    * IMPORTANT: the input data vector must the right size, i.e. SampleFrequency/2 as defined in the constructor. No check will be performed!
-   * @param aDataRe real part of the data vector (frequency domain)
-   * @param aDataIm imaginary part of the data vector (frequency domain)
+   * @param aFft fft structure containing the data to project
    * @param aTileDown apply down-tiling if set to true
    */
-  bool ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown=true);
+  bool ProjectData(fft *aFft, const bool aTileDown=false);
 
   /**
    * Saves active tiles in a MakeTriggers structure.

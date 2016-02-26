@@ -160,11 +160,11 @@ bool Otile::SetPower(Spectrum *aSpec){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::ProjectData(double *aDataRe, double *aDataIm, const bool aTileDown){
+bool Otile::ProjectData(fft *aFft, const bool aTileDown){
 ////////////////////////////////////////////////////////////////////////////////////
   // project onto q planes
   for(int p=0; p<nq; p++){
-    if(!qplanes[p]->ProjectData(aDataRe, aDataIm)){
+    if(!qplanes[p]->ProjectData(aFft)){
       cerr<<"Otile::ProjectData: cannot project data onto plane #"<<p<<endl;
       return false;
     }

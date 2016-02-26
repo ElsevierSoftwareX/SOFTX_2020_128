@@ -36,7 +36,7 @@ class Oqplane: public Omap {
   virtual ~Oqplane(void);
 
   void PrintParameters(void);
-  bool ProjectData(double *aDataRe, double *aDataIm);
+  bool ProjectData(fft *aFft);
   bool SaveTriggers(MakeTriggers *aTriggers, 
 		    const double aLeftTimePad=0.0, 
 		    const double aRightTimePad=0.0, 

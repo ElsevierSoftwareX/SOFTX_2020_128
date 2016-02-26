@@ -119,7 +119,7 @@ class Omicron {
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed and Tukey-windowed. Then the data is used to estimate the noise (PSD).
+   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed and Tukey-windowed. Then the data is used to estimate the noise (PSD). Finally the data is FFTed.
    *
    * IMPORTANT: The input vector size MUST MATCH the chunk size loaded with NewChunk(). NO check is performed against that!
    *
@@ -133,6 +133,7 @@ class Omicron {
    * -  5 = the vector transformation failed (resampling+highpassing)
    * -  6 = the spectrum could not be updated
    * -  7 = the tiling power could not be computed
+   * -  8 = the chunk data could not be FFTed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
@@ -267,10 +268,7 @@ class Omicron {
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
-  double *WhiteChunkVect;       ///< chunk for whitened data (time domain)
-  double *DataRe;               ///< whitened data vector (Re)
-  double *DataIm;               ///< whitened data vector (Im)
-   
+    
   // CONDITIONING & WHITENING
   bool Whiten(void);            ///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
