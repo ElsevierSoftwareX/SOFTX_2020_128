@@ -7,49 +7,50 @@ To conduct the multi-resolution analysis motivated in the introduction, the data
   X(\tau, \phi, Q) = \int_{-\infty}^{+\infty}{ x(t) w(t-\tau,\phi,Q) e^{-2i\pi\phi t}dt}.
   \label{eq:qtransform1}
 \end{equation}
-The transformed coefficient, $X$, measures the average signal amplitude and phase within a time-frequency region, called a \textit{tile}, centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor $Q$ and the particular choice of analysis window, $w$. In~\cite{Gabor:1946}, it is shown that the minimal time-frequency resolution is achieved by a Gaussian window:
+The transform coefficient, $X$, measures the average signal amplitude and phase within a time-frequency region, called a \textit{tile}, centered on time $\tau$ and frequency $\phi$, whose shape and area are determined by the requested quality factor $Q$ and the particular choice of analysis window, $w$. In~\cite{Gabor:1946}, it is shown that the minimal time-frequency resolution is achieved by a Gaussian window:
 \begin{equation}
-  w(t-\tau,\phi,Q) = W\exp\left [ -\frac{1}{2\sigma_t^2}(t-\tau)^2 \right],
+  w(t-\tau,\phi,Q) = \frac{W_g}{\sigma_t\sqrt{2\pi}}\exp\left [ -\frac{1}{2\sigma_t^2}(t-\tau)^2 \right],
   \label{eq:gausswindowt}
 \end{equation}
-where $W$ is a normalization factor and the Gaussian variance is $\sigma_t^2=\frac{Q^2}{8\pi^2\phi^2}$.
+where $W_g$ is a normalization factor and the Gaussian variance is $\sigma_t^2=\frac{Q^2}{8\pi^2\phi^2}$.
 
-To optimize the algorithmic implementation of the $Q$ transform, we prefer an alternative form of Eq.~\ref{eq:qtransform1}, where the cross-correlation theorem and the Fourier transform translation relation are used:
-\begin{align}
-  X(\tau, \phi, Q) &= \int_{-\infty}^{+\infty}{\tilde{X}(f,\phi,Q) e^{+2i\pi f \tau}df} \\
-  &= \int_{-\infty}^{+\infty}{ \widetilde{\left (\int_{-\infty}^{+\infty}{(w^*)^*(t,\phi,Q)x(t+\tau)e^{-2i\pi\phi(t+\tau)}dt}\right)} e^{+2i\pi f \tau}df}\\
-  &= \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df}.
-  \label{eq:qtransform2}
-\end{align}
-The tilde character is used to symbol the Fourier transform, defined as
+To optimize the algorithmic implementation of the $Q$ transform, we prefer an alternative form of Eq.~\ref{eq:qtransform1}, where we switch to the frequency domain using the Fourier transform defined as
 \begin{equation}
-  \tilde{x}(f) = \int_{-\infty}^{+\infty}{ x(t) e^{-2i\pi f t}dt}, \label{eq:FTforward}
+  \tilde{x}(f) = \int_{-\infty}^{+\infty}{ x(t) e^{-2i\pi f t}dt}. \label{eq:FTforward}
 \end{equation}
-and reverse Fourier transform as
+The corresponding reverse Fourier transform is
 \begin{equation}
   x(t) = \int_{-\infty}^{+\infty}{ \tilde{x}(f) e^{2i\pi f t}df}.  \label{eq:FTbackward}
 \end{equation}
-With these definitions, in Eq.~\ref{eq:qtransform2}, the signal is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform.
+Using the inverse Fourier transform, the cross-correlation theorem, the Fourier transform translation relation and the fact that we are working with a real window, we can re-write Eq~\ref{eq:qtransform1}:
+\begin{align}
+  X(\tau, \phi, Q) &= \int_{-\infty}^{+\infty}{\tilde{X}(f,\phi,Q) e^{+2i\pi f \tau}df} \\
+  X(\tau, \phi, Q) &= \int_{-\infty}^{+\infty}{ \widetilde{\left (\int_{-\infty}^{+\infty}{w^*(t,\phi,Q)x(t+\tau)e^{-2i\pi\phi(t+\tau)}dt}\right)} e^{+2i\pi f \tau}df}\\
+  X(\tau, \phi, Q) &= \int_{-\infty}^{+\infty}{ \tilde{x}(f+\phi) \tilde{w}^{*}(f,\phi,Q) e^{+2i\pi f \tau}df}.
+  \label{eq:qtransform2}
+\end{align}
+In Eq.~\ref{eq:qtransform2}, the signal is applied a Fourier transform, a shift in frequency, a multiplication by the frequency-domain window and an inverse Fourier transform.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The window} \label{sec:method:window}
-To compute the $Q$ transform of Eq.~\ref{eq:qtransform2}, we need to apply the Fourier transform to the Gaussian window of Eq.~\ref{eq:gausswindowt}. In the frequency domain, the window is also Gaussian:
+To compute the $Q$ transform of Eq.~\ref{eq:qtransform2}, we need to apply the Fourier transform to the Gaussian window of Eq.~\ref{eq:gausswindowt}. In the frequency domain, the window is also Gaussian and real:
 \begin{equation}
-  \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) = W\exp\left [ -\frac{Q^2}{4\phi^2}f^2 \right],
+  \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) = W_g\exp\left [ -\frac{1}{2\sigma_f^2}f^2 \right],
   \label{eq:gausswindowf}
 \end{equation}
-where additional factors were absorbed in the normalization factor $W$.
+where $\sigma_f^2=\frac{2\phi^2}{Q^2}$.
 
 The Gaussian window provides the best time-frequency resolution~\cite{Gabor:1946}. However, such a window has an infinite extent which makes it difficult to use in a discrete analysis framework. Instead, the Omicron algorithm approximates the Gaussian window with a bisquare window which has a simple form in the frequency domain:
 \begin{equation}
   \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) =
   \begin{cases}
-    W\left[1 - \left(\frac{f}{\Delta f(\phi,Q)}\right)^2 \right]^2 & |f| < \Delta f(\phi,Q), \\
+    W_b\left[1 - \left(\frac{f}{\delta_f(\phi,Q)}\right)^2 \right]^2 & |f| < \delta_f(\phi,Q), \\
     0 & \textrm{otherwise},
   \end{cases}
   \label{eq:bisquare}
 \end{equation}
-where $W$ is a normalization factor and $\Delta f(\phi,Q)=\phi\sqrt{11}/Q$ is the half bandwidth of the window. This window is a very good approximation to the Gaussian case~\cite{Chatterji:2004}. It achieves a time-frequency resolution that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. In addition, it offers a limited energy leakage into time-domain side lobes.
+where $W_b$ is a normalization factor and $\delta_f(\phi,Q)=\phi\sqrt{11}/Q$ is the half size of the window. This window is a very good approximation to the Gaussian case~\cite{Chatterji:2004}. It achieves a time-frequency resolution that is only 4.5~\% greater than the minimum possible time-frequency uncertainty associated with the ideal Gaussian window. In addition, it offers a limited energy leakage into time-domain side lobes.
 
 Thanks to the finite extent of the the bisquare window, it is possible to add protections against signal aliasing. Indeed, when using the two conditions
 \begin{align}
@@ -58,20 +59,41 @@ Thanks to the finite extent of the the bisquare window, it is possible to add pr
 \end{align}
 the zero frequency and the Nyquist frequency, $f_{\text{Nyquist}}$, are never exceeded: $0 \le f + \phi \le f_{\text{Nyquist}}$. The $Q$ transform in Eq.~\ref{eq:qtransform2} can, therefore, be safely discretized.
 
-The normalization factor, $W$, is such that
+The window normalization factor is such that
 \begin{equation}
   \int_{-\infty}^{+\infty}{|\tilde{w}(f,\phi,Q)|^2df} = 2.
   \label{eq:winnorm}
 \end{equation}
-Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:method:snr}. This yields the normalization factor
+Using this normalization condition has many advantages which will be presented in Sec.~\ref{sec:method:snr}. A trivial integration yields the normalization factor for the bisquare window
 \begin{equation}
-  W = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}}.
-  \label{eq:W}
+  W_b = \sqrt{\frac{315}{128\sqrt{11}} \frac{Q}{\phi}},
+  \label{eq:Wb}
+\end{equation}
+while for the Gaussian case we get
+\begin{equation}
+  W_g = \sqrt{\frac{2}{\sqrt{\pi}\sigma_f}} = \sqrt{\frac{2}{\sqrt{2\pi}} \frac{Q}{\phi}},
+  \label{eq:Wg}
 \end{equation}
 
-In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms although bisquare windows are actually used for the Omicron implementation.
+A characteristic duration, $\Delta t$, and bandwidth, $\Delta f$, are defined using the second central moments of the window:
+\begin{align}
+  \left(\frac{\Delta f}{2}\right)^2 &= \int_{-\infty}^{+\infty}{f^2|\tilde{w}(f,\phi,Q)|^2 df}\\
+  \left(\frac{\Delta t}{2}\right)^2 &= \int_{-\infty}^{+\infty}{t^2|w(t,\phi,Q)|^2 dt}.
+\end{align}
+For both the Gaussian and bisquare windows, we naturally find indentical values:
+\begin{align}
+  \Delta f &=  2\sigma_f = 2\sqrt{2}\frac{\phi}{Q}, \\ 
+  \Delta t &=  2\sigma_t = \frac{1}{\sqrt{2}\pi}\frac{Q}{\phi}.
+\end{align}
 
-\bluenote{Comment about bandwidth/duration.}
+In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms keeping in mind that bisquare windows are actually used for the Omicron implementation.
+
+\begin{figure}
+  \center
+  \epsfig{width=12cm, file=./figures/window.eps}
+  \caption{A Gaussian window (red) is approximated by a bisquare window (blue) in the frequency domain (left) and in the time domain (right). We used $\phi=100$~Hz and $Q=20$.}
+  \label{fig:window}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The tiles} \label{sec:method:tiles}
