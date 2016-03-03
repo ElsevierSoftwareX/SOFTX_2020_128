@@ -141,7 +141,7 @@ class Omicron {
   
   /**
    * Projects whitened data onto the tiles and fills output structures.
-   * The data vector Fourier-transformed and normalized by the ASD. The data are then projected onto the tiling structure.
+   * The data vector is first whitened (normalized by the ASD). The data are then projected onto the tiling structure.
    *
    * In this function, the trigger structure is also filled with tiles above SNR threshold.
    */

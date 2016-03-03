@@ -167,7 +167,6 @@ void Omicron::MakeHtml(void){
     report<<"    <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
     outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
     report<<"    <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
-    report<<"    <tr><td>Output directory:</td><td><a href=\"./"<<fChannels[c]<<"\">./"<<fChannels[c]<<"</a></td></tr>"<<endl;
     report<<"  </table>"<<endl;
     
     // Plot links
@@ -229,6 +228,12 @@ void Omicron::MakeHtml(void){
 	if(fOutProducts.find("white")!=string::npos){
 	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_whitets', "<<windowset<<", '"<<form<<"');\">Whitened time series</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="whitets";
+	}
+
+	// triggers
+	if(fOutProducts.find("triggers")!=string::npos){
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<".root\">Triggers</a></td>"<<endl;
+	  if(!type_first.compare("")) type_first="triggers";
 	}
 	
 	report<<"  </tr>"<<endl;

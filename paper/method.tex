@@ -34,7 +34,7 @@ In Eq.~\ref{eq:qtransform2}, the signal is applied a Fourier transform, a shift 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The window} \label{sec:method:window}
-To compute the $Q$ transform of Eq.~\ref{eq:qtransform2}, we need to apply the Fourier transform to the Gaussian window of Eq.~\ref{eq:gausswindowt}. In the frequency domain, the window is also Gaussian and real:
+To compute the $Q$ transform of Eq.~\ref{eq:qtransform2}, we need to apply a Fourier transform to the Gaussian window of Eq.~\ref{eq:gausswindowt}. In the frequency domain, the window is also Gaussian and real:
 \begin{equation}
   \tilde{w}(f,\phi,Q) = \tilde{w}^*(f,\phi,Q) = W_g\exp\left [ -\frac{1}{2\sigma_f^2}f^2 \right],
   \label{eq:gausswindowf}
@@ -85,19 +85,20 @@ For both the Gaussian and bisquare windows, we naturally find indentical values:
   \Delta f &=  2\sigma_f = 2\sqrt{2}\frac{\phi}{Q}, \\ 
   \Delta t &=  2\sigma_t = \frac{1}{\sqrt{2}\pi}\frac{Q}{\phi}.
 \end{align}
-
-In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms keeping in mind that bisquare windows are actually used for the Omicron implementation.
-
+Fig.~\ref{fig:window} shows a comparison between an ideal Gaussian window and its approximate using a bisquare window.
 \begin{figure}
   \center
   \epsfig{width=12cm, file=./figures/window.eps}
-  \caption{A Gaussian window (red) is approximated by a bisquare window (blue) in the frequency domain (left) and in the time domain (right). We used $\phi=100$~Hz and $Q=20$.}
+  \caption{A Gaussian window (red) is approximated by a bisquare window (blue) in the frequency domain (left) and, after an inverse Fourier transform, in the time domain (right). We used $\phi=100$~Hz and $Q=20$.}
   \label{fig:window}
 \end{figure}
 
+In the following, we will often refer to a basis of complex-valued sinusoidal Gaussian waveforms keeping in mind that bisquare windows are actually used for the Omicron implementation.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The tiles} \label{sec:method:tiles}
-The tiles, indexed by $(m,l,q)$, must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast computing processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
+The tiles must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
 \begin{equation}
   \delta s^2 =
   \frac{4\pi^2\phi^2}{Q^2}\delta \tau^2
@@ -111,30 +112,20 @@ To guarantee a fractional energy loss smaller than $\mu_{max}$, the minimum numb
   N_\phi \ge \frac{s_\phi}{2\sqrt{\mu_{max}/3}},  & \qquad s_\phi = \frac{\sqrt{2+Q^2}}{2}\ln(\phi_{max}/\phi_{min}), \label{eq:tiledistancephi} \\
   N_Q \ge \frac{s_Q}{2\sqrt{\mu_{max}/3}},  & \qquad s_Q = \frac{1}{\sqrt{2}}\ln(Q_{max}/Q_{min}). \label{eq:tiledistanceq}
 \end{align}
-This Omicron tiling structure can be depicted as a set of $N_Q$ logarithmically-spaced $Q$ planes:
+This Omicron tiling structure can be depicted as a set of $N_Q$ logarithmically-spaced $Q$ planes, indexed by $q$:
 \begin{equation}
   Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, \qquad 0\le q < N_Q.
   \label{eq:q}
 \end{equation}
-Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency rows:
+Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency rows, indexed by $l$:
 \begin{equation}
   \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, \qquad 0\le l < N_\phi.
   \label{eq:phi}
 \end{equation}
-It leads to the definition of a characteristic bandwidth given by the row width:
-\begin{equation}
-  \Delta\phi_l = \phi_{l} \left[ \left(\frac{\phi_{max}}{\phi_{min}}\right)^{0.5/N_\phi} - \left(\frac{\phi_{max}}{\phi_{min}}\right)^{-0.5/N_\phi} \right].
-  \label{eq:dphi}
-\end{equation}
-Each frequency row is finally sub-divided into $N_\tau$ linearly-spaced time bins:
+Each frequency row is finally sub-divided into $N_\tau$ linearly-spaced time bins, indexed by $m$:
 \begin{equation}
   \tau_m = -\frac{T_c}{2}+(m+0.5)\frac{T_c}{N_\tau}, \qquad 0\le m < N_\tau.
   \label{eq:tau}
-\end{equation}
-A characteristic tile duration is defined as the bin width:
-\begin{equation}
-  \Delta\tau_m = T_c / N_\tau,
-  \label{eq:dtau}
 \end{equation}
 
 

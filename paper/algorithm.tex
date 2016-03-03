@@ -62,12 +62,12 @@ Another possibility of optimization is to take advantage that the input data of 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  TILING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The tiles} \label{sec:algorithm:tiling}
+\subsection{Tiling the parameter space} \label{sec:algorithm:tiling}
 
-When the \texttt{Omicron} constructor is called, the tiling structure is created using the parameters listed in the user option file. The targeted parameter space must be specified: the $Q$ range, $[Q_{min}; Q_{max}]$, the frequency range, $[\phi_{min}; \phi_{max}]$ and a time range. The time range is fixed to a characteristic duration used to sequentially analyze the data (see Sec.~\ref{sec:algorithm:data}). It is called a \textit{chunk}. The duration of a chunk is noted $T_c$ and, by convention, the chunk is centered on 0. If necessary, the $Q_{min}$ and $\phi_{max}$ parameters are automatically adjusted so that they verify the anti-aliasing conditions~\ref{eq:antialias1} and~\ref{eq:antialias2}. In addition, in order to get a reasonable time resolution, it is required to work with an integrated mismatch distance along the time dimension $s_\tau\ge50$, which translates into a minimum permissible frequency, $\phi_{min} \ge 50Q/(2\pi T_c)$.
-The user options must also include the maximum fractional energy loss due mismatch, $\mu_{max}$, from witch the number of tiles used to cover the parameter space is determined.
+When the \texttt{Omicron} constructor is called, the tiling structure described in Sec.~\ref{sec:method:tiles} is created using the parameters listed in the user option file. The targeted parameter space must be specified: the $Q$ range, $[Q_{min}; Q_{max}]$, the frequency range, $[\phi_{min}; \phi_{max}]$ and a time range. The time range is fixed to a characteristic duration used to sequentially analyze the data (see Sec.~\ref{sec:algorithm:data}). It is called a \textit{chunk}. The duration of a chunk is noted $T_c$ and, by convention, the chunk is centered on 0. If necessary, the $Q_{min}$ and $\phi_{max}$ parameters are automatically adjusted so that they verify the anti-aliasing conditions~\ref{eq:antialias1} and~\ref{eq:antialias2}. In addition, in order to get a reasonable noise estimate, it is required to work with an integrated mismatch distance along the time dimension $s_\tau\ge50$, which translates into a minimum permissible frequency, $\phi_{min} \ge 50Q/(2\pi T_c)$.
+The user options must also include the maximum fractional energy loss due mismatch, $\mu_{max}$, from which the number of tiles used to cover the parameter space is determined.
 
-A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes are given a $Q$ value obtained from Eq.~\ref{eq:q}.
+A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes, indexed by $q$, are given a $Q$ value obtained from Eq.~\ref{eq:q}.
 
 A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_l)$ linear bins, $N_\tau(Q_q,\phi_l)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Working with a power-of-two number of tiles along a frequency row is computationally more efficient when using a fast Fourier transform algorithm. The tile time and frequency, $(\tau_m, \phi_l)$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. In addition, the tile is also given a duration and a bandwidth corresponding to the bin widths derived from Eq.~\ref{eq:dtau} and~\ref{eq:dphi}.
 
@@ -81,6 +81,22 @@ A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling
   \caption{Example of a realistic tiling structure using parameters given in Appx~\ref{appx:parameters}. When requiring a maximal energy loss of $\mu_{max}=20\%$, 5 $Q$ planes are needed to cover the $Q$ range $[\sqrt{11}; 100]$. Each $Q$ plane is then tiled (black and white rectangles) along frequency rows delimited by the blue dashed lines. To distinguish the tiles, the chunk is zoomed in $\pm 100$~ms.}
   \label{fig:tiling}
 \end{figure}
+
+It leads to the definition of a characteristic bandwidth given by the row width:
+%\begin{equation}
+%  \Delta\phi_l = \phi_{l} \left[ \left(\frac{\phi_{max}}{\phi_{min}}\right)^{0.5/N_\phi} - \left(\frac{\phi_{max}}{\phi_{min}}\right)^{-0.5/N_\phi} \right].
+%  \label{eq:dphi}
+%\end{equation}
+\begin{equation}
+  \Delta\phi_l = 4\phi_{l}\sqrt{\frac{\mu_{max}}{3(2+Q^2)}} 
+  \label{eq:dphi}
+\end{equation}
+A characteristic tile duration is defined as the bin width:
+\begin{equation}
+  \Delta\tau_m = T_c / N_\tau,
+  \label{eq:dtau}
+\end{equation}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  Windows
