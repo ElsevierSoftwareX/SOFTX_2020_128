@@ -117,14 +117,14 @@ This Omicron tiling structure can be depicted as a set of $N_Q$ logarithmically-
   Q_q = Q_{min}\left[ \frac{Q_{max}}{Q_{min}}\right]^{(0.5+q)/N_q}, \qquad 0\le q < N_Q.
   \label{eq:q}
 \end{equation}
-Each of these planes is divided into $N_\phi$ logarithmically-spaced frequency rows, indexed by $l$:
+Each of these planes is divided into $N_\phi(Q_q)$ logarithmically-spaced frequency rows, indexed by $q$ and $l$:
 \begin{equation}
-  \phi_l = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi}, \qquad 0\le l < N_\phi.
+  \phi_{q,l} = \phi_{min}\left[ \frac{\phi_{max}}{\phi_{min}}\right]^{(0.5+l)/N_\phi(Q_q)}, \qquad 0\le l < N_\phi(Q_q).
   \label{eq:phi}
 \end{equation}
-Each frequency row is finally sub-divided into $N_\tau$ linearly-spaced time bins, indexed by $m$:
+Each frequency row is finally sub-divided into $N_\tau(Q_q,\phi_{q,l})$ linearly-spaced time bins, indexed by $q$, $l$ and $m$:
 \begin{equation}
-  \tau_m = -\frac{T_c}{2}+(m+0.5)\frac{T_c}{N_\tau}, \qquad 0\le m < N_\tau.
+  \tau_{q,l,m} = \tau_{min}+(m+0.5)\frac{\tau_{max}-\tau_{min}}{N_\tau(Q_q,\phi_{q,l})}, \qquad 0\le m < N_\tau(Q_q,\phi_{q,l}).
   \label{eq:tau}
 \end{equation}
 

@@ -88,11 +88,9 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
 
     // bisquare window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
     for(int i=0; i<bandWindowSize[f]; i++){
-      bandWindowFreq[f][i]=(double)(-(bandWindowSize[f]-1)/2 + i) / (double)TimeRange;// centered on 0
-      //windowargument=bandWindowFreq[f][i]/delta_f;// f/delta_f (same as below)
       windowargument=2.0*(double)i/((double)bandWindowSize[f] - 1.0) -1.0;
       bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
-      bandWindowFreq[f][i]+=GetBandFrequency(f);// now centered on band frequency
+      bandWindowFreq[f][i]=GetBandFrequency(f)+(double)(-(bandWindowSize[f]-1)/2 + i) / (double)TimeRange;
     }
   }
   
