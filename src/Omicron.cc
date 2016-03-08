@@ -492,6 +492,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
   if(!offt->Forward(ChunkVect)) return 8;
+  // note: the FFT normalization is performed in Whiten()
   
   chan_cond_ctr[chanindex]++;
   return 0;
@@ -519,8 +520,9 @@ bool Omicron::Project(void){
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
     offt->Backward();// Back in time domain
+    // IMPORTANT: after that, the frequency-domain vector of offt is corrupted (r2c)
     // apply FFT normalization
-    for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)/(double)offt->GetSize_t());
+    for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
   }
   
   // save triggers
@@ -561,10 +563,12 @@ bool Omicron::WriteOutput(void){
   }
 
   //*** SPECTRAL DATA
+  /*
   if(fOutProducts.find("spectral")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write spectral data..."<<endl;
     SaveSpectral();
   }
+  */
 
   //*** WHITENED DATA
   if(fOutProducts.find("white")!=string::npos){
@@ -676,17 +680,17 @@ bool Omicron::Whiten(void){
   }
  
   // normalize data by the ASD
-  // + /f_w (FFT definition)
   double asdval;
   for(; i<offt->GetSize_f(); i++){
-    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange());// one-sided
+    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;
     if(asdval<=0){
       cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz"<<endl;
       return false;
     }
-    asdval=sqrt(asdval/2.0);// 2: one-sided --> two-sided
-    offt->SetRe_f(i,offt->GetRe_f(i) / asdval);
-    offt->SetIm_f(i,offt->GetIm_f(i) / asdval);
+    asdval=sqrt(asdval);
+    offt->SetRe_f(i,offt->GetRe_f(i) / asdval /triggers[chanindex]->GetWorkingFrequency());
+    offt->SetIm_f(i,offt->GetIm_f(i) / asdval /triggers[chanindex]->GetWorkingFrequency());
+    // /f_w is the FFT normalization, which was not performed in Condition()
   }
 
   return true;

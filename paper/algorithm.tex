@@ -44,7 +44,7 @@ As presented in Sec.~\ref{sec:method}, the Omicron analysis requires to perform 
 \end{equation}
 and
 \begin{equation}
-  x[j]=\frac{f_w}{N_c}\sum_{j=0}^{N_c-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N_c}}.
+  x[j]=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k]\mathrm{e}^{+2i\pi jk/N_c}}.
   \label{eq:dFTbackward}
 \end{equation}
 The frequency-domain data vector, $\tilde{x}$, is of size $N_c$ and the frequency sample interval is $\delta f = f_{k+1}-f_k = f_w/N_c = 1/T_c$. By convention, the first element, $\tilde{x}[0]$ is the DC component which is a purely real number. Positive frequencies are stored in the first half of $\tilde{x}$: $f_k=kf_w/N_c$, with $1\le k \le N_c/2$. The element $\tilde{x}[N_c/2]$ is purely real and is associated to the Nyquist frequency $f_{\text{Nyquist}}=f_w/2$. Negative frequencies are stored backward in the second half of $\tilde{x}$: $f_k=(k-N_c)f_w/N_c$, with $N_c/2 < k < N_c$.
@@ -67,10 +67,10 @@ The user options must also include the maximum fractional energy loss due mismat
 
 A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes, indexed by $q$, are given a $Q$ value obtained from Eq.~\ref{eq:q}.
 
-A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_l)$ linear bins, $N_\tau(Q_q,\phi_l)$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Indeed, in Sec.~\ref{sec:algorithm:discrete}, we explained that working with power-of-two vector sizes is computationally more efficient. The tile time and frequency, $(\tau_{q,lm,} \phi_{q,l})$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. It also useful to give the histogram bin width in both the time and frequency dimensions:
+A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_{ql})$ linear bins, $N_\tau(Q_q,\phi_{ql})$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Indeed, in Sec.~\ref{sec:algorithm:discrete}, we explained that working with power-of-two vector sizes is computationally more efficient. The tile time and frequency, $(\tau_{qlm}, \phi_{ql})$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. It also useful to give the histogram bin width in both the time and frequency dimensions:
 \begin{align}
-  \Delta\tau_{q,l,m} &= T_c / N_\tau(Q_q, \phi_{q,l}), \label{eq:dtau} \\
-  \Delta\phi_{q,l} &= 4\phi_{l}\sqrt{\frac{\mu_{max}}{3(2+Q_l^2)}}.\label{eq:dphi}
+  \Delta\tau_{ql} &= T_c / N_\tau(Q_q, \phi_{ql}), \label{eq:dtau} \\
+  \Delta\phi_{ql} &= 4\phi_{ql}\sqrt{\frac{\mu_{max}}{3(2+Q_q^2)}}.\label{eq:dphi}
 \end{align}
 
 
@@ -98,7 +98,7 @@ As presented in Eq.~\ref{eq:qtransform2}, the $Q$ transform includes windowing t
   \end{cases}
   \label{eq:dbisquare1}
 \end{equation}
-where $M_{ql}=2\lfloor \delta f(\phi_{q,l},Q_q) T_c \rfloor + 1$ is the window size, obtained using the relation $\delta f(\phi_{q,l},Q_q) = \phi_{q,l}\sqrt{11}/Q_q$.
+where $M_{ql}=2\lfloor \delta f(\phi_{ql},Q_q) T_c \rfloor + 1$ is the window size, obtained using the relation $\delta f(\phi_{ql},Q_q) = \phi_{ql}\sqrt{11}/Q_q$.
 
 
 %Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
@@ -220,13 +220,25 @@ Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is es
 
 The whitened frequency-domain chunk data vector $\tilde{x}$ must be applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
 \begin{equation}
-  X(m, l, q)=\frac{f_w}{N_c}\sum_{j=0}^{N_c-1}{\tilde{x}[k+p_l]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
+  X(j, l, q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_l]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
 \end{equation}
-where $p_l=\lfloor \phi_lTc \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_l$. After being applied this frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier transform back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}.
+where $p_l=\lfloor \phi_lT_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_l$. After being applied this frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_t(Q_q, \phi_l)$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the relation $j\frac{1}{f_w}=m\Delta\tau_{ql}$, which is equivalent to $j=m\frac{N_c}{N_t}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
+\begin{equation}
+  X(m, l, q) = \frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_l]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi mk/N_t}},
+\end{equation}
+It is possible to reduce the cost of the inverse Fourier transform by using the fact that the bisquare window takes non-zero values over a limited number of samples.
 
-%As suggested in Sec.~\ref{sec:method:window}, in order to optimize the algorithm performance, the inverse Fourier transform of Eq.~\ref{eq:qtransform3} is performed over a reduced vector size. The window takes non-zero values between $\pm \Delta f$; the number of data points to consider is therefore $M=2\lfloor \Delta f(\phi_l,Q_q) T_c \rfloor + 1$.
 
 
-\subsection{The triggering} \label{sec:algorithm:triggering}
+%where we used the fact that $N_t$ is a sub-multiple of $N_c$ as both numbers are a power of two. The original inverse Fourier transform of size $N_c$ is reduced to a less expensive transform of size $N_t(Q_q, \phi_l)$.
+
+%The \texttt{Omicron} function \texttt{Project()} is called to loop over the $Q$ planes and the frequency rows, $(q,l)$, and to compute the $Q$ transform coefficients $X(m, l, q)$ using Eq.~\ref{eq:dqtransform}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  TRIGGERS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The triggers} \label{sec:algorithm:triggering}
 
 \subsection{The mapping} \label{sec:algorithm:mapping}

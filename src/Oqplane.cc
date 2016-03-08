@@ -75,7 +75,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     bandPower[f]=0.0;
             
     // band fft
-    ifftnormalization = (double)GetBandNtiles(f) / ((double)SampleFrequency*(double)TimeRange);
+    ifftnormalization = (double)GetBandNtiles(f) / (double)TimeRange;
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE", "c2c");
 
     // Prepare window stuff
@@ -153,13 +153,12 @@ bool Oqplane::ProjectData(fft *aFft){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  double *working_vector[2];    // working vector RE&IM
   int i, index, dataindex, end; // indexes
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
   double *phases;               // vector of phases
   double meanenergy;            // mean Gaussian energy
-  int Nt;                       // number of time tiles
+  int Nt;                       // number of time tiles in a row
   double snr;                   // tile SNR
 
   // reset
@@ -170,11 +169,7 @@ bool Oqplane::ProjectData(fft *aFft){
 
     // number of tiles in this row
     Nt = GetBandNtiles(f);
-   
-    // make working vector
-    working_vector[0] = new double [Nt];
-    working_vector[1] = new double [Nt];
-   
+        
     // padding sizes
     ZeroPadSize = Nt-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
@@ -189,35 +184,30 @@ bool Oqplane::ProjectData(fft *aFft){
     //     (bandWindowSize-1)/2 (left side) |----|
     //
     // |----|---------------|---------------|----| Nt
+    
     i=0, index=0, end=0;
     end=Nt/2-RightZeroPadSize;
     for(; i<end; i++){
       index=i+Nt/2-LeftZeroPadSize;
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aFft->GetRe_f(dataindex);// window data
-      working_vector[1][i]=bandWindow[f][index]*aFft->GetIm_f(dataindex);// window data
+      bandFFT[f]->SetRe_f(i,bandWindow[f][index]*aFft->GetRe_f(dataindex));
+      bandFFT[f]->SetIm_f(i,bandWindow[f][index]*aFft->GetIm_f(dataindex));
     }
     end+=ZeroPadSize;
     for(; i<end; i++){
-      working_vector[0][i]=0.0;
-      working_vector[1][i]=0.0;
+      bandFFT[f]->SetRe_f(i,0.0);
+      bandFFT[f]->SetIm_f(i,0.0);
     }
     end=Nt;
     for(; i<end; i++){
       index=i-(LeftZeroPadSize+Nt/2);
       dataindex=(int)floor((double)(-(bandWindowSize[f]-1)/2 + index)+ 1.5 + GetBandFrequency(f) * GetTimeRange());
-      working_vector[0][i]=bandWindow[f][index]*aFft->GetRe_f(dataindex);// window data
-      working_vector[1][i]=bandWindow[f][index]*aFft->GetIm_f(dataindex);// window data
+      bandFFT[f]->SetRe_f(i,bandWindow[f][index]*aFft->GetRe_f(dataindex));
+      bandFFT[f]->SetIm_f(i,bandWindow[f][index]*aFft->GetIm_f(dataindex));
     }
-
+    
     // fft-backward
-    if(!bandFFT[f]->Backward(working_vector[0],working_vector[1])){
-      delete working_vector[0];
-      delete working_vector[1];
-      return false;
-    }
-    delete working_vector[0];
-    delete working_vector[1];
+    bandFFT[f]->Backward();
  
     // get energies/phases
     energies = bandFFT[f]->GetNorm2_t();
