@@ -134,15 +134,15 @@ Each frequency row is finally sub-divided into $N_\tau(Q_q,\phi_{q,l})$ linearly
 
 As we will see in Sec.~\ref{sec:method:snr}, whitening the data before applying the $Q$ transform is useful for a subsequent statistical interpretation of the $Q$ transform coefficients. To achieve this, a simple method consists of re-weighting the frequency-domain data by the inverse amplitude spectral density:
 \begin{equation}
-  \tilde{x}_{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S(|f|)}},
+  \tilde{x}_{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S(|f|)/2}},
   \label{eq:whitening}
 \end{equation}
-where $S(f)$ is the one-sided ($f \ge 0$) power spectrum density (PSD). After this transformation, the power is equally distributed over the frequencies and the one-sided PSD of $x_{white}$ is flat and equal to 1. The one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$:
+where $S(f)$ is the one-sided ($f \ge 0$) power spectrum density (PSD). After this transformation, the power is equally distributed over the frequencies and the one-sided PSD of $x_{white}$ is flat and equal to 2. The one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$:
 \begin{equation}
   P_T(f) = \frac{2}{T}\left|\tilde{x}_T(f)\right|^2, \qquad f \ge 0.
   \label{eq:periodogram}
 \end{equation}
-The factor 2 accounts for negative frequencies of $\tilde{x}_T$ which are ignored in a one-sided convention.
+In a one-sided convention, the factor 2 accounts for the negative frequencies of $\tilde{x}_T$. Note that this factor is corrected back when whitening the data in Eq.~\ref{eq:whitening}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
