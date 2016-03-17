@@ -262,6 +262,7 @@ class Omicron {
   GwollumPlot *GPlot;           ///< Gwollum plots
   Spectrum **spectrum;          ///< spectrum structure
   ffl *FFL;                     ///< ffl
+  ffl *FFL_inject;              ///< ffl for injection signals
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
   InjEct **inject;              ///< software injections

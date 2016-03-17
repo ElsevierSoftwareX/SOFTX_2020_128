@@ -235,6 +235,7 @@ void Omicron::ReadOptions(void){
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** injection channels *****
+  FFL_inject=NULL;
   if(io->GetOpt("INJECTION","CHANNELS", fInjChan)){
     if(fInjChan.size()!=fChannels.size()){
       cerr<<"Omicron::ReadOptions: INJECTION/CHANNELS is inconsistent with the number of channels"<<endl;
@@ -250,6 +251,10 @@ void Omicron::ReadOptions(void){
     else{
       for(int i=0; i<(int)fChannels.size(); i++) fInjFact.push_back(1.0);
     }
+    if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile))
+      FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+    else
+      FFL_inject=FFL;
   }
   //*****************************
 

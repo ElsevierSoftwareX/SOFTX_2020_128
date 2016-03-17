@@ -32,6 +32,11 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=FFL->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
     status_OK*=FFL->LoadFrameFile();
   }
+  if(FFL_inject!=NULL&&FFL_inject!=FFL){
+    cout<<"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"<<endl;
+    status_OK*=FFL_inject->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
+    status_OK*=FFL_inject->LoadFrameFile();
+  }
 
   // sort time windows
   // FIXME: to move in Otile
@@ -54,6 +59,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_DATA_FFLFILE");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_CHANNEL");              fOptionType.push_back("s");
   fOptionName.push_back("omicron_DATA_SAMPLEFREQUENCY");      fOptionType.push_back("i");
+  fOptionName.push_back("omicron_INJECTION_FFL");             fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_CHANNEL");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_FACTOR");          fOptionType.push_back("d");
   fOptionName.push_back("omicron_INJECTION_FILENAME");        fOptionType.push_back("s");
@@ -84,34 +90,36 @@ Omicron::Omicron(const string aOptionFile){
     else          status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],FFL->GetInputFfl());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],triggers[c]->GetWorkingFrequency());
+    if(FFL_inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
+    else                 status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],FFL_inject->GetInputFfl());
     if(fInjChan.size()){
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],fInjChan[c]);
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjFact[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],fInjChan[c]);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],fInjFact[c]);
     }
     else{
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
-      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],0.0);
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[4],"none");
+      status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],0.0);
     }
-    if(inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],"none");
-    else             status_OK*=triggers[c]->SetUserMetaData(fOptionName[5],inject[c]->GetInputFilePattern());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],tile->GetFrequencyMin());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],tile->GetFrequencyMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],tile->GetQ(0));
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],tile->GetQ(tile->GetNQ()-1));
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],tile->GetTimeRange());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],tile->GetOverlapDuration());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],tile->GetMismatchMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetSNRTriggerThr());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],spectrum[c]->GetDataBufferLength());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],fTileDown);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetNTriggerMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],GPlot->GetCurrentStyle());
+    if(inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],"none");
+    else             status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],inject[c]->GetInputFilePattern());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],tile->GetFrequencyMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],tile->GetFrequencyMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],tile->GetQ(0));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],tile->GetQ(tile->GetNQ()-1));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],tile->GetTimeRange());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],tile->GetOverlapDuration());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetMismatchMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],tile->GetSNRTriggerThr());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],spectrum[c]->GetDataBufferLength());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],triggers[c]->GetClusterizeDt());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fTileDown);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],tile->GetNTriggerMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],GPlot->GetCurrentStyle());
     triggers[c]->SetMprocessname("Omicron");
   }
   
@@ -158,6 +166,7 @@ Omicron::~Omicron(void){
   delete spectrum;
   delete triggers;
   if(FFL!=NULL) delete FFL;
+  if(FFL_inject!=NULL&&FFL_inject!=FFL) delete FFL_inject;
   if(inject!=NULL){
     for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
     delete inject;
@@ -218,7 +227,13 @@ bool Omicron::InitSegments(Segments *aSeg){
       return false;
     }
   }
-  
+  if(FFL_inject!=NULL&&FFL_inject!=FFL){
+    if(!FFL_inject->ExtractChannels(aSeg->GetStart(0))){
+      cerr<<"Omicron::InitSegments: cannot update FFL info for injections."<<endl;
+      return false;
+    }
+  }
+
   if(fVerbosity>1){
     cout<<"\t- N segments       = "<<aSeg->GetNsegments()<<endl;
     cout<<"\t- Livetime         = "<<aSeg->GetLiveTime()<<endl;
@@ -416,7 +431,7 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
   if(fInjChan.size()){
     if(fVerbosity>1) cout<<"\t- perform stream injections..."<<endl;
     int dsize_inj;
-    double *dvector_inj = FFL->GetData(dsize_inj, fInjChan[chanindex], tile->GetChunkTimeStart(), tile->GetChunkTimeEnd());
+    double *dvector_inj = FFL_inject->GetData(dsize_inj, fInjChan[chanindex], tile->GetChunkTimeStart(), tile->GetChunkTimeEnd());
 
     // cannot retrieve data
     if(dsize_inj<=0){
