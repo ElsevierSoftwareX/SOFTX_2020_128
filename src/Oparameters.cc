@@ -95,7 +95,7 @@ void Omicron::ReadOptions(void){
   }
   triggers = new MakeTriggers* [(int)fChannels.size()];// output triggers
   for(int c=0; c<(int)fChannels.size(); c++)
-    triggers[c] = new MakeTriggers(fMaindir,fChannels[c],fOutFormat,fVerbosity);
+    triggers[c] = new MakeTriggers(fChannels[c],fVerbosity);
   //*****************************
   
   //***** Sampling frequency *****

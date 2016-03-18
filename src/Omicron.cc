@@ -33,7 +33,6 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=FFL->LoadFrameFile();
   }
   if(FFL_inject!=NULL&&FFL_inject!=FFL){
-    cout<<"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"<<endl;
     status_OK*=FFL_inject->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
     status_OK*=FFL_inject->LoadFrameFile();
   }
@@ -84,6 +83,7 @@ Omicron::Omicron(const string aOptionFile){
 
   // triggers metadata
   for(int c=0; c<(int)fChannels.size(); c++){
+    triggers[c]->SetMprocessname("OMICRON");
     triggers[c]->SetProcessVersion(GetVersion());
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     if(FFL==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],"none");
@@ -120,7 +120,6 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutProducts);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],GPlot->GetCurrentStyle());
-    triggers[c]->SetMprocessname("Omicron");
   }
   
   // process monitoring
@@ -272,7 +271,6 @@ bool Omicron::MakeDirectories(const int aId){
     outdir.push_back(maindir+"/"+fChannels[c]);
     if(fVerbosity>1) cout<<"\t- "<<outdir[c]<<endl;
     system(("mkdir -p "+outdir[c]).c_str());
-    triggers[c]->SetOutputDirectory(outdir[c]);
   }
 
   return true;
@@ -637,7 +635,7 @@ bool Omicron::WriteTriggers(void){
   if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
   
   // write triggers to disk
-  if(!triggers[chanindex]->Write().compare("none")){
+  if(!triggers[chanindex]->Write(outdir[chanindex],fOutFormat).compare("none")){
     cerr<<"Omicron::WriteTriggers: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return false;
   }
