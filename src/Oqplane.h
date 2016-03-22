@@ -72,7 +72,6 @@ class Oqplane: public Omap {
   // FREQUENCY BANDS
   int *bandWindowSize;              ///< band 'Gaussian' window size
   double **bandWindow;              ///< band 'Gaussian' window
-  double **bandWindowFreq;          ///< band 'Gaussian' window frequency
   double *bandPower;                ///< band power
   fft **bandFFT;                    ///< band fft
   

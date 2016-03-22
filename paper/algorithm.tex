@@ -98,10 +98,15 @@ As presented in Eq.~\ref{eq:qtransform2}, the $Q$ transform includes windowing t
   \end{cases}
   \label{eq:dbisquare1}
 \end{equation}
-where $M_{ql}=2\lfloor \delta f(\phi_{ql},Q_q) T_c \rfloor + 1$ is the window size, obtained using the relation $\delta f(\phi_{ql},Q_q) = \phi_{ql}\sqrt{11}/Q_q$.
-
-
-%Before performing the analysis of Eq.~\ref{eq:qtransform3}, the data vector $x$ is whitened such that individual samples of the resulting discrete time sequence are statistically independent random variables with zero mean and unit variance.
+where $M_{ql}=2\lfloor \delta f(\phi_{ql},Q_q) T_c \rfloor + 1$ is the window size, obtained using the relation $\delta f(\phi_{ql},Q_q) = \phi_{ql}\sqrt{11}/Q_q$. The window vector $\tilde{w}$ is computed and saved for each $Q$ plane $q$ and each frequency row $l$. To limit the memory usage, the 0 values are not saved and
+\begin{equation}
+  \tilde{w}_{ql}[k] = \tilde{w}_{ql}^*[k] =
+  \begin{cases}
+    W_b \left[1 - \left(\frac{2k}{M_{ql}-1}\right)^2 \right]^2 & 0\le k \le \frac{M_{ql}-1}{2}, \\
+    W_b \left[1 - \left(\frac{2(k-M_{ql})}{M_{ql}-1}\right)^2 \right]^2 & \frac{M_{ql}+1}{2}\le k < M_{ql}.
+  \end{cases}
+  \label{eq:dbisquare2}
+\end{equation}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -218,21 +223,50 @@ Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is es
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data projection} \label{sec:algorithm:projection}
 
-The whitened frequency-domain chunk data vector $\tilde{x}$ must be applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
+The whitened frequency-domain chunk data vector $\tilde{x}$ is applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
 \begin{equation}
-  X(j, l, q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_l]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
+  X(j,l,q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
+  \label{eq:dqtransform1}
 \end{equation}
-where $p_l=\lfloor \phi_lT_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_l$. After being applied this frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_t(Q_q, \phi_l)$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the relation $j\frac{1}{f_w}=m\Delta\tau_{ql}$, which is equivalent to $j=m\frac{N_c}{N_t}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
+where $p_{ql}=\lfloor \phi_{ql}T_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_{ql}$. After being applied this frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_\tau(Q_q, \phi_{ql})$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the simple relation $j=m\frac{N_c}{N_\tau}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
 \begin{equation}
-  X(m, l, q) = \frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_l]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi mk/N_t}},
+  X(m, l, q) = \frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi mk/N_\tau}}.
+  \label{eq:dqtransform2}
 \end{equation}
-It is possible to reduce the cost of the inverse Fourier transform by using the fact that the bisquare window takes non-zero values over a limited number of samples.
+The bisquare window of Eq.~\ref{eq:dbisquare1} takes non-zero values only over $M_{ql}$ samples. As a result, Eq.~\ref{eq:dqtransform2} can be written as the sum of three terms:
+\begin{align}
+  X(m, l, q)
+  = & \frac{f_w}{N_c} \sum_{k=0}^{(M_{ql}-1)/2}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k] \; \mathrm{e}^{+2i\pi mk/N_\tau}} \\
+  + & \frac{f_w}{N_c} \sum_{k=(M_{ql}+1)/2}^{N_c-(M_{ql}-3)/2}{0 \; \mathrm{e}^{+2i\pi mk/N_\tau}} \\
+  + & \frac{f_w}{N_c} \sum_{k=N_c-(M_{ql}-1)/2}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k] \; \mathrm{e}^{+2i\pi mk/N_\tau}} .
+  \label{eq:dqtransform3}
+\end{align}
+The second term consists of summing $N_c-M_{ql}$ zeros. It is possible to remove $N_c-N_\tau$ zeros in that sum so that $X(m,l,q)$ becomes a sum of $N_\tau$ terms:
+\begin{align}
+  X(m, l, q)
+  = & \frac{f_w}{N_c} \sum_{k=0}^{(M_{ql}-1)/2}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k] \; \mathrm{e}^{+2i\pi mk/N_\tau}} \\
+  + & \frac{f_w}{N_c} \sum_{k=(M_{ql}+1)/2}^{N_\tau-(M_{ql}-3)/2}{0 \; \mathrm{e}^{+2i\pi mk/N_\tau}} \\
+  + & \frac{f_w}{N_c} \sum_{k=N_\tau-(M_{ql}-1)/2}^{N_\tau-1}{\tilde{x}[k+N_c-N_\tau+p_{ql}]\tilde{w}_{ql}^*[k+N_c-N_\tau] \; \mathrm{e}^{+2i\pi mk/N_\tau}} .
+  \label{eq:dqtransform4}
+\end{align}
+Note that the index $k$ of the third sum has been shifted to match the end of the second sum: $k-(N_c-N_\tau) \rightarrow k$. This is only possible because both $N_c$ and $N_\tau$ are power-of-two values so we have: $\mathrm{e}^{+2i\pi m(k+N_c-N_\tau)/N_\tau} = \mathrm{e}^{+2i\pi mk/N_\tau}$. Finally, the sum of Eq.~\ref{eq:dqtransform4} can be recombined into a single sum:
+\begin{equation}
+  X(m, l, q) = \frac{N_\tau}{N_c} \; \times \; \frac{f_w}{N_\tau} \sum_{k=0}^{N_\tau-1}{\tilde{v}[k]\mathrm{e}^{+2i\pi mk/N_\tau}},
+  \label{eq:dqtransform5}
+\end{equation}
+where
+\begin{equation}
+  \tilde{v}[k] =
+  \begin{cases}
+    \tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]                    & 0 \le k < (M_{ql}+1)/2 \\
+    0                                                      & (M_{ql}+1)/2 \le k < N_\tau-(M_{ql}-1)/2 \\
+    \tilde{x}[k+N_c-N_\tau+p_{ql}]\tilde{w}_{ql}^*[k+N_c-N_\tau] & N_\tau-(M_{ql}-1)/2 \le k < N_\tau.
+  \end{cases}
+  \label{eq:v}
+\end{equation}
+This equation shows that a single and less expensive inverse Fourier transform of $\tilde{v}$ is necessary to populate the $N_\tau$ tiles of a frequency row $(q,l)$. As prescribed in Sec.~\ref{sec:algorithm:tiling}, $N_\tau(Q_q, \phi_{ql})$ is rounded up to a power of 2 to offer an optimal Fourier transform.
 
-
-
-%where we used the fact that $N_t$ is a sub-multiple of $N_c$ as both numbers are a power of two. The original inverse Fourier transform of size $N_c$ is reduced to a less expensive transform of size $N_t(Q_q, \phi_l)$.
-
-%The \texttt{Omicron} function \texttt{Project()} is called to loop over the $Q$ planes and the frequency rows, $(q,l)$, and to compute the $Q$ transform coefficients $X(m, l, q)$ using Eq.~\ref{eq:dqtransform}
+When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier transform plans are created to perform the inverse Fourier transforms for all $Q$ planes and all frequency rows. Care must be taken to populate the $\tilde{v}$ array. Indeed, one must conciliate the different size conventions used until this point: $\tilde{v}$ is of size $N_\tau $, the whitened data vector, $\tilde{x}$, resulting from a real-to-complex Fourier transforms, is of size $N_c/2+1$ (cf. Sec.~\ref{sec:algorithm:whitening}), and the window, $\tilde{w}^*_{ql}$, saved without the zero values, is of size $M_{ql}$ (cf. Eq.~\ref{eq:dbisquare2}). When taking into account these conventions, the array $\tilde{v}$ now writes:
 
 
 

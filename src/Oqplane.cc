@@ -60,13 +60,13 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   bandPower      = new double  [GetNBands()];
   bandFFT        = new fft*    [GetNBands()];
   bandWindow     = new double* [GetNBands()];
-  bandWindowFreq = new double* [GetNBands()];
   bandWindowSize = new int     [GetNBands()];
 
   double windowargument;
   double winnormalization;
   double ifftnormalization;
   double delta_f;// Connes window 1/2-width
+  int k, end;
   //double A1 = GetA1(); // not used
  
   for(int f=0; f<GetNBands(); f++){
@@ -75,22 +75,27 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     bandPower[f]=0.0;
             
     // band fft
-    ifftnormalization = (double)GetBandNtiles(f) / (double)TimeRange;
+    //ifftnormalization = (double)GetBandNtiles(f) / (double)TimeRange;
+    ifftnormalization = 1.0 / (double)TimeRange;
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE", "c2c");
 
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
-    //delta_f=GetBandWidth(f);
     bandWindowSize[f] = 2 * (int)floor(delta_f*(double)TimeRange) + 1;
     bandWindow[f]     = new double [bandWindowSize[f]];
-    bandWindowFreq[f] = new double [bandWindowSize[f]];
     winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26 Localized bursts only!!!
 
-    // bisquare window = A * ( 1 - (f/delta_f)^2 )^2 for |f| < delta_f
-    for(int i=0; i<bandWindowSize[f]; i++){
-      windowargument=2.0*(double)i/((double)bandWindowSize[f] - 1.0) -1.0;
-      bandWindow[f][i] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
-      bandWindowFreq[f][i]=GetBandFrequency(f)+(double)(-(bandWindowSize[f]-1)/2 + i) / (double)TimeRange;
+    // bisquare window
+    end=(bandWindowSize[f]+1)/2;
+    for(k=0; k<end; k++){
+      windowargument=2.0*(double)k/(double)(bandWindowSize[f] - 1);
+      bandWindow[f][k] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
+    }
+    // do not save 0s in the center
+    end=bandWindowSize[f];
+    for(; k<end; k++){
+      windowargument=2.0*(double)(k-end)/(double)(bandWindowSize[f] - 1);
+      bandWindow[f][k] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
     }
   }
   
@@ -102,13 +107,11 @@ Oqplane::~Oqplane(void){
   for(int f=0; f<GetNBands(); f++){
     delete bandFFT[f];
     delete bandWindow[f];
-    delete bandWindowFreq[f];
   }
   delete bandWindowSize;
   delete bandFFT;
   delete bandPower;
   delete bandWindow;
-  delete bandWindowFreq;
 }
 
 
@@ -153,7 +156,7 @@ bool Oqplane::ProjectData(fft *aFft){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  int i, index, dataindex, end; // indexes
+  int k, kshift, index, dataindex, end; // indexes
   int ZeroPadSize, LeftZeroPadSize, RightZeroPadSize;// number of zeros to pad
   double *energies;             // vector of energies
   double *phases;               // vector of phases
@@ -169,7 +172,27 @@ bool Oqplane::ProjectData(fft *aFft){
 
     // number of tiles in this row
     Nt = GetBandNtiles(f);
-        
+
+    // frequency shift
+    kshift=(int)floor(GetBandFrequency(f)*GetTimeRange());
+ 
+    end=(bandWindowSize[f]+1)/2;
+    for(k=0; k<end; k++){
+      bandFFT[f]->SetRe_f(k,bandWindow[f][k]*aFft->GetRe_f(k+kshift));
+      bandFFT[f]->SetIm_f(k,bandWindow[f][k]*aFft->GetIm_f(k+kshift));
+    }
+    end=Nt-(bandWindowSize[f]-1)/2;
+    for(; k<end; k++){
+      bandFFT[f]->SetRe_f(k,0.0);
+      bandFFT[f]->SetIm_f(k,0.0);
+    }
+    end=Nt;
+    for(; k<end; k++){
+      bandFFT[f]->SetRe_f(k,bandWindow[f][k-end+bandWindowSize[f]]*aFft->GetRe_f(k+kshift));
+      bandFFT[f]->SetIm_f(k,bandWindow[f][k-end+bandWindowSize[f]]*aFft->GetIm_f(k+kshift));
+    }
+
+    /*
     // padding sizes
     ZeroPadSize = Nt-bandWindowSize[f];
     LeftZeroPadSize = (ZeroPadSize - 1) / 2;
@@ -205,7 +228,7 @@ bool Oqplane::ProjectData(fft *aFft){
       bandFFT[f]->SetRe_f(i,bandWindow[f][index]*aFft->GetRe_f(dataindex));
       bandFFT[f]->SetIm_f(i,bandWindow[f][index]*aFft->GetIm_f(dataindex));
     }
-    
+    */
     // fft-backward
     bandFFT[f]->Backward();
  
@@ -315,6 +338,7 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 
   double sumofweight;
   double power, psdval;
+  int end;
 
   // set power for each f-row
   for(int f=0; f<GetNBands(); f++){
@@ -322,11 +346,19 @@ bool Oqplane::SetPower(Spectrum *aSpec){
     sumofweight=0;
 
     // weighted average over the window
-    for(int i=0; i<bandWindowSize[f]; i++){
-      psdval=aSpec->GetPower(bandWindowFreq[f][i]);
+    end=(bandWindowSize[f]+1)/2;
+    for(int k=0; k<end; k++){
+      psdval=aSpec->GetPower(GetBandFrequency(f)+(double)k / GetTimeRange());
       if(psdval<0) return false;
-      sumofweight+=(bandWindow[f][i]*bandWindow[f][i]);
-      power+=psdval*(bandWindow[f][i]*bandWindow[f][i]);
+      sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
+      power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
+    }
+    end=GetBandNtiles(f);
+    for(int k=end-(bandWindowSize[f]-1)/2; k<end; k++){
+      psdval=aSpec->GetPower(GetBandFrequency(f)-(double)(k-end) / GetTimeRange());
+      if(psdval<0) return false;
+      sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
+      power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
     }
     bandPower[f]=power/sumofweight;
   }
