@@ -228,7 +228,7 @@ The whitened frequency-domain chunk data vector $\tilde{x}$ is applied the $Q$ t
   X(j,l,q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
   \label{eq:dqtransform1}
 \end{equation}
-where $p_{ql}=\lfloor \phi_{ql}T_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_{ql}$. Note that the index shift $k+p_{ql}$ seems to lead to out-of-range issues for the $\tilde{x}$ array. One must keep in mind that, in the second half of $\tilde{x}$, negative frequencies are stored in a reverse order. This issue will be properly addressed in Eq.~\ref{eq:v2}. After being applied the frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_\tau(Q_q, \phi_{ql})$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the simple relation $j=m\frac{N_c}{N_\tau}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
+where $p_{ql}=\lfloor \phi_{ql}T_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_{ql}$. Note that the index shift $k+p_{ql}$ seems to lead to out-of-range issues for the $\tilde{x}$ array. One must keep in mind that anti-aliasing conditions are in applied to prevent this. This issue will be properly addressed below, in Eq.~\ref{eq:v2}. After being applied the frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_\tau(Q_q, \phi_{ql})$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the simple relation $j=m\frac{N_c}{N_\tau}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
 \begin{equation}
   X(m, l, q) = \frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi mk/N_\tau}}.
   \label{eq:dqtransform2}
@@ -272,10 +272,18 @@ When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier tr
   \begin{cases}
     \tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]                     & 0 \le k < (M_{ql}+1)/2 \\
     0                                                        & (M_{ql}+1)/2 \le k < N_\tau-(M_{ql}-1)/2 \\
-    \tilde{x}[k+N_c-N_\tau+p_{ql}]\tilde{w}_{ql}^*[k+M_{ql}-N_\tau] & N_\tau-(M_{ql}-1)/2 \le k < N_\tau.
+    \tilde{x}[\;|N_\tau-k-p_{ql}|\;]\tilde{w}_{ql}^*[k+M_{ql}-N_\tau] & N_\tau-(M_{ql}-1)/2 \le k < N_\tau.
   \end{cases}
   \label{eq:v2}
 \end{equation}
+The indexes used in Eq.~\ref{eq:v2} are all consistent with vector sizes. The out-of-range issue described at the beginning of this section no longer exists.
+
+To summarize, the $Q$ tansform coefficients are computed for all tiles, $(m,l,q)$, after performing $N_Q\times N_{\phi}(Q,\phi)$ inverse Fourier transforms:
+\begin{equation}
+  X(m, l, q) = \frac{N_\tau}{N_c} v[m].
+  \label{eq:qcoeff}
+\end{equation}
+
 
 
 
