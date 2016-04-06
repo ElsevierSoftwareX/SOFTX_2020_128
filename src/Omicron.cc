@@ -73,7 +73,6 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_PSDLENGTH");       fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
-  fOptionName.push_back("omicron_PARAMETER_TILEDOWN");        fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_NTRIGGERMAX");        fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
@@ -113,13 +112,12 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],spectrum[c]->GetDataBufferLength());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fTileDown);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],tile->GetNTriggerMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetNTriggerMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],GPlot->GetCurrentStyle());
   }
   
   // process monitoring
@@ -527,7 +525,7 @@ bool Omicron::Project(void){
     
   // project data
   if(fVerbosity>1) cout<<"\t- project chunk"<<endl;
-  if(!tile->ProjectData(offt, fTileDown)) return false;
+  if(!tile->ProjectData(offt)) return false;
 
   // save whiten data for condition data products
   if(fOutProducts.find("white")!=string::npos){

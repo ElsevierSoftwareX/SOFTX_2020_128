@@ -242,7 +242,6 @@ class Omicron {
   vector <string> fChannels;    ///< list of channel names
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
-  int fTileDown;                ///< tile-down flag FIXME: to move in Otile
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
 

@@ -207,14 +207,7 @@ void Omicron::ReadOptions(void){
   if(!io->GetOpt("PARAMETER","CLUSTERDT", cldt)) cldt=0.1;
   for(int c=0; c<(int)fChannels.size(); c++) triggers[c]->SetClusterizeDt(cldt);
   //*****************************
-  
-  //***** Down-tiling *****
-  if(!io->GetOpt("PARAMETER","TILEDOWN", fTileDown)){
-    cerr<<"Omicron::ReadOptions: No downtiling option (PARAMETER/TILEDOWN)  --> set default: NO"<<endl;
-    fTileDown=0;
-  }
-  //*****************************
-  
+    
   //***** plot windows *****
   if(!io->GetOpt("PARAMETER","WINDOWS", fWindows))
     fWindows.push_back(tile->GetTimeRange()-tile->GetOverlapDuration());

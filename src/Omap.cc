@@ -20,11 +20,8 @@ Omap::Omap(): TH2D(){
   GetYaxis()->SetTitleSize(0.045);
   GetZaxis()->SetTitleSize(0.045);
   Ntiles=0;
-  bandMultiple = new int[0];
-  bandCenter = new double[0];
-  tilephase = NULL;
-  tilecontent = NULL;
-  tiletag = NULL;
+  bandMultiple   = new int[0];
+  bandCenter     = new double[0];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -32,17 +29,6 @@ Omap::~Omap(void){
 ////////////////////////////////////////////////////////////////////////////////////
   delete bandCenter;
   delete bandMultiple;
-  if(tilecontent!=NULL){
-    for(int f=0; f<GetNBands(); f++){
-      delete tilecontent[f];
-      delete tilephase[f];
-      delete tiletag[f];
-    }
-    delete tilecontent;
-    delete tilephase;
-    delete tiletag;
-  }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -68,20 +54,6 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   double *tbins = new double [Nt+1];
   for(int t=0; t<=Nt; t++) tbins[t] = -(double)aTimeRange/2.0 + (double)t/(double)Nt*(double)aTimeRange;
 
-  // delete content / phase / tag
-  if(tilecontent!=NULL){
-    for(int f=0; f<GetNBands(); f++) delete tilecontent[f];
-    delete tilecontent;
-  }
-  if(tilephase!=NULL){
-    for(int f=0; f<GetNBands(); f++) delete tilephase[f];
-    delete tilephase;
-  }
-  if(tiletag!=NULL){
-    for(int f=0; f<GetNBands(); f++) delete tiletag[f];
-    delete tiletag;
-  }
-
   // set binning
   TH1::SetBins(Nt,tbins, Nf,fbins);
   delete fbins;
@@ -94,26 +66,12 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   bandMultiple = new int [GetNBands()];
   Ntiles=0;
 
-  // create content / phase / tag array
-  tilecontent = new double* [GetNBands()];
-  tilephase   = new double* [GetNBands()];
-  tiletag     = new bool*   [GetNBands()];
-
   //
   for(int f=0; f<GetNBands(); f++){
     bandCenter[f] = GetYaxis()->GetBinCenterLog(f+1);
     TimeCumulativeMismatch = (double)aTimeRange * 2.0*TMath::Pi() * GetBandFrequency(f) / aQ;
     Nt = NextPowerOfTwo(TimeCumulativeMismatch / aMismatchStep);
     bandMultiple[f] = GetNbinsX() / Nt;
-  
-    tilecontent[f] = new double [Nt];
-    for(int t=0; t<Nt; t++) tilecontent[f][t]=0.0;
-
-    tilephase[f] = new double [Nt];
-    for(int t=0; t<Nt; t++) tilephase[f][t]=-100.0;
-
-    tiletag[f] = new bool [Nt];
-    for(int t=0; t<Nt; t++) tiletag[f][t]=true;
     
     Ntiles+=(long int)Nt;
   }
@@ -121,30 +79,5 @@ void Omap::SetBins(const double aQ, const double aFrequencyMin, const double aFr
   return;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-void Omap::MakeMapContent(void){
-////////////////////////////////////////////////////////////////////////////////////
-  for(int bf=0; bf<GetNbinsY(); bf++)
-    for(int bt=1; bt<=GetNbinsX(); bt++)
-      TH2::SetBinContent(bt,bf+1,(double)tiletag[bf][(bt-1)/bandMultiple[bf]]*tilecontent[bf][(bt-1)/bandMultiple[bf]]);
-  return;
-}
 
-////////////////////////////////////////////////////////////////////////////////////
-void Omap::MakeMapPhase(void){
-////////////////////////////////////////////////////////////////////////////////////
-  for(int bf=0; bf<GetNbinsY(); bf++)
-    for(int bt=1; bt<=GetNbinsX(); bt++)
-      TH2::SetBinContent(bt,bf+1,(double)tiletag[bf][(bt-1)/bandMultiple[bf]]*tilephase[bf][(bt-1)/bandMultiple[bf]]);
-  return;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-void Omap::MakeMapDisplay(void){
-////////////////////////////////////////////////////////////////////////////////////
-  for(int f=0; f<GetNbinsY(); f++)
-    for(int t=0; t<GetNbinsX(); t++)
-      SetBinContent(t+1,f+1,50*((t/bandMultiple[f])%2));
-  return;
-}
 

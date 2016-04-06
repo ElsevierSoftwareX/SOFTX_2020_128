@@ -36,7 +36,8 @@ class Oqplane: public Omap {
   virtual ~Oqplane(void);
 
   void PrintParameters(void);
-  bool ProjectData(fft *aFft);
+  bool ProjectData(fft *aDataFft);
+  void FillMap(const string aContentType="snr");
   bool SaveTriggers(MakeTriggers *aTriggers, 
 		    const double aLeftTimePad=0.0, 
 		    const double aRightTimePad=0.0, 
@@ -44,9 +45,9 @@ class Oqplane: public Omap {
 
   // GETS
   inline double GetQ(void){ return Q; };
-  inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){    
-    return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
-  };
+  //inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){    
+  //return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
+  //};
 
   inline int GetNTriggers(void){ return nTriggers; }
   inline double GetSNRThr(void){ return SNRThr; };
@@ -57,7 +58,7 @@ class Oqplane: public Omap {
 
 
   // INTERNAL
-  double GetMeanEnergy(const int aBandIndex, double *aEnergies);
+  double GetMeanEnergy(const int aBandIndex);
   double GetA1(void);
  
   // Q-PLANE
@@ -74,6 +75,7 @@ class Oqplane: public Omap {
   double **bandWindow;              ///< band 'Gaussian' window
   double *bandPower;                ///< band power
   fft **bandFFT;                    ///< band fft
+  double *bandMeanEnergy;           ///< band mean energy
   
   ClassDef(Oqplane,0)  
 };

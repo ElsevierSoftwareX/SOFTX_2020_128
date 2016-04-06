@@ -73,15 +73,7 @@ class Omap: public TH2D {
   inline int GetBandNtiles(const int aBandIndex){ 
     return GetNbinsX()/bandMultiple[aBandIndex];
   };
-  inline double GetTileContent(const int aTimeTileIndex, const int aBandIndex){    
-    return tilecontent[aBandIndex][aTimeTileIndex];
-  };
-  inline double GetTilePhase(const int aTimeTileIndex, const int aBandIndex){    
-    return tilephase[aBandIndex][aTimeTileIndex];
-  };
-  inline double GetTileTag(const int aTimeTileIndex, const int aBandIndex){
-    return tiletag[aBandIndex][aTimeTileIndex];
-  };
+
   inline double GetTileTimeStart(const int aTimeTileIndex, const int aBandIndex){
     return GetXaxis()->GetBinLowEdge(aTimeTileIndex*bandMultiple[aBandIndex]+1);
   };
@@ -95,26 +87,12 @@ class Omap: public TH2D {
     return (int)floor((aTime-GetTimeMin())/GetTileDuration(aBandIndex));
   };
 
-  // SETS
-  inline void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent, const double aPhase=-100.0, const bool aTag=true){
-    tilecontent[aBandIndex][aTimeTileIndex]=aContent;
-    tilephase[aBandIndex][aTimeTileIndex]=aPhase;
-    tiletag[aBandIndex][aTimeTileIndex]=aTag;
-  };
-  inline void SetTileTag(const int aTimeTileIndex, const int aBandIndex, const bool aTag){ tiletag[aBandIndex][aTimeTileIndex]=aTag; };
-
-  // MAPS
-  void MakeMapContent(void);
-  void MakeMapPhase(void);
-  void MakeMapDisplay(void);
-
-  
+  inline void SetTileContent(const int aTimeBinIndex, const int aBandIndex, const double aContent){
+    TH2::SetBinContent(aTimeBinIndex,aBandIndex+1,aContent);
+  }
   long int Ntiles;                  ///< number of tiles in the plane
-  double *bandCenter;               ///< frequency bin center log
+  double *bandCenter;               ///< frequency bin center
   int *bandMultiple;                ///< band multiple (time resolution)
-  double **tilecontent;             ///< tile content array
-  double **tilephase;               ///< tile phase array
-  bool   **tiletag;                 ///< tile tag array
 
   ClassDef(Omap,0)  
 };

@@ -160,18 +160,15 @@ bool Otile::SetPower(Spectrum *aSpec){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::ProjectData(fft *aFft, const bool aTileDown){
+bool Otile::ProjectData(fft *aDataFft){
 ////////////////////////////////////////////////////////////////////////////////////
   // project onto q planes
   for(int p=0; p<nq; p++){
-    if(!qplanes[p]->ProjectData(aFft)){
+    if(!qplanes[p]->ProjectData(aDataFft)){
       cerr<<"Otile::ProjectData: cannot project data onto plane #"<<p<<endl;
       return false;
     }
   }
-
-  // tile-down
-  if(aTileDown) TileDown();
 
   return true;
 }
@@ -453,7 +450,6 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
       ffend=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandEnd(f));
 
       for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
-	if(!qplanes[q]->GetTileTag(t,f)) continue;
 	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+SeqT0);
 	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+SeqT0);
 	
@@ -469,58 +465,6 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
   }
   
   return fullmap;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-void Otile::TileDown(void){
-////////////////////////////////////////////////////////////////////////////////////  
-    
-  double tstart, tend, fstart, fend; // reference tile
-  int ttstart, ttend, ffstart, ffend;// test tile
-  double content; // reference tile
-  bool winner;
-
-  // loop over reference q planes
-  for(int q=0; q<nq; q++){
-    
-    // loop over reference tiles
-    for(int f=0; f<qplanes[q]->GetNBands(); f++){
-      fstart=qplanes[q]->GetBandStart(f);
-      fend=qplanes[q]->GetBandEnd(f);
-      for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
-	content=qplanes[q]->GetTileContent(t,f);
-	tstart=qplanes[q]->GetTileTimeStart(t,f);
-	tend=qplanes[q]->GetTileTimeEnd(t,f);
-	qplanes[q]->SetTileTag(t,f,false);
-
-	// drill through and see if the reference tile is the winner
-	winner=true;
-	for(int qq=0; qq<nq&&winner; qq++){
-	  if(qq==q) continue;
-	  ffstart=TMath::Max(qplanes[qq]->GetBandIndex(fstart),0);
-	  ffend=TMath::Min(qplanes[qq]->GetBandIndex(fend),qplanes[qq]->GetNBands()-1);
-	  for(int ff=ffstart; ff<=ffend; ff++){
-	    if(!winner) break;
-	    ttstart=qplanes[qq]->GetTimeTileIndex(ff,tstart);
-	    ttend=qplanes[qq]->GetTimeTileIndex(ff,tend);
-	    for(int tt=ttstart; tt<=ttend; tt++){
-	      if(qplanes[qq]->GetTileContent(tt,ff)>content){// looser!
-		winner=false;
-		break;
-	      }
-	    }
-	  }
-	}
-
-	// the reference tile is a winner
-	if(winner) qplanes[q]->SetTileTag(t,f,true);
-
-      }
-    }
-    
-  }
-
-  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

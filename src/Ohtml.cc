@@ -114,10 +114,6 @@ void Omicron::MakeHtml(void){
   report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<tile->GetMismatchMax()*100<<" %</td></tr>"<<endl;
   if(fOutProducts.find("triggers")!=string::npos) report<<"  <tr><td>SNR threshold (triggers):</td><td>SNR &gt; "<<tile->GetSNRTriggerThr()<<"</td></tr>"<<endl;
   if(fOutProducts.find("maps")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<tile->GetSNRMapThr()<<"</td></tr>"<<endl;
-  report<<"  <tr><td>Tile-down:</td><td>";
-  if(fTileDown) report<<"YES";
-  else report<<"NO";
-  report<<"</td></tr>"<<endl;
   if(fClusterAlgo.compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo<<", dt = "<<triggers[0]->GetClusterizeDt()<<" sec</td></tr>"<<endl;
   else report<<"  <tr><td>Trigger clustering:</td><td>NONE</td></tr>"<<endl;
   report<<"</table>"<<endl;
