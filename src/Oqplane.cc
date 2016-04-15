@@ -123,31 +123,31 @@ void Oqplane::FillMap(const string aContentType){
   if(!aContentType.compare("snr")){
     double energy;
     for(int f=0; f<GetNBands(); f++){
-      for(int t=1; t<=GetNbinsX(); t++){
-	energy=bandFFT[f]->GetNorm2_t((t-1)/bandMultiple[f]);
-	if(2.0*energy>bandMeanEnergy[f]) SetTileContent(t,f+1,sqrt(2.0*energy/bandMeanEnergy[f]-1.0));
-	else SetTileContent(t,f+1,0.0);
+      for(int t=0; t<GetBandNtiles(f); t++){
+	energy=bandFFT[f]->GetNorm2_t(t);
+	if(2.0*energy>bandMeanEnergy[f]) SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-1.0));
+	else SetTileContent(t,f,0.0);
       }
     }
   }
   else if(!aContentType.compare("amplitude")){
     for(int f=0; f<GetNBands(); f++){
-      for(int t=1; t<=GetNbinsX(); t++){
-	SetTileContent(t,f+1,1.0);
+      for(int t=0; t<GetBandNtiles(f); t++){
+	SetTileContent(t,f,1.0);
       }
     }
   }
   else if(!aContentType.compare("phase")){
     for(int f=0; f<GetNBands(); f++){
-      for(int t=1; t<=GetNbinsX(); t++){
-	SetTileContent(t,f+1,bandFFT[f]->GetPhase_t((t-1)/bandMultiple[f]));
+      for(int t=0; t<GetBandNtiles(f); t++){
+	SetTileContent(t,f,bandFFT[f]->GetPhase_t(t));
       }
     }
   }
   else{
     for(int f=0; f<GetNBands(); f++){
-      for(int t=1; t<=GetNbinsX(); t++){
-	SetTileContent(t,f+1,100.0/bandMultiple[f]);
+      for(int t=0; t<GetBandNtiles(f); t++){
+	SetTileContent(t,f,100.0);
       }
     }
   }
@@ -163,7 +163,8 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
   double snr2;
-  double SNRThr2=SNRThr*SNRThr;
+  double SNRThr2 = SNRThr*SNRThr;
+  
   for(int f=0; f<GetNBands(); f++){
     
     // remove padding
@@ -175,7 +176,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
     for(int t=tstart; t<tend; t++){
 
       // compute tile snr
-      snr2=2.0*bandFFT[f]->GetNorm2_t(t)/bandMeanEnergy[f]-1;
+      snr2=2.0*bandFFT[f]->GetNorm2_t(t)/bandMeanEnergy[f]-1.0;
 
       // apply SNR threshold
       if(snr2<SNRThr2) continue;

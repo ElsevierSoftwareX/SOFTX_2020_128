@@ -130,14 +130,14 @@ Each frequency row is finally sub-divided into $N_\tau(Q_q,\phi_{ql})$ linearly-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The data whiteing} \label{sec:method:whitening}
+\subsection{The data whitening} \label{sec:method:whitening}
 
-As we will see in Sec.~\ref{sec:method:snr}, whitening the data before applying the $Q$ transform is useful for a subsequent statistical interpretation of the $Q$ transform coefficients. To achieve this, a simple method consists of re-weighting the frequency-domain data by the inverse amplitude spectral density:
+As we will see in Sec.~\ref{sec:method:snr}, whitening the data before applying the $Q$ transform is useful for a subsequent statistical interpretation of the $Q$ transform coefficients. To achieve this, a simple method consists of re-weighting the frequency-domain data by the inverse noise amplitude spectral density:
 \begin{equation}
-  \tilde{x}_{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S(|f|)/2}},
+  \tilde{x}_{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S_n(|f|)/2}},
   \label{eq:whitening}
 \end{equation}
-where $S(f)$ is the one-sided ($f \ge 0$) power spectrum density (PSD). After this transformation, the power is equally distributed over the frequencies and the one-sided PSD of $x_{white}$ is flat and equal to 2. The one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$:
+where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random process is equally distributed over the frequencies and the one-sided noise PSD of $x_{white}$ is flat and equal to 2. The one-sided noise PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$:
 \begin{equation}
   P_T(f) = \frac{2}{T}\left|\tilde{x}_T(f)\right|^2, \qquad f \ge 0.
   \label{eq:periodogram}
@@ -148,57 +148,104 @@ In a one-sided convention, the factor 2 accounts for the negative frequencies of
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The signal to noise ratio} \label{sec:method:snr}
 
-Let's consider a signal which is a burst of energy of amplitude $B$ with a sinusoidal Gaussian waveform, the parameters of which exactly match the tile indexed by $b$:
+Let's consider a burst of energy, the waveform of which is $b(t)$. It lies on top of noise, $n(t)$, such as $x(t) = b(t) + n(t)$. An amplitude $Q$ transform signal-to-noise ratio (SNR) for each tile is defined as
+\begin{equation}
+  \rho_{qlm}^2 =  \frac{|X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle/2}, \label{eq:snrdef}
+\end{equation}
+where $X_b(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform of the burst waveform in tile $(q,l,m)$. The mean energy of the noise for that tile is given by $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2\rangle$.
+
+Let's consider a burst test signal, the waveform of which is a sinusoidal Gaussian function of time. The parameters of the burst exactly match the tile $(q,l,m)$:
 \begin{align}
-  b(t) &= Bw(t-\tau_b, \phi_b, Q_b)\cos(2\pi\phi_b t + \theta_b),\\
-  \tilde{b}(f) &= B\left[ \tilde{w}(f-\phi_b,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right]/2,
+  b(t) &= Bw(t-\tau_{qlm}, \phi_{ql}, Q_q)\cos(2\pi\phi_{ql} t + \theta_b),\\
+  \tilde{b}(f) &= \frac{B}{2}e^{-2i\pi f\tau_{qlm}}\left[ \tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f-\phi_{ql})}e^{i\theta_b}+\tilde{w}(f+\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f+\phi_{ql})}e^{-i\theta_b}\right],
 \end{align}
-where $\theta_b$ is the arbitrary phase between the burst and tile $b$. The burst signal lives on top of a stationary stochastic noise $n(t)$: $x(t) = b(t) + n(t)$. The squared magnitude of the Q transform coefficient for tile $b$ is
-\begin{equation}
-  |X(\tau_b, \phi_b, Q_b)|^2 = |X_n(\tau_b, \phi_b, Q_b)|^2 + |X_b(\tau_b, \phi_b, Q_b)|^2 + 2|X_n(\tau_b, \phi_b, Q_b)|\ |X_b(\tau_b, \phi_b, Q_b)|\cos{\theta},
-\end{equation}
-where $X_b$ and $X_n$ are the $Q$-transform coefficients for the burst and noise components. The phase between the two signals, $\theta$, is a random variable. The last term vanishes when we consider the expectation value for multiple measurements:
-\begin{equation}
-  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle + \langle |X_b(\tau_b, \phi_b, Q_b)|^2 \rangle.
-\end{equation}
-Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we write the burst contribution as
+where $B$ is the signal amplitude and $\theta_b$ is the arbitrary phase between the burst and the tile. Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we compute the squared magnitude of the $Q$ transform coefficient for tile $(q,l,m)$:
 \begin{align}
-  |X_b(\tau_b, \phi_b, Q_b)|^2 &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b}+\tilde{w}(f+2\phi_b,\phi_b,Q_b)e^{-i\theta_b}\right] \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df} \right|^2\\
-  &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_b,Q_b)e^{i\theta_b} \tilde{w}^{*}(f,\phi_b,Q_b) e^{+2i\pi f \tau_b}df}\right|^2 \\
-  &= B^2
+  |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_{ql},Q_q)+\tilde{w}(f+2\phi_{ql},\phi_{ql},Q_q)\right] \tilde{w}^{*}(f,\phi_{ql},Q_q) df} \right|^2\\
+  &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_{ql},Q_q) \tilde{w}^{*}(f,\phi_{ql},Q_q) df}\right|^2 \\
+  &= B^2,
   \label{eq:qtransform_signal}
 \end{align}
 where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation and verify condition~\ref{eq:antialias1}.
 
-The expectation value for the noise contribution can be written as
+Now, let's estimate the mean squared magnitude of the $Q$ transform coefficient for the noise. We assume that the noise, $n(t)$, is a stationary stochastic process. By definition, this quantity is time independent so that the $\tau$ dependency is dropped:
 \begin{equation}
-  \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle =  \int_{-\infty}^{+\infty}{ \int_{-\infty}^{+\infty}{ \langle n(t)n^*(t') \rangle w(t,\phi_b,Q_b) w^*(t',\phi_b,Q_b) e^{-2i\pi\phi_b(t-t')}dt}dt'}.
+  \langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle = \int_{-\infty}^{+\infty}{ \int_{-\infty}^{+\infty}{ \langle n(t)n^*(t') \rangle w(t,\phi_{ql},Q_q) w^*(t',\phi_{ql},Q_q) e^{-2i\pi\phi_{ql}(t-t')}dt}dt'}.
   \label{eq:qtransform_noise1}
 \end{equation}
-Then, working with a stationary process, we can use the Wiener-Khinchin theorem,
+Then we can use the Wiener-Khinchin theorem, defining the one-sided power spectrum density of a stationary noise process,
 \begin{equation}
-  S_n(f)=2\int_{0}^{+\infty}{ \langle n(t)n^*(t-T) \rangle e^{-2i\pi fT}dT},
+  S_n(f)=2\int_{-\infty}^{+\infty}{ \langle n(t)n^*(t-T) \rangle e^{-2i\pi fT}dT},\qquad f\ge0
 \end{equation}
-and the Fourier transform translation relation valid for a symmetrical function $w$,
+and the autocorrelation theorem,
 \begin{equation}
-  \int_{-\infty}^{+\infty}{w(t)w^*(t-T)dt} = -\int_{-\infty}^{+\infty}{|\tilde{w}(f)|^2e^{-2i\pi fT}df},
+  \int_{-\infty}^{+\infty}{w(t)w^*(t-T)dt} = \int_{-\infty}^{+\infty}{|\tilde{w}(f)|^2e^{2i\pi fT}df},
 \end{equation}
-and re-write Eq.~\ref{eq:qtransform_noise1}:
+to re-write Eq.~\ref{eq:qtransform_noise1}:
 \begin{equation}
-  \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle =  \frac{1}{2}\int_{0}^{+\infty}{ |\tilde{w}(f-\phi_b,\phi_b,Q_b)|^2S_n(f) df }.
+  \langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle =  \frac{1}{2}\int_{-\infty}^{+\infty}{ |\tilde{w}(\phi_{ql}-f,\phi_{ql},Q_q)|^2S_n(|f|) df }.
   \label{eq:qtransform_noise}
 \end{equation}
-Thanks to the normalization condition~\ref{eq:winnorm}, the squared magnitude of the $Q$ transform coefficients for a stationary stochastic process can be interpreted as a measure of the noise power density over the frequency-shifted tile.
-For tile $b$, it is possible to define an amplitude signal-to-noise ratio:
-\begin{align}
-  \rho(\tau_b, \phi_b, Q_b) &=  \sqrt{\frac{\langle|X_b(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}} \label{eq:snr1} \\
-  &=  \sqrt{\frac{\langle|X(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr2} \\
-  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
-\end{align}
-For a noise spectrum which is approximately constant over the bandwidth of the tile, we obtain the intuitive result:
+Thanks to the normalization condition~\ref{eq:winnorm}, the squared magnitude of the $Q$ transform coefficients for a stationary stochastic process can be interpreted as a measure of the noise power density over the tile centered on frequency $\phi_{ql}$. Moreover, if the power spectral density is approximately constant over the window bandwidth, we get $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle \simeq S_n(\phi_{ql})$. This result, combined with Eq.~\ref{eq:qtransform_signal}, is consistent with our definition of amplitude signal-to-noise ratio of Eq.~\ref{eq:snrdef}:
 \begin{equation}
-  \rho(\tau_b, \phi_b, Q_b) \simeq \frac{B}{\sqrt{S_n}}
+  \rho_{qlm} \simeq  \frac{B}{\sqrt{S_n(\phi_{ql})/2}}.
 \end{equation}
+The factor 2 is used to exclude the power of negative frequencies folded in the one-sided PSD (\bluenote{check this}).
+
+For obvious reasons, the burst signal cannot be disentangled from noise; only $x$ is measured. As a result, the SNR of Eq.~\ref{eq:snrdef} cannot be exactly computed. Instead, it is estimated by:
+\begin{equation}
+  \hat{\rho}_{qlm}^2 =  \frac{|X(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{\langle |X(t_i, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}/2}-1, \label{eq:snrestimator}
+\end{equation}
+where $X(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform coefficient of $x$ computed for tile $(q,l,m)$ and $\langle |X(t_i, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}$ is the $Q$ transform coefficient averaged over a set $\cal{N}$ of representative tiles for noise.
+
+%\begin{equation}
+%  |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 = |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + 2|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|\cos{\theta}, \label{eq:sqmag}
+%\end{equation}
+%where $\theta$ is the phase between the burst and the noise signals. 
+%If we assume that the noise is a stationary stochastic process, it is possible to estimate the noise contribution, $|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$, using the expectation value of multiple measurements over time. Indeed the last term of Eq.~\ref{eq:sqmag} vanishes and we get:
+%\begin{equation}
+%  |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \simeq |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle.
+%\end{equation}
+
+%Then we have
+%\begin{equation}
+%  \rho_{qlm}^2 =  \frac{|X(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2} -1 - 2 \frac{|X_b(\tau_{qlm}, \phi_{ql}, Q_q)|}{|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|}\cos{\theta}.
+%\end{equation}
+
+%It is a random variable for a stochastic process. The last term vanishes when we consider the expectation value for multiple measurements:
+%\begin{equation}
+%  \langle |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + \langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle.
+%\end{equation}
+
+
+%In real life, the burst signal always lives on top of a stochastic noise which we assume to be stationary, and the measured signal can be written as $x(t) = b(t) + n(t)$. The squared magnitude of the Q transform coefficient for tile $b$ is then
+%\begin{equation}
+%  |X(\tau_b, \phi_b, Q_b)|^2 = |X_b(\tau_b, \phi_b, Q_b)|^2 + |X_n(\tau_b, \phi_b, Q_b)|^2 + 2|X_n(\tau_b, \phi_b, Q_b)|\ |X_b(\tau_b, \phi_b, Q_b)|\cos{\theta},
+%\end{equation}
+%where the phase between the burst and the noise signals, $\theta$, is a random variable. The last term va%nishes when we consider the expectation value for multiple measurements:
+%\begin{equation}
+%  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= |X_b(\tau_b, \phi_b, Q_b)|^2 + \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle.
+%\end{equation}
+
+%The noise $Q$ transform coefficient is estimated by the expectation value obtained from multiple measurments (see Sec.~\ref{sec:algorithm:snr} for the implementation of this estimator). Therefore the SNR can be estimated:
+%\begin{equation}
+%  \rho_b \simeq  \sqrt{\frac{|X(\tau_b, \phi_b, Q_b)|^2}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr3},
+%\end{equation}
+%where we used the fact that the last term vanishes when we consider the expectation value for multiple measurements
+%  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
+%\end{align}
+
+
+%For tile $b$, it is possible to define an amplitude signal-to-noise ratio:
+%\begin{align}
+%  \rho(\tau_b, \phi_b, Q_b) &=  \sqrt{\frac{\langle|X_b(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}} \label{eq:snr1} \\
+%  &=  \sqrt{\frac{\langle|X(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr2} \\
+%  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
+%\end{align}
+%For a noise spectrum which is approximately constant over the bandwidth of the tile, we obtain the intuitive result:
+%\begin{equation}
+%  \rho(\tau_b, \phi_b, Q_b) \simeq \frac{B}{\sqrt{S_n}}
+%\end{equation}
 
 
 

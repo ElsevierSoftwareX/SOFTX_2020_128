@@ -71,10 +71,10 @@ class Oqplane: public Omap {
   long int nTriggers;               ///< number of tiles above trigger SNR thr
   
   // FREQUENCY BANDS
-  int *bandWindowSize;              ///< band 'Gaussian' window size
-  double **bandWindow;              ///< band 'Gaussian' window
+  int *bandWindowSize;              ///< band bisquare window size
+  double **bandWindow;              ///< band bisquare windows
   double *bandPower;                ///< band power
-  fft **bandFFT;                    ///< band fft
+  fft **bandFFT;                    ///< band ffts
   double *bandMeanEnergy;           ///< band mean energy
   
   ClassDef(Oqplane,0)  
