@@ -111,18 +111,6 @@ class Otile: public GwollumPlot {
   bool DrawMapTiling(const int aQindex);
 
   /**
-   * Draws a given Q-plane.
-   * @param aQindex Q-plane index
-   */
-  bool DrawMapContent(const int aQindex);
-
-  /**
-   * Draws phase for a given Q-plane.
-   * @param aQindex Q-plane index
-   */
-  bool DrawMapPhase(const int aQindex);
-
-  /**
    * Sets the data power spectrum.
    * This function must be called to compute the amplitude in a given tile: amplitude = SNR * sqrt(power).
    * The power of a tile is given by the input power spectrum weighted by the Cone window.
@@ -189,10 +177,8 @@ class Otile: public GwollumPlot {
    * This selection is applied when calling the SaveMaps() or SaveTriggers() functions.
    * @param aSNRThr_map when calling SaveMaps(), a map is not saved if the loudest tile is below that threshold
    * @param aSNRThr_trigger tiles with a SNR value below that threshold are not saved when calling SaveTriggers()
-   * @param aNTriggerMax if, for a given Qplane, the number of tiles with a SNR above 'aSNRThr_trigger' is larger than this value, not a single tile of all planes can be saved. In other words, SaveTriggers() will return false
    */
-  inline void SetSaveSelection(const double aSNRThr_map=-1.0, const double aSNRThr_trigger=2.0, const int aNTriggerMax=1000000){
-    NTriggerMax=aNTriggerMax;
+  inline void SetSaveSelection(const double aSNRThr_map=0.0, const double aSNRThr_trigger=2.0){
     SNRThr_map=aSNRThr_map;
     for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
@@ -208,12 +194,6 @@ class Otile: public GwollumPlot {
    * See SetSaveSelection().
    */
   inline double GetSNRTriggerThr(void){ return qplanes[0]->GetSNRThr(); };
-
-  /**
-   * Returns the current limit on the number of triggers.
-   * See SetSaveSelection().
-   */
-  inline int GetNTriggerMax(void){ return NTriggerMax; };
 
   /**
    * Returns the lowest frequency of this tiling.
@@ -299,8 +279,7 @@ class Otile: public GwollumPlot {
   int TimeRange;                ///< map time range
   int snrscale;                 ///< map snr scale
   double SNRThr_map;            ///< map SNR threshold
-  int NTriggerMax;              ///< max. number of tiles to save (triggers only)
-  
+    
   TH2D* MakeFullMap(const int aTimeRange); ///< make full map
   void ApplyOffset(TH2D *aMap, const double aOffset);
 

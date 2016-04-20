@@ -63,16 +63,6 @@ void Omicron::ReadOptions(void){
   //***** set output style *****
   if(!io->GetOpt("OUTPUT","NOLOGO", fNoLogo)) fNoLogo=false;
   //*****************************
-
-  //***** Trigger limit *****
-  double ntmax, trmax=10;
-  if(!io->GetOpt("OUTPUT","NTRIGGERMAX", ntmax)){
-    cerr<<"Omicron::ReadOptions: No trigger limit (OUTPUT/NTRIGGERMAX)  --> set default: 1,000,000"<<endl;
-    ntmax=1000000;
-  }
-  if(io->GetOpt("OUTPUT","TRIGGERRATEMAX", trmax)) ntmax=-1;// use rate instead
-  //*****************************
-
   
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -185,8 +175,7 @@ void Omicron::ReadOptions(void){
     v.push_back(7.0); v.push_back(7.0);
   }
   if(v.size()==1) v.push_back(v[0]);
-  if(ntmax>0) tile->SetSaveSelection(v[1],v[0],ntmax);
-  else        tile->SetSaveSelection(v[1],v[0],trmax*tile->GetTimeRange());
+  tile->SetSaveSelection(v[1],v[0]);
   //*****************************
   
   //***** set spectrum *****

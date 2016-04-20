@@ -180,14 +180,8 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
     return false;
   }
-
-  // check tile limit
-  int ntrig = 0;
-  for(int p=0; p<nq; p++) ntrig+=qplanes[p]->GetNTriggers();
-  if(ntrig>NTriggerMax){
-    cerr<<"Otile::SaveTriggers: number of tiles above SNR threshold = "<<ntrig<<" > "<<NTriggerMax<<" ("<<aTriggers->GetName()<<") --> do not save segment "<<SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2<<"-"<<SeqT0+(double)(TimeRange/2)-SeqOverlap/2<<endl;
-    return true;
-  }
+  
+  if(fVerbosity) cout<<"Otile::SaveTriggers: Saving triggers for "<<aTriggers->GetName()<<" centered on "<<SeqT0<<"..."<<endl;
 
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)
@@ -215,7 +209,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   double snrmax=-1, snr;
   int n=0;
   for(int q=0; q<nq; q++){
-    qplanes[q]->MakeMapContent();
+    qplanes[q]->FillMap("snr");
     qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
     snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());// get max
     if(snr<SNRThr_map) n++;
@@ -358,7 +352,7 @@ bool Otile::DrawMapTiling(const int aQindex){
     cerr<<"Otile::DrawMapTiling: the Q-plane #"<<aQindex<<" does not exist"<<endl;
     return false;
   }
-  qplanes[aQindex]->MakeMapDisplay();
+  qplanes[aQindex]->FillMap("display");
   Draw(qplanes[aQindex],"COL");
   /*
   qplanes[aQindex]->GetXaxis()->SetRangeUser(-0.1,0.1);
@@ -369,30 +363,6 @@ bool Otile::DrawMapTiling(const int aQindex){
     Draw(lf,"same");
   }
   */
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-bool Otile::DrawMapContent(const int aQindex){
-////////////////////////////////////////////////////////////////////////////////////  
-  if(aQindex<0||aQindex>=nq){
-    cerr<<"Otile::DrawMapContent: the Q-plane #"<<aQindex<<" does not exist"<<endl;
-    return false;
-  }
-  qplanes[aQindex]->MakeMapContent();
-  Draw(qplanes[aQindex],"COLZ");
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-bool Otile::DrawMapPhase(const int aQindex){
-////////////////////////////////////////////////////////////////////////////////////  
-  if(aQindex<0||aQindex>=nq){
-    cerr<<"Otile::DrawMapPhase: the Q-plane #"<<aQindex<<" does not exist"<<endl;
-    return false;
-  }
-  qplanes[aQindex]->MakeMapPhase();
-  Draw(qplanes[aQindex],"COLZ");
   return true;
 }
 

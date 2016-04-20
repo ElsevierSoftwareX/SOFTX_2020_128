@@ -87,11 +87,14 @@ class Omap: public TH2D {
     return (int)floor((aTime-GetTimeMin())/GetTileDuration(aBandIndex));
   };
 
+  inline double GetTileContent(const int aTimeTileIndex, const int aBandIndex){
+    return TH2::GetBinContent(aTimeTileIndex*bandMultiple[aBandIndex]+1,aBandIndex+1);
+  };
   inline void SetTileContent(const int aTimeTileIndex, const int aBandIndex, const double aContent){
     int tstart=aTimeTileIndex*bandMultiple[aBandIndex]+1;
     int tend=tstart+bandMultiple[aBandIndex];
     for(int t=tstart; t<tend; t++) TH2::SetBinContent(t,aBandIndex+1,aContent);
-  }
+  };
 
   long int Ntiles;                  ///< number of tiles in the plane
   double *bandCenter;               ///< frequency bin center

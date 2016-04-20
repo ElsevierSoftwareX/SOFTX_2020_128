@@ -49,7 +49,6 @@ class Oqplane: public Omap {
   //return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
   //};
 
-  inline int GetNTriggers(void){ return nTriggers; }
   inline double GetSNRThr(void){ return SNRThr; };
 
   // SETS
@@ -68,8 +67,7 @@ class Oqplane: public Omap {
 
   // TRIGGER SELECTION
   double SNRThr;                    ///< SNR threshold to save triggers
-  long int nTriggers;               ///< number of tiles above trigger SNR thr
-  
+    
   // FREQUENCY BANDS
   int *bandWindowSize;              ///< band bisquare window size
   double **bandWindow;              ///< band bisquare windows

@@ -74,7 +74,6 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
-  fOptionName.push_back("omicron_OUTPUT_NTRIGGERMAX");        fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");           fOptionType.push_back("s");
@@ -113,11 +112,10 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],triggers[c]->GetClusterizeDt());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetNTriggerMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],GPlot->GetCurrentStyle());
   }
   
   // process monitoring
@@ -162,8 +160,10 @@ Omicron::~Omicron(void){
   delete outSegments;
   delete spectrum;
   delete triggers;
-  if(FFL!=NULL) delete FFL;
-  if(FFL_inject!=NULL&&FFL_inject!=FFL) delete FFL_inject;
+  if(FFL!=NULL){
+    delete FFL; FFL=NULL;
+  }
+  if(FFL_inject!=NULL) delete FFL_inject;
   if(inject!=NULL){
     for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
     delete inject;
@@ -527,21 +527,6 @@ bool Omicron::Project(void){
   if(fVerbosity>1) cout<<"\t- project chunk"<<endl;
   if(!tile->ProjectData(offt)) return false;
 
-  // save whiten data for condition data products
-  if(fOutProducts.find("white")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- save whitened data"<<endl;
-    offt->Backward();// Back in time domain
-    // IMPORTANT: after that, the frequency-domain vector of offt is corrupted (r2c)
-    // apply FFT normalization
-    for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
-  }
-  
-  // save triggers
-  if(fOutProducts.find("triggers")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- save triggers"<<endl;
-    if(!tile->SaveTriggers(triggers[chanindex])) return false;
-  }
-  
   chan_proj_ctr[chanindex]++;
   return true;
 }
@@ -581,9 +566,13 @@ bool Omicron::WriteOutput(void){
   }
   */
 
-  //*** WHITENED DATA
+  //*** WHITENED TS
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write whitened data..."<<endl;
+    offt->Backward();// Back in time domain
+    // IMPORTANT: after that, the frequency-domain vector of offt is corrupted (r2c)
+    // apply FFT normalization
+    for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
     SaveTS(true);
   }
 
@@ -605,6 +594,7 @@ bool Omicron::WriteOutput(void){
   //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
+    if(!tile->SaveTriggers(triggers[chanindex])) return false;
     if(!WriteTriggers()) return false;
   }
 

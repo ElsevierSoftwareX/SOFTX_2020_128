@@ -54,8 +54,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
   // default snr threshold
   SetSNRThr(2.0);
-  nTriggers=0;
-  
+    
   // band variables
   bandPower      = new double  [GetNBands()];
   bandFFT        = new fft*    [GetNBands()];
@@ -206,10 +205,7 @@ bool Oqplane::ProjectData(fft *aDataFft){
 
   // locals
   int k, Pql, Nt, end;
-  
-  // reset
-  nTriggers=0;
- 
+   
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
 
