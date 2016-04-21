@@ -233,8 +233,9 @@ void Omicron::ReadOptions(void){
     else{
       for(int i=0; i<(int)fChannels.size(); i++) fInjFact.push_back(1.0);
     }
-    if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile))
+    if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
       FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+    }
     else
       FFL_inject=FFL;
   }

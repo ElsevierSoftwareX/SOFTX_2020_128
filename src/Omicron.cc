@@ -29,11 +29,11 @@ Omicron::Omicron(const string aOptionFile){
 
   // load ffl if any
   if(FFL!=NULL){
-    status_OK*=FFL->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
+    status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile();
   }
   if(FFL_inject!=NULL&&FFL_inject!=FFL){
-    status_OK*=FFL_inject->DefineTmpDir(fMaindir);// working directory (for LCF conversion)
+    status_OK*=FFL_inject->DefineTmpDir(fMaindir);
     status_OK*=FFL_inject->LoadFrameFile();
   }
 
@@ -160,10 +160,8 @@ Omicron::~Omicron(void){
   delete outSegments;
   delete spectrum;
   delete triggers;
-  if(FFL!=NULL){
-    delete FFL; FFL=NULL;
-  }
-  if(FFL_inject!=NULL) delete FFL_inject;
+  if(FFL_inject!=FFL&&FFL_inject!=NULL) delete FFL_inject;
+  if(FFL!=NULL) delete FFL;
   if(inject!=NULL){
     for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
     delete inject;
