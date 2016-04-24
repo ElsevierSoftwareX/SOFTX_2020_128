@@ -124,8 +124,10 @@ void Oqplane::FillMap(const string aContentType){
     for(int f=0; f<GetNBands(); f++){
       for(int t=0; t<GetBandNtiles(f); t++){
 	energy=bandFFT[f]->GetNorm2_t(t);
-	if(2.0*energy>bandMeanEnergy[f]) SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-1.0));
-	else SetTileContent(t,f,0.0);
+	//if(2.0*energy>bandMeanEnergy[f]) SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-1.0));
+	SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-2.0));
+	
+	//else SetTileContent(t,f,0.0);
       }
     }
   }
@@ -234,6 +236,8 @@ bool Oqplane::ProjectData(fft *aDataFft){
 
     // fft-backward
     bandFFT[f]->Backward();
+    // note the FFT normalization was already included in the window definition
+
     // from now on, the final Q coefficients are stored in the time vector of bandFFT[f]
  
     // get energies/phases
@@ -305,31 +309,36 @@ double Oqplane::GetMeanEnergy(const int aBandIndex){
 bool Oqplane::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  double sumofweight;
+  //double sumofweight;
   double power, psdval;
-  int end;
+  int k, end;
 
   // set power for each f-row
   for(int f=0; f<GetNBands(); f++){
     power=0;
-    sumofweight=0;
-
+    //sumofweight=0;
+    k=0;
+    
     // weighted average over the window
     end=(bandWindowSize[f]+1)/2;
-    for(int k=0; k<end; k++){
+    for(; k<end; k++){
       psdval=aSpec->GetPower(GetBandFrequency(f)+(double)k / GetTimeRange());
       if(psdval<0) return false;
-      sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
+      //sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
       power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
     }
-    end=GetBandNtiles(f);
-    for(int k=end-(bandWindowSize[f]-1)/2; k<end; k++){
-      psdval=aSpec->GetPower(GetBandFrequency(f)-(double)(k-end) / GetTimeRange());
+    //end=GetBandNtiles(f);
+    end=bandWindowSize[f];
+    //for(int k=end-(bandWindowSize[f]-1)/2; k<end; k++){
+    for(; k<end; k++){
+      psdval=aSpec->GetPower(GetBandFrequency(f)-(double)(end-k) / GetTimeRange());
       if(psdval<0) return false;
-      sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
+      //sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
       power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
     }
-    bandPower[f]=power/sumofweight;
+
+    //bandPower[f]=power/sumofweight;
+    bandPower[f]=power/2.0;
   }
   return true;
 }

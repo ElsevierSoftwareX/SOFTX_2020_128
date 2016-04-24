@@ -9,6 +9,8 @@
 #include "Date.h"
 #include "InjEct.h"
 #include "ffl.h"
+#include "TRandom.h"
+#include "TRandom3.h"
 
 using namespace std;
 
@@ -119,7 +121,7 @@ class Omicron {
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed and Tukey-windowed. Then the data is used to estimate the noise (PSD). Finally the data is FFTed.
+   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed, Tukey-windowed Fourier-transformed and whitened. The input data vector is used to update the estimate of the noise power density (PSD).
    *
    * IMPORTANT: The input vector size MUST MATCH the chunk size loaded with NewChunk(). NO check is performed against that!
    *
@@ -134,6 +136,7 @@ class Omicron {
    * -  6 = the spectrum could not be updated
    * -  7 = the tiling power could not be computed
    * -  8 = the chunk data could not be FFTed
+   * -  9 = the chunk data could not be whitened
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
@@ -141,9 +144,7 @@ class Omicron {
   
   /**
    * Projects whitened data onto the tiles and fills output structures.
-   * The data vector is first whitened (normalized by the ASD). The data are then projected onto the tiling structure.
-   *
-   * In this function, the trigger structure is also filled with tiles above SNR threshold.
+   * The data are projected onto the tiling structure.
    */
   bool Project(void);
   
@@ -287,6 +288,12 @@ class Omicron {
   void PrintASCIIlogo(void);    ///< print ascii logo
   static const string colorcode[17];
   string GetColorCode(const double aSNRratio);
+  
+  double B=1e-21;
+  double phi_ql = 150.0;
+  double Q_q=80.0;
+  double normb=sqrt(315.0/128.0/sqrt(11.0)*Q_q/phi_ql);
+  double delta = sqrt(11.0)*phi_ql/Q_q;
 
 
   ClassDef(Omicron,0)  

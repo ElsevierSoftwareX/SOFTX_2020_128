@@ -447,6 +447,36 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
     delete dvector_inj;
   }
 
+  //*******************************************************
+  double freq, val;
+  fft *ff = new fft(*aSize,"default","r2c");
+  for(int i=0; i<ff->GetSize_f(); i++){
+    freq=(double)i/(double)tile->GetTimeRange();
+    if(freq<delta) val = normb*(1-freq*freq/delta/delta)*(1-freq*freq/delta/delta) /(double)(tile->GetTimeRange()) ;
+    else val=0.0;
+    ff->SetRe_f(i,val);
+    ff->SetIm_f(i,0.0);
+  }
+  ff->Backward();
+     
+  TRandom3 *RA = new TRandom3(); RA->SetSeed(0);
+  double theta_bt = RA->Uniform(0.0,2*TMath::Pi());
+  //theta_bt=0.0;
+  for(int d=0; d<(*aSize)/2; d++) (*aDataVector)[d]+=B*ff->GetNorm_t(d+(*aSize)/2)*TMath::Cos(2*TMath::Pi()*phi_ql*(-(double)tile->GetTimeRange()/2.0+(double)d/(double)nativesampling)+theta_bt);
+  for(int d=0; d<(*aSize)/2; d++) (*aDataVector)[(*aSize)/2+d]+=B*ff->GetNorm_t(d)*TMath::Cos(2*TMath::Pi()*phi_ql*(double)d/(double)nativesampling+theta_bt);
+  delete ff;
+  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
+  cout<<"B = "<<scientific<<B<<endl;
+  cout<<"phi = "<<phi_ql<<endl;
+  cout<<"Q = "<<Q_q<<endl;
+  cout<<"tau = "<<tile->GetChunkTimeStart()/2+tile->GetChunkTimeEnd()/2<<endl;
+  cout<<"theta_bt = "<<theta_bt<<endl;
+  cout<<"Delta f = "<<delta<<endl;
+  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
+
+  //*******************************************************
+
+
   chan_data_ctr[chanindex]++;
   return true;
 }
@@ -498,11 +528,19 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
   if(!tile->SetPower(spectrum[chanindex])) return 7;
 
+  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
+  cout<<"true SNR = "<<B/sqrt(spectrum[chanindex]->GetPower(phi_ql)/2.0)<<endl;
+  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
+
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
   if(!offt->Forward(ChunkVect)) return 8;
   // note: the FFT normalization is performed in Whiten()
-  
+
+  // whitening
+  if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
+  if(!Whiten()) return 9;
+
   chan_cond_ctr[chanindex]++;
   return 0;
 }
@@ -516,13 +554,6 @@ bool Omicron::Project(void){
   }
 
   if(fVerbosity) cout<<"Omicron::Project: project data onto the tiles..."<<endl;
-  
-  // whitening
-  if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
-  if(!Whiten()) return false;
-    
-  // project data
-  if(fVerbosity>1) cout<<"\t- project chunk"<<endl;
   if(!tile->ProjectData(offt)) return false;
 
   chan_proj_ctr[chanindex]++;
@@ -664,7 +695,7 @@ void Omicron::PrintStatusInfo(void){
 bool Omicron::Whiten(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  int i=0;
+  int i=0; // frequency index
  
   // zero-out DC
   offt->SetRe_f(i,0.0);
