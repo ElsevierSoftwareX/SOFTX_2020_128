@@ -6,6 +6,7 @@
 
 #include "IO.h"
 #include "Otile.h"
+#include "Oinject.h"
 #include "Date.h"
 #include "InjEct.h"
 #include "ffl.h"
@@ -245,6 +246,7 @@ class Omicron {
   string fClusterAlgo;          ///< clustering algorithm
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
+  int fsginj;                   ///< perform SG injections
 
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments
@@ -265,6 +267,7 @@ class Omicron {
   ffl *FFL_inject;              ///< ffl for injection signals
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
+  Oinject *oinj;                ///< software sg injections
   InjEct **inject;              ///< software injections
 
   // DATA VECTORS

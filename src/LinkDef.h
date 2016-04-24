@@ -11,6 +11,7 @@
 #pragma link C++ class Omap;
 #pragma link C++ class Oqplane;
 #pragma link C++ class Otile;
+#pragma link C++ class Oinject;
 #pragma link C++ class Omicron;
 
 #endif

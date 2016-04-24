@@ -249,6 +249,37 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** sg injections *****
+  oinj = new Oinject(tile->GetTimeRange());
+  if(!io->GetOpt("INJECTION","SG", fsginj)) fsginj=0;
+
+  vector <double> param;
+  if(io->GetOpt("INJECTION","SGTIMERANGE", param)){
+    if(param.size()==2) oinj->SetTimeRange(param[0],param[1]);
+    else
+      	cerr<<"Omicron::ReadOptions: INJECTION/SGTIMERANGE is incorrect"<<endl;
+  }
+  param.clear();
+  if(io->GetOpt("INJECTION","SGFREQUENCYRANGE", param)){
+    if(param.size()==2) oinj->SetFrequencyRange(param[0],param[1]);
+    else
+      	cerr<<"Omicron::ReadOptions: INJECTION/SGFREQUENCYRANGE is incorrect"<<endl;
+  }
+  param.clear();
+  if(io->GetOpt("INJECTION","SGQRANGE", param)){
+    if(param.size()==2) oinj->SetQRange(param[0],param[1]);
+    else
+      	cerr<<"Omicron::ReadOptions: INJECTION/SGQRANGE is incorrect"<<endl;
+  }
+  param.clear();
+  if(io->GetOpt("INJECTION","SGAMPLITUDERANGE", param)){
+    if(param.size()==2) oinj->SetAmplitudeRange(param[0],param[1]);
+    else
+      	cerr<<"Omicron::ReadOptions: INJECTION/SGAMPLITUDERANGE is incorrect"<<endl;
+  }
+  param.clear();
+  //*****************************
+
   // dump options
   if(fVerbosity>1){
     cout<<"**********************************************"<<endl;

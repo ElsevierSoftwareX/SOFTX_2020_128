@@ -62,6 +62,15 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_INJECTION_CHANNEL");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_INJECTION_FACTOR");          fOptionType.push_back("d");
   fOptionName.push_back("omicron_INJECTION_FILENAME");        fOptionType.push_back("s");
+  fOptionName.push_back("omicron_INJECTION_SG");              fOptionType.push_back("i");
+  fOptionName.push_back("omicron_INJECTION_SGTIMEMIN");       fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGTIMEMAX");       fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGFREQUENCYMIN");  fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGFREQUENCYMAX");  fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGQMIN");          fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGQMAX");          fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGAMPMIN");        fOptionType.push_back("d");
+  fOptionName.push_back("omicron_INJECTION_SGAMPMAX");        fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FMIN");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FMAX");            fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_QMIN");            fOptionType.push_back("d");
@@ -100,22 +109,31 @@ Omicron::Omicron(const string aOptionFile){
     }
     if(inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],"none");
     else             status_OK*=triggers[c]->SetUserMetaData(fOptionName[6],inject[c]->GetInputFilePattern());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],tile->GetFrequencyMin());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],tile->GetFrequencyMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],tile->GetQ(0));
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],tile->GetQ(tile->GetNQ()-1));
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],tile->GetTimeRange());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],tile->GetOverlapDuration());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],tile->GetMismatchMax());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],tile->GetSNRTriggerThr());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],spectrum[c]->GetDataBufferLength());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[7],fsginj);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[8],oinj->GetTimeMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[9],oinj->GetTimeMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[10],oinj->GetFrequencyMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[11],oinj->GetFrequencyMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[12],oinj->GetQMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[13],oinj->GetQMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[14],oinj->GetAmplitudeMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[15],oinj->GetAmplitudeMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[16],tile->GetFrequencyMin());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[17],tile->GetFrequencyMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[18],tile->GetQ(0));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[19],tile->GetQ(tile->GetNQ()-1));
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[20],tile->GetTimeRange());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],tile->GetOverlapDuration());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],tile->GetMismatchMax());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],tile->GetSNRTriggerThr());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],spectrum[c]->GetDataBufferLength());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],triggers[c]->GetClusterizeDt());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],GPlot->GetCurrentStyle());
   }
   
   // process monitoring
@@ -166,6 +184,7 @@ Omicron::~Omicron(void){
     for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
     delete inject;
   }
+  delete oinj;
   delete tile;
   delete GPlot;
   delete ChunkVect;
@@ -447,35 +466,12 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
     delete dvector_inj;
   }
 
-  //*******************************************************
-  double freq, val;
-  fft *ff = new fft(*aSize,"default","r2c");
-  for(int i=0; i<ff->GetSize_f(); i++){
-    freq=(double)i/(double)tile->GetTimeRange();
-    if(freq<delta) val = normb*(1-freq*freq/delta/delta)*(1-freq*freq/delta/delta) /(double)(tile->GetTimeRange()) ;
-    else val=0.0;
-    ff->SetRe_f(i,val);
-    ff->SetIm_f(i,0.0);
+  // add sg injections
+  // FIXME: could be moved in Condition()
+  if(fsginj){
+    oinj->MakeWaveform();
+    for(int d=0; d<*aSize; d++) (*aDataVector)[d]+=oinj->GetWaveform(d,nativesampling);
   }
-  ff->Backward();
-     
-  TRandom3 *RA = new TRandom3(); RA->SetSeed(0);
-  double theta_bt = RA->Uniform(0.0,2*TMath::Pi());
-  //theta_bt=0.0;
-  for(int d=0; d<(*aSize)/2; d++) (*aDataVector)[d]+=B*ff->GetNorm_t(d+(*aSize)/2)*TMath::Cos(2*TMath::Pi()*phi_ql*(-(double)tile->GetTimeRange()/2.0+(double)d/(double)nativesampling)+theta_bt);
-  for(int d=0; d<(*aSize)/2; d++) (*aDataVector)[(*aSize)/2+d]+=B*ff->GetNorm_t(d)*TMath::Cos(2*TMath::Pi()*phi_ql*(double)d/(double)nativesampling+theta_bt);
-  delete ff;
-  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
-  cout<<"B = "<<scientific<<B<<endl;
-  cout<<"phi = "<<phi_ql<<endl;
-  cout<<"Q = "<<Q_q<<endl;
-  cout<<"tau = "<<tile->GetChunkTimeStart()/2+tile->GetChunkTimeEnd()/2<<endl;
-  cout<<"theta_bt = "<<theta_bt<<endl;
-  cout<<"Delta f = "<<delta<<endl;
-  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
-
-  //*******************************************************
-
 
   chan_data_ctr[chanindex]++;
   return true;
@@ -527,10 +523,6 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
   if(!tile->SetPower(spectrum[chanindex])) return 7;
-
-  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
-  cout<<"true SNR = "<<B/sqrt(spectrum[chanindex]->GetPower(phi_ql)/2.0)<<endl;
-  cout<<"+++++++++++++++++++++++++++++++++"<<endl;
 
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
