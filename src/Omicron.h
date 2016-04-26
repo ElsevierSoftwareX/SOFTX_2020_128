@@ -291,13 +291,6 @@ class Omicron {
   void PrintASCIIlogo(void);    ///< print ascii logo
   static const string colorcode[17];
   string GetColorCode(const double aSNRratio);
-  
-  double B=1e-21;
-  double phi_ql = 150.0;
-  double Q_q=80.0;
-  double normb=sqrt(315.0/128.0/sqrt(11.0)*Q_q/phi_ql);
-  double delta = sqrt(11.0)*phi_ql/Q_q;
-
 
   ClassDef(Omicron,0)  
 };
