@@ -17,8 +17,8 @@ Oinject::Oinject(const double aDuration){
   phimax  = 2048;
   Qmin    = 4;
   Qmax    = 100;
-  ampmin  = 1e-20;
-  ampmax  = 1e-20;
+  ampmin  = 1e-21;
+  ampmax  = 1e-21;
 
   // random generator
   randgen = new TRandom3();
@@ -45,6 +45,25 @@ void Oinject::MakeWaveform(void){
   sigma_t = Q/phi/TMath::Pi()/sqrt(8.0);
   
   return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+double Oinject::GetTrueSNR(Spectrum *aSpec){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // sum = <|X_n|^2>
+  // integrating over positive frequencies and over all frequencies gives the same result,
+  // because the window is only non zero over positive frequencies (anti-aliasing)
+  double freq, win, sum;
+  double dfreq=aSpec->GetSpectrumResolution();
+  for(int i=1; i<aSpec->GetSpectrumSize(); i++){
+    freq=aSpec->GetSpectrumFrequency(i);
+    win = Wg * exp(-(phi-freq)*(phi-freq)/4.0*Q*Q/phi/phi);
+    sum += win*win * aSpec->GetPower(freq) * dfreq;
+  }
+  sum/=2.0;
+
+  return amp/sqrt(sum/2.0);// remove negative frequencies
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

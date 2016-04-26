@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #ifndef __Oinject__
 #define __Oinject__
-#include "CUtils.h"
+#include "Spectrum.h"
 #include "TRandom3.h"
 #include "TMath.h"
 
@@ -30,7 +30,7 @@ class Oinject{
    * - time: fixed at 0
    * - frequency: 32-2048 Hz
    * - Q: 4-100
-   * - amplitude: fixed at 1e-20
+   * - amplitude: fixed at 1e-21
    *
    * A set of random parameters is generated with MakeWaveform().
    * The user must specify the duration of the injection waveform.
@@ -70,6 +70,12 @@ class Oinject{
       Wg/sigma_t/sqrt2pi*exp(-(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)/2.0/sigma_t/sigma_t)* // Gaussian window
       TMath::Cos(2*TMath::Pi()*phi*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency)+phase);// sine
   };
+
+  /**
+   * Returns the true value of SNR.
+   * @param aSpec noise spectrum
+   */
+  double GetTrueSNR(Spectrum *aSpec);
 
   /**
    * Sets a new time range.

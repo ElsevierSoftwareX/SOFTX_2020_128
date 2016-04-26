@@ -533,6 +533,10 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
   if(!Whiten()) return 9;
 
+  cout<<"############################################"<<endl;
+  cout<<"SNR = "<<oinj->GetTrueSNR(spectrum[chanindex])<<endl;
+  cout<<"############################################"<<endl;
+
   chan_cond_ctr[chanindex]++;
   return 0;
 }
