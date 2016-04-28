@@ -173,7 +173,7 @@ void Omicron::MakeHtml(void){
 	fOutProducts.find("asd")!=string::npos ||
 	fOutProducts.find("psd")!=string::npos)){
 
-      report<<"Plots:"<<endl;
+      report<<"Output:"<<endl;
       report<<"<table class=\"omicronsummary\">"<<endl;
       
       // loop over chunks
@@ -232,6 +232,11 @@ void Omicron::MakeHtml(void){
 	  if(!type_first.compare("")) type_first="triggers";
 	}
 	
+	// injection
+	if(fsginj==1&&fOutProducts.find("injection")!=string::npos){
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_sginjection.txt\">Injection</a></td>"<<endl;
+	  if(!type_first.compare("")) type_first="injection";
+	}
 	report<<"  </tr>"<<endl;
       }
 

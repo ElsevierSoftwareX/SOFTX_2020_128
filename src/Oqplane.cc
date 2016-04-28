@@ -158,9 +158,10 @@ void Oqplane::FillMap(const string aContentType){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
-			   const double aLeftTimePad, const double aRightTimePad,
-			   const double aT0){
+bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
+			   const double aT0,        // time for the center of the map
+			   Segments* aSeg           // segments to select the triggers
+			   ){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
   double snr2;
@@ -169,9 +170,11 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
   for(int f=0; f<GetNBands(); f++){
     
     // remove padding
-    tstart=GetTimeTileIndex(f,-GetTimeRange()/2.0+aLeftTimePad)+1;
-    tend=GetTimeTileIndex(f,GetTimeRange()/2.0-aRightTimePad);
-    if(GetTileTime(tend,f)<GetTimeRange()/2.0-aRightTimePad) tend++;// GWOLLUM convention
+    tstart=GetTimeTileIndex(f,aSeg->GetStart(0)-aT0);
+    tend=GetTimeTileIndex(f,aSeg->GetEnd(aSeg->GetNsegments()-1)-aT0);
+
+    // enforce GWOLLUM convention
+    if(GetTileTime(tend,f)<aSeg->GetEnd(aSeg->GetNsegments()-1)-aT0) tend++;
 
     // fill triggers
     for(int t=tstart; t<tend; t++){
@@ -181,6 +184,9 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers,
 
       // apply SNR threshold
       if(snr2<SNRThr2) continue;
+
+      // time select
+      if(!aSeg->IsInsideSegment(GetTileTime(t,f)+aT0)) continue;
 
       // save trigger
       if(!aTriggers->AddTrigger(GetTileTime(t,f)+aT0,

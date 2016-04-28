@@ -200,59 +200,63 @@ Omicron::~Omicron(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::InitSegments(Segments *aSeg){
+bool Omicron::InitSegments(Segments *aInSeg, Segments *aOutSeg){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::InitSegments: the Omicron object is corrupted"<<endl;
     return false;
   }
-  if(aSeg==NULL){
+  if(aInSeg==NULL){
     cerr<<"Omicron::InitSegments: the input segment is NULL"<<endl;
     return false;
   }
-  if(!aSeg->GetStatus()){
+  if(!aInSeg->GetStatus()){
     cerr<<"Omicron::InitSegments: the input segment is corrupted"<<endl;
     return false;
   }
-  if(!aSeg->GetNsegments()){
+  if(!aInSeg->GetNsegments()){
     cerr<<"Omicron::InitSegments: there is no input segment"<<endl;
     return false;
   }
 
   if(fVerbosity) cout<<"Omicron::InitSegments: initiate data segments..."<<endl;
 
-  // input segment monitor
+  // cumulative input segment monitor
   // (try to optimize the update of inSegments)
-  if(inSegments->GetLiveTime()&&aSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
-    inSegments->Append(aSeg);
+  if(inSegments->GetLiveTime()&&aInSeg->GetStart(0)>=inSegments->GetStart(inSegments->GetNsegments()-1))
+    inSegments->Append(aInSeg);
   else
-    for(int s=0; s<aSeg->GetNsegments(); s++) inSegments->AddSegment(aSeg->GetStart(s),aSeg->GetEnd(s));
+    for(int s=0; s<aInSeg->GetNsegments(); s++) inSegments->AddSegment(aInSeg->GetStart(s),aInSeg->GetEnd(s));
   
   // data structure
-  if(!tile->SetSegments(aSeg)){
+  if(!tile->SetSegments(aInSeg, aOutSeg)){
     cerr<<"Omicron::InitSegments: cannot initiate data segments."<<endl;
     return false;
   }
 
   // update channel list
   if(FFL!=NULL){
-    if(!FFL->ExtractChannels(aSeg->GetStart(0))){
+    if(!FFL->ExtractChannels(aInSeg->GetStart(0))){
       cerr<<"Omicron::InitSegments: cannot update FFL info."<<endl;
       return false;
     }
   }
   if(FFL_inject!=NULL&&FFL_inject!=FFL){
-    if(!FFL_inject->ExtractChannels(aSeg->GetStart(0))){
+    if(!FFL_inject->ExtractChannels(aInSeg->GetStart(0))){
       cerr<<"Omicron::InitSegments: cannot update FFL info for injections."<<endl;
       return false;
     }
   }
 
   if(fVerbosity>1){
-    cout<<"\t- N segments       = "<<aSeg->GetNsegments()<<endl;
-    cout<<"\t- Livetime         = "<<aSeg->GetLiveTime()<<endl;
+    cout<<"\t- N input segments   = "<<aInSeg->GetNsegments()<<endl;
+    cout<<"\t- Input livetime     = "<<aInSeg->GetLiveTime()<<endl;
+    if(aOutSeg!=NULL){
+      cout<<"\t- N output segments  = "<<aOutSeg->GetNsegments()<<endl;
+      cout<<"\t- Output livetime    = "<<aOutSeg->GetLiveTime()<<endl;
+    }
   }
-
+  
   return true;
 }
 
@@ -316,6 +320,9 @@ bool Omicron::NewChunk(void){
   if(newseg){
     for(int c=0; c<(int)fChannels.size(); c++) spectrum[c]->Reset();
   }
+
+  // generate SG parameters
+  if(fsginj) oinj->MakeWaveform();
     
   chunk_ctr++;// one more chunk
   return true;
@@ -469,7 +476,6 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
   // add sg injections
   // FIXME: could be moved in Condition()
   if(fsginj){
-    oinj->MakeWaveform();
     for(int d=0; d<*aSize; d++) (*aDataVector)[d]+=oinj->GetWaveform(d,nativesampling);
   }
 
@@ -518,7 +524,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // update spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
-  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)) return 6;
+  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency())) return 6;
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
@@ -532,10 +538,6 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // whitening
   if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
   if(!Whiten()) return 9;
-
-  cout<<"############################################"<<endl;
-  cout<<"SNR = "<<oinj->GetTrueSNR(spectrum[chanindex])<<endl;
-  cout<<"############################################"<<endl;
 
   chan_cond_ctr[chanindex]++;
   return 0;
@@ -599,6 +601,12 @@ bool Omicron::WriteOutput(void){
     // apply FFT normalization
     for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
     SaveTS(true);
+  }
+  
+  //*** INJECTIONS
+  if(fsginj==1&&fOutProducts.find("injection")!=string::npos){
+    if(fVerbosity>1) cout<<"\t- write injection data..."<<endl;
+    SaveSG();
   }
 
   //*** MAPS
@@ -988,3 +996,25 @@ void Omicron::SaveTS(const bool aWhite){
   return;
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+void Omicron::SaveSG(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // text file only
+  stringstream ss;
+  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
+
+  ofstream outfile(ss.str());
+  outfile.precision(5);
+  outfile<<"Oinject: sinusoidal Gaussian waveform:"<<endl;
+  outfile<<"         peak time = "<<fixed<<(double)tile->GetChunkTimeCenter()+oinj->GetTime()<<endl;
+  outfile<<"         frequency = "<<fixed<<oinj->GetFrequency()<<endl;
+  outfile<<"         Q         = "<<fixed<<oinj->GetQ()<<endl;
+  outfile<<"         amplitude = "<<scientific<<oinj->GetAmplitude()<<endl;
+  outfile<<"         phase     = "<<fixed<<defaultfloat<<oinj->GetPhase()<<endl;
+  outfile<<"         SNR       = "<<fixed<<oinj->GetTrueSNR(spectrum[chanindex])<<endl;
+  outfile<<"         sigma_t   = "<<fixed<<oinj->GetSigmat()<<endl;
+  outfile<<"         sigma_f   = "<<fixed<<oinj->GetSigmaf()<<endl;
+  outfile.close();
+  return;
+}

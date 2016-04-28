@@ -135,7 +135,9 @@ class Otile: public GwollumPlot {
    * Saves active tiles in a MakeTriggers structure.
    * The triggers Segments are also saved following the GWOLLUM convention for triggers. If the Sequence algorithm is in use, the current timing is applied to the tiling.
    *
-   * See also SetSaveSelection().
+   * A time selection is performed if specific output segments were previously set with SetSegments(): triggers starting outside the output segment list are not saved.
+   *
+   * See also SetSNRThr() and SetSegments().
    * @param aTriggers MakeTriggers object
    */
   bool SaveTriggers(MakeTriggers *aTriggers);
@@ -144,10 +146,10 @@ class Otile: public GwollumPlot {
    * Saves the maps for each Q-planes in output files.
    * The maps are saved in output files.
    * An additionnal map called 'fullmap' is also saved. It represents active tiles projected in the time-frequency plane.
-   * IMPORTANT NOTE: Maps are not saved if the maximum SNR within the first window time range is below the SNR threshold, see SetSaveSelection().
+   * IMPORTANT NOTE: Maps are not saved if the maximum SNR within the first window time range is below the SNR threshold, see SetSNRThr().
    * The returned value is the maximum SNR value within the first window time range. -1.0 is returned if this function fails.
    *
-   * See also SetSaveSelection().
+   * See also SetSNRThr().
    * @param aOutdir output directory path
    * @param aName name identifier
    * @param aFormat output format string
@@ -173,25 +175,25 @@ class Otile: public GwollumPlot {
   inline void SetSNRScale(const int aSNRScale){ snrscale=aSNRScale; };
 
   /**
-   * Sets a selection when saving maps and triggers.
-   * This selection is applied when calling the SaveMaps() or SaveTriggers() functions.
+   * Sets a SNR threshold when saving maps and triggers.
+   * The thresholds are applied when calling the SaveMaps() or SaveTriggers() functions.
    * @param aSNRThr_map when calling SaveMaps(), a map is not saved if the loudest tile is below that threshold
    * @param aSNRThr_trigger tiles with a SNR value below that threshold are not saved when calling SaveTriggers()
    */
-  inline void SetSaveSelection(const double aSNRThr_map=0.0, const double aSNRThr_trigger=2.0){
+  inline void SetSNRThr(const double aSNRThr_map=0.0, const double aSNRThr_trigger=2.0){
     SNRThr_map=aSNRThr_map;
     for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
 
   /**
    * Returns the current SNR threshold for maps.
-   * See SetSaveSelection().
+   * See SetSNRThr().
    */
   inline double GetSNRMapThr(void){ return SNRThr_map; };
 
   /**
    * Returns the current SNR threshold for triggers.
-   * See SetSaveSelection().
+   * See SetSNRThr().
    */
   inline double GetSNRTriggerThr(void){ return qplanes[0]->GetSNRThr(); };
 
@@ -218,12 +220,15 @@ class Otile: public GwollumPlot {
   inline int GetTimeRange(void){ return TimeRange; };
 
   /**
-   * Sets new input segments.
-   * This list of segments can be read sequencially using Sequence.
+   * Sets new input/output segments.
+   * The input list of segments will be read sequencially using Sequence.
    * The input segment times must be integer numbers. They will be considered as such!
-   * @param aSegments input segment list
+   *
+   * A selective ouput segment list can be provided to select triggers when calling SaveTriggers(). If null, no time selection is performed.
+   * @param aInSeg input segment list
+   * @param aOutSeg output segment list
    */
-  bool SetSegments(Segments *aSegments);
+  bool SetSegments(Segments *aInSeg, Segments *aOutSeg=NULL);
 
   /**
    * Sets a new sequence overlap duration.
@@ -238,7 +243,7 @@ class Otile: public GwollumPlot {
    * Loads a new sequence chunk.
    * The chunks are loaded following the definition presented in the description of this class. This function should be called iteratively to cover the full data set defined with SetSegments(). The returned value indicates the status of this operation:
    * - true : a new chunk has been loaded
-   * - false : no more chunk to load
+   * - false : no more chunk to load or an error occured
    * @param aNewSegFlag set to true if a new segment is started 
    */
   bool NewChunk(bool &aNewSegFlag);
@@ -284,7 +289,8 @@ class Otile: public GwollumPlot {
   void ApplyOffset(TH2D *aMap, const double aOffset);
 
   // SEQUENCE
-  Segments *SeqSegments;        ///< input segments
+  Segments *SeqOutSegments;     ///< output trigger segments (current - request)
+  Segments *SeqInSegments;      ///< input segments (current - request)
   int SeqOverlap;               ///< nominal overlap duration
   int SeqOverlapCurrent;        ///< current overlap duration
   int SeqT0;                    ///< current chunk center

@@ -175,7 +175,7 @@ void Omicron::ReadOptions(void){
     v.push_back(7.0); v.push_back(7.0);
   }
   if(v.size()==1) v.push_back(v[0]);
-  tile->SetSaveSelection(v[1],v[0]);
+  tile->SetSNRThr(v[1],v[0]);
   //*****************************
   
   //***** set spectrum *****
@@ -255,25 +255,29 @@ void Omicron::ReadOptions(void){
 
   vector <double> param;
   if(io->GetOpt("INJECTION","SGTIMERANGE", param)){
-    if(param.size()==2) oinj->SetTimeRange(param[0],param[1]);
+    if(param.size()==1) { param.push_back(param[0]); oinj->SetTimeRange(param[0],param[1]); }
+    else if(param.size()==2) oinj->SetTimeRange(param[0],param[1]);
     else
       	cerr<<"Omicron::ReadOptions: INJECTION/SGTIMERANGE is incorrect"<<endl;
   }
   param.clear();
   if(io->GetOpt("INJECTION","SGFREQUENCYRANGE", param)){
-    if(param.size()==2) oinj->SetFrequencyRange(param[0],param[1]);
+    if(param.size()==1) { param.push_back(param[0]); oinj->SetFrequencyRange(param[0],param[1]); }
+    else if(param.size()==2) oinj->SetFrequencyRange(param[0],param[1]);
     else
       	cerr<<"Omicron::ReadOptions: INJECTION/SGFREQUENCYRANGE is incorrect"<<endl;
   }
   param.clear();
   if(io->GetOpt("INJECTION","SGQRANGE", param)){
-    if(param.size()==2) oinj->SetQRange(param[0],param[1]);
+    if(param.size()==1) { param.push_back(param[0]); oinj->SetQRange(param[0],param[1]); }
+    else if(param.size()==2) oinj->SetQRange(param[0],param[1]);
     else
       	cerr<<"Omicron::ReadOptions: INJECTION/SGQRANGE is incorrect"<<endl;
   }
   param.clear();
   if(io->GetOpt("INJECTION","SGAMPLITUDERANGE", param)){
-    if(param.size()==2) oinj->SetAmplitudeRange(param[0],param[1]);
+    if(param.size()==1) { param.push_back(param[0]); oinj->SetAmplitudeRange(param[0],param[1]); }
+    else if(param.size()==2) oinj->SetAmplitudeRange(param[0],param[1]);
     else
       	cerr<<"Omicron::ReadOptions: INJECTION/SGAMPLITUDERANGE is incorrect"<<endl;
   }

@@ -60,11 +60,12 @@ Otile::Otile(const int aTimeRange,
   // update parameters  
   TimeRange=qplanes[0]->GetTimeRange();
 
-  // set default save selection
-  SetSaveSelection();
+  // set default SNR threshold
+  SetSNRThr();
 
   // Sequence
-  SeqSegments = new Segments();
+  SeqInSegments  = new Segments();
+  SeqOutSegments = new Segments();
   SeqOverlap=0;
   SeqOverlapCurrent=SeqOverlap;
   SeqT0=0;
@@ -77,43 +78,50 @@ Otile::~Otile(void){
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
   for(int p=0; p<nq; p++) delete qplanes[p];
   delete qplanes;
-  delete SeqSegments;
+  delete SeqInSegments;
+  delete SeqOutSegments;
 }
  
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SetSegments(Segments *aSegments){
+bool Otile::SetSegments(Segments *aInSeg, Segments *aOutSeg){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(aSegments==NULL || !aSegments->GetStatus()){
+  if(aInSeg==NULL || !aInSeg->GetStatus()){
     cerr<<"Otile::SetSegments: input segments are corrupted"<<endl;
     return false;
   }
-  
-  SeqSegments->Reset();
-  SeqSegments->Append(aSegments);
+
+  // reset sequence
+  SeqInSegments->Reset(); SeqOutSegments->Reset();
   SeqOverlapCurrent=SeqOverlap;
   SeqT0=0;// for initialization in NewChunk()
   SeqSeg=0;
+
+  // update sequence
+  SeqInSegments->Append(aInSeg);
+  if(aOutSeg==NULL) SeqOutSegments->Append(SeqInSegments);// no selection
+  else SeqOutSegments->Append(aOutSeg);
+
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool Otile::NewChunk(bool &aNewSegFlag){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(SeqSeg>=SeqSegments->GetNsegments()){
+  if(SeqSeg>=SeqInSegments->GetNsegments()){
     cerr<<"Otile::NewChunk: end of segments"<<endl;
     return false;
   }
   
   // current segment is too short
-  if((int)SeqSegments->GetEnd(SeqSeg)-(int)SeqSegments->GetStart(SeqSeg)<TimeRange){
+  if((int)SeqInSegments->GetEnd(SeqSeg)-(int)SeqInSegments->GetStart(SeqSeg)<TimeRange){
     SeqSeg++; //  --> move to next segment
     SeqT0=0;
     return NewChunk(aNewSegFlag);
   }
 
   // end of current segment
-  if(SeqT0+TimeRange/2==(int)SeqSegments->GetEnd(SeqSeg)){
+  if(SeqT0+TimeRange/2==(int)SeqInSegments->GetEnd(SeqSeg)){
     SeqSeg++; //  --> move to next segment
     SeqT0=0;
     return NewChunk(aNewSegFlag);
@@ -121,7 +129,7 @@ bool Otile::NewChunk(bool &aNewSegFlag){
 
   // initialization = start of current segment
   if(!SeqT0){
-    SeqT0=(int)SeqSegments->GetStart(SeqSeg)-TimeRange/2+SeqOverlap;
+    SeqT0=(int)SeqInSegments->GetStart(SeqSeg)-TimeRange/2+SeqOverlap;
     aNewSegFlag=true;
   }
   else aNewSegFlag=false;
@@ -132,8 +140,8 @@ bool Otile::NewChunk(bool &aNewSegFlag){
   int stop_test     = start_test+TimeRange;
 
   // chunk ends after current segment end --> adjust overlap
-  if(stop_test>(int)SeqSegments->GetEnd(SeqSeg)){
-    SeqT0=(int)SeqSegments->GetEnd(SeqSeg)-TimeRange/2;
+  if(stop_test>(int)SeqInSegments->GetEnd(SeqSeg)){
+    SeqT0=(int)SeqInSegments->GetEnd(SeqSeg)-TimeRange/2;
     SeqOverlapCurrent=start_test+SeqOverlap-SeqT0+TimeRange/2;// --> adjust overlap
     return true;
   }
@@ -181,15 +189,24 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
     return false;
   }
   
-  if(fVerbosity) cout<<"Otile::SaveTriggers: Saving triggers for "<<aTriggers->GetName()<<" centered on "<<SeqT0<<"..."<<endl;
+  if(fVerbosity) cout<<"Otile::SaveTriggers: Saving triggers for "<<aTriggers->GetName()<<" chunk centered on "<<SeqT0<<"..."<<endl;
 
+  // output segments
+  Segments *seg = new Segments((double)(SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2),(double)(SeqT0+TimeRange/2-SeqOverlap/2));// remove overlaps
+  seg->Intersect(SeqOutSegments);// apply user-defined output selection
+  if(!seg->GetLiveTime()) {delete seg; return true; } // nothing to do
+    
   // save triggers for each Q plane
   for(int p=0; p<nq; p++)
-    if(!qplanes[p]->SaveTriggers(aTriggers,SeqOverlapCurrent-SeqOverlap/2,SeqOverlap/2,(double)SeqT0)) return false;
+    if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
   
-  // save segments
-  aTriggers->AddSegment((double)(SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2),(double)(SeqT0+TimeRange/2-SeqOverlap/2));
-  
+  // save trigger segments
+  if(seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
+    aTriggers->Append(seg);
+  else
+    for(int s=0; s<seg->GetNsegments(); s++) aTriggers->AddSegment(seg->GetStart(s),seg->GetEnd(s));
+
+  delete seg;
   return true;
 }
 

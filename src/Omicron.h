@@ -63,9 +63,10 @@ class Omicron {
   /**
    * Initializes the segments to process.
    * This function should always be called before any type of processing. Use NewChunk() to sequence the Omicron analysis.
-   * @param aSeg pointer to the input Segments structure
+   * @param aInSeg pointer to the input Segments structure
+   * @param aOutSeg pointer to the output Segments structure
    */
-  bool InitSegments(Segments *aSeg);
+  bool InitSegments(Segments *aInSeg, Segments *aOutSeg=NULL);
 
   /**
    * Creates a specific directory tree for the output.
@@ -153,7 +154,7 @@ class Omicron {
    * Writes output products to disk.
    * The output data products selected by the user in the option file and for the current chunk/channel are written to disk.
    */
-  bool WriteOutput(void);
+  bool WriteOutput();
 
   /**
    * Writes output triggers to disk.
@@ -284,6 +285,7 @@ class Omicron {
   vector <string> outdir;       ///< output directories per channel
   void SaveAPSD(const string aType);///< Save current PSD/ASD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
+  void SaveSG(void);            ///< Save current sg injection parameters
   void SaveSpectral(void);      ///< Save current spectral plots
   void MakeHtml(void);          ///< make html report
 

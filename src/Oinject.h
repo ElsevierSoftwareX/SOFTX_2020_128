@@ -68,7 +68,7 @@ class Oinject{
     return
       amp*
       Wg/sigma_t/sqrt2pi*exp(-(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)/2.0/sigma_t/sigma_t)* // Gaussian window
-      TMath::Cos(2*TMath::Pi()*phi*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency)+phase);// sine
+      TMath::Cos(2.0*TMath::Pi()*phi*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency)+phase);// sine
   };
 
   /**
@@ -114,6 +114,11 @@ class Oinject{
   };
 
   /**
+   * Returns the injection time.
+   */  
+  inline double GetTime(void){ return tau; };
+
+  /**
    * Returns the minimum time.
    */  
   inline double GetTimeMin(void){ return taumin; };
@@ -122,6 +127,11 @@ class Oinject{
    * Returns the maximum time.
    */  
   inline double GetTimeMax(void){ return taumax; };
+
+  /**
+   * Returns the injection frequency.
+   */  
+  inline double GetFrequency(void){ return phi; };
 
   /**
    * Returns the minimum frequency.
@@ -134,6 +144,11 @@ class Oinject{
   inline double GetFrequencyMax(void){ return phimax; };
 
   /**
+   * Returns the injection Q.
+   */  
+  inline double GetQ(void){ return Q; };
+
+  /**
    * Returns the minimum Q.
    */  
   inline double GetQMin(void){ return Qmin; };
@@ -142,6 +157,11 @@ class Oinject{
    * Returns the maximum Q.
    */  
   inline double GetQMax(void){ return Qmax; };
+
+  /**
+   * Returns the injection amplitude.
+   */  
+  inline double GetAmplitude(void){ return amp; };
 
   /**
    * Returns the minimum amplitude.
@@ -153,6 +173,20 @@ class Oinject{
    */  
   inline double GetAmplitudeMax(void){ return ampmax; };
 
+  /**
+   * Returns the injection phase.
+   */  
+  inline double GetPhase(void){ return phase; };
+
+  /**
+   * Returns the injection duration.
+   */  
+  inline double GetSigmat(void){ return sigma_t; };
+
+  /**
+   * Returns the injection bandwidth.
+   */  
+  inline double GetSigmaf(void){ return sigma_f; };
 
  private:
   
@@ -161,6 +195,7 @@ class Oinject{
 
   double Wg;                           ///< Gaussian window normalization
   double sigma_t;                      ///< Gaussian window width
+  double sigma_f;                      ///< Gaussian window width
 
   void GenerateParameters(void);       ///< generate random set of parameters
   double tau;                          ///< injection time
