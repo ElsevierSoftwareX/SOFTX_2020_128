@@ -1004,7 +1004,7 @@ void Omicron::SaveSG(void){
   stringstream ss;
   ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
 
-  ofstream outfile(ss.str());
+  ofstream outfile(ss.str().c_str());
   outfile.precision(5);
   outfile<<"Oinject: sinusoidal Gaussian waveform:"<<endl;
   outfile<<"         peak time = "<<fixed<<(double)tile->GetChunkTimeCenter()+oinj->GetTime()<<endl;
