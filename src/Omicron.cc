@@ -1011,7 +1011,7 @@ void Omicron::SaveSG(void){
   outfile<<"         frequency = "<<fixed<<oinj->GetFrequency()<<endl;
   outfile<<"         Q         = "<<fixed<<oinj->GetQ()<<endl;
   outfile<<"         amplitude = "<<scientific<<oinj->GetAmplitude()<<endl;
-  outfile<<"         phase     = "<<fixed<<defaultfloat<<oinj->GetPhase()<<endl;
+  outfile<<"         phase     = "<<fixed<<oinj->GetPhase()<<endl;
   outfile<<"         SNR       = "<<fixed<<oinj->GetTrueSNR(spectrum[chanindex])<<endl;
   outfile<<"         sigma_t   = "<<fixed<<oinj->GetSigmat()<<endl;
   outfile<<"         sigma_f   = "<<fixed<<oinj->GetSigmaf()<<endl;
