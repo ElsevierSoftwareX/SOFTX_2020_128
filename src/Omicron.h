@@ -262,7 +262,7 @@ class Omicron {
   int *chan_proj_ctr;           ///< number of Project() calls /channel
   int *chan_write_ctr;          ///< number of WriteOutput() calls /channel
   double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
-  vector <int> chunkcenter;     ///< save chunk centers (only for html)
+  vector <int> chunkstart;      ///< save chunk starts (only for html)
   
   // COMPONENTS
   GwollumPlot *GPlot;           ///< Gwollum plots
@@ -285,7 +285,6 @@ class Omicron {
  
   // OUTPUT
   string maindir;               ///< output main directory
-  vector <string> outdir;       ///< output directories per channel
   void SaveAPSD(const string aType);///< Save current PSD/ASD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters

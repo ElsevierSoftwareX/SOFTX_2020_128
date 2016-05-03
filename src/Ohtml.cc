@@ -161,8 +161,8 @@ void Omicron::MakeHtml(void){
     report<<"  <table class=\"omicronsummary\">"<<endl;
     report<<"    <tr><td>Number of calls [load/data/condition/projection/write]:</td><td>"<<chan_ctr[c]<<"/"<<chan_data_ctr[c]<<"/"<<chan_cond_ctr[c]<<"/"<<chan_proj_ctr[c]<<"/"<<chan_write_ctr[c]<<"</td></tr>"<<endl;
     report<<"    <tr><td>Processed livetime:</td><td>"<<(int)outSegments[c]->GetLiveTime()<<" sec ("<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100.0<<"%) &rarr; "<<setprecision(3)<<fixed<<outSegments[c]->GetLiveTime()/3600.0/24<<" days</td></tr>"<<endl;
-    outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
-    report<<"    <tr><td>Processed segments:</td><td><a href=\"./"<<fChannels[c]<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
+    outSegments[c]->Write(triggers[c]->GetDirectory(maindir,0)+"/omicron.segments.txt");
+    report<<"    <tr><td>Processed segments:</td><td><a href=\"./"<<triggers[c]->GetDirectory(".",0)<<"/omicron.segments.txt\">omicron.segments.txt</a></td></tr>"<<endl;
     report<<"  </table>"<<endl;
     
     // Plot links
@@ -177,64 +177,64 @@ void Omicron::MakeHtml(void){
       report<<"<table class=\"omicronsummary\">"<<endl;
       
       // loop over chunks
-      for(int s=0; s<(int)chunkcenter.size(); s++){
+      for(int s=0; s<(int)chunkstart.size(); s++){
 	report<<"  <tr>"<<endl;
-	report<<"    <td>"<<chunkcenter[s]<<":</td>"<<endl;
+	report<<"    <td>"<<chunkstart[s]<<":</td>"<<endl;
 	
 	// maps
 	if(fOutProducts.find("maps")!=string::npos){
 	  for(int q=0; q<=tile->GetNQ(); q++){
-	    tmpstream<<outdir[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_fullmapdt"<<fWindows[0]<<"."<<form;
+	    tmpstream<<triggers[c]->GetDirectory(".",chunkstart[s])<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_fullmapdt"<<fWindows[0]<<"."<<form;
 	    if(!IsBinaryFile(tmpstream.str())){// check full map exists
 	      report<<"    <td colspan=\""<<tile->GetNQ()+1<<"\">no maps</td>"<<endl; tmpstream.clear(); tmpstream.str("");
 	      break;
 	    }
 	    tmpstream.clear(); tmpstream.str("");
-	    if(q) report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_mapQ"<<q-1<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
-	    else  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_fullmap', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
+	    if(q) report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkstart[s]<<"_mapQ"<<q-1<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
+	    else  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkstart[s]<<"_fullmap', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
 	    if(!type_first.compare("")) type_first="fullmap";
 	  }
 	}
 
 	// ASD
 	if(fOutProducts.find("asd")!=string::npos){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_ASD."<<form<<"\" target=\"_blank\">ASD</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_ASD."<<form<<"\" target=\"_blank\">ASD</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="";
 	}
 
 	// PSD
 	if(fOutProducts.find("psd")!=string::npos){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_PSD."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_PSD."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="";
 	}
 
 	// Spectral
 	if(fOutProducts.find("spectral")!=string::npos){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_spec."<<form<<"\" target=\"_blank\">Spectral</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_spec."<<form<<"\" target=\"_blank\">Spectral</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="";
 	}
 
 	// time-series
 	if(fOutProducts.find("timeseries")!=string::npos){
-	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_ts', "<<windowset<<", '"<<form<<"');\">Conditionned time series</a></td>"<<endl;
+	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkstart[s]<<"_ts', "<<windowset<<", '"<<form<<"');\">Conditionned time series</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="ts";
 	}
 	
 	// whitened data
 	if(fOutProducts.find("white")!=string::npos){
-	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkcenter[s]<<"_whitets', "<<windowset<<", '"<<form<<"');\">Whitened time series</a></td>"<<endl;
+	  report<<"    <td><a href=\"javascript:showImage('"<<fChannels[c]<<"', '"<<chunkstart[s]<<"_whitets', "<<windowset<<", '"<<form<<"');\">Whitened time series</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="whitets";
 	}
 
 	// triggers
 	if(fOutProducts.find("triggers")!=string::npos){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<".root\">Triggers</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<".root\">Triggers</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="triggers";
 	}
 	
 	// injection
 	if(fsginj==1&&fOutProducts.find("injection")!=string::npos){
-	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[s]<<"_sginjection.txt\">Injection</a></td>"<<endl;
+	  report<<"    <td><a href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[s]<<"_sginjection.txt\">Injection</a></td>"<<endl;
 	  if(!type_first.compare("")) type_first="injection";
 	}
 	report<<"  </tr>"<<endl;
@@ -277,7 +277,7 @@ void Omicron::MakeHtml(void){
 	report<<"<table>"<<endl;
 	report<<"  <tr>"<<endl;
 	for(int w=0; w<(int)fWindows.size(); w++)
-	  report<<"    <td><a id=\"a_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" src=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkcenter[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<fChannels[c]<<" "<<type_first<<" dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
+	  report<<"    <td><a id=\"a_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" href=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<fChannels[c]<<"_dt"<<fWindows[w]<<"\" src=\"./"<<fChannels[c]<<"/"<<fChannels[c]<<"_"<<chunkstart[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<fChannels[c]<<" "<<type_first<<" dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
 	report<<"  </tr>"<<endl;
 	report<<"</table>"<<endl;
       }

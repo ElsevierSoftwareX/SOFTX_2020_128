@@ -25,8 +25,8 @@ Omicron::Omicron(const string aOptionFile){
 
   // output directory
   maindir=fMaindir;
-  for(int c=0; c<(int)fChannels.size(); c++) outdir.push_back(fMaindir);
-
+  MakeDirectories();
+  
   // load ffl if any
   if(FFL!=NULL){
     status_OK*=FFL->DefineTmpDir(fMaindir);
@@ -193,8 +193,7 @@ Omicron::~Omicron(void){
   delete TukeyWindow;
   delete offt;
 
-  chunkcenter.clear();
-  outdir.clear();
+  chunkstart.clear();
   fChannels.clear();
   fInjChan.clear();
   fInjFact.clear();
@@ -271,27 +270,16 @@ bool Omicron::MakeDirectories(const int aId){
   }
 
   if(fVerbosity) cout<<"Omicron::MakeDirectories: make specific directory structure..."<<endl;
-  outdir.clear();
   ostringstream tmpstream;
 
   // Main dir
   if(!aId){// single level
-    for(int c=0; c<(int)fChannels.size(); c++){
-      maindir=fMaindir;
-      outdir.push_back(maindir+"/"+fChannels[c]);
-    }
+    maindir=fMaindir;
   }
   else{// two level
     tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aId;
     maindir=tmpstream.str();
     tmpstream.clear(); tmpstream.str("");
-  }
-
-  // channel dir
-  for(int c=0; c<(int)fChannels.size(); c++){
-    outdir.push_back(maindir+"/"+fChannels[c]);
-    if(fVerbosity>1) cout<<"\t- "<<outdir[c]<<endl;
-    system(("mkdir -p "+outdir[c]).c_str());
   }
 
   return true;
@@ -316,7 +304,10 @@ bool Omicron::NewChunk(void){
   }
   
   // save info for html report
-  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
+  if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
+
+  // stream directories
+  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory()).c_str());
 
   // new segment --> reset PSD buffer
   if(newseg){
@@ -358,7 +349,10 @@ bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const boo
   if(!tile->NewChunk(newseg)) return false;
     
   // save info for html report
-  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
+  if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
+
+  // stream directories
+  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory()).c_str());
 
   // reset PSD buffer
   if(aResetPSDBuffer)
@@ -616,11 +610,11 @@ bool Omicron::WriteOutput(void){
     double snr;
     if(fVerbosity>1) cout<<"\t- write maps"<<endl;
     if(fOutProducts.find("html")==string::npos) // need to make thumbnails for html
-      snr=tile->SaveMaps(outdir[chanindex],
+      snr=tile->SaveMaps(triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart()),
 			 fChannels[chanindex],
 			 fOutFormat,fWindows,false);
     else
-      snr=tile->SaveMaps(outdir[chanindex],
+      snr=tile->SaveMaps(triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart()),
 			 fChannels[chanindex],
 			 fOutFormat,fWindows,true);
     if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
@@ -659,7 +653,7 @@ bool Omicron::WriteTriggers(void){
   if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
   
   // write triggers to disk
-  if(!triggers[chanindex]->Write(outdir[chanindex],fOutFormat).compare("none")){
+  if(!triggers[chanindex]->Write(maindir,fOutFormat).compare("none")){
     cerr<<"Omicron::WriteTriggers: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return false;
   }
@@ -794,7 +788,7 @@ void Omicron::SaveAPSD(const string aType){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
+    ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
     ss<<".root";
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
@@ -818,7 +812,7 @@ void Omicron::SaveAPSD(const string aType){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
+      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
       ss<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
@@ -862,7 +856,7 @@ void Omicron::SaveSpectral(void){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fspec;
-    ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec.root";
+    ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec.root";
     fspec=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fspec->cd();
@@ -891,7 +885,7 @@ void Omicron::SaveSpectral(void){
   // save
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
+      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
@@ -951,9 +945,9 @@ void Omicron::SaveTS(const bool aWhite){
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
     if(aWhite)
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitets.root";
+      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitets.root";
     else
-      ss<<outdir[chanindex]<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_ts.root";
+      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_ts.root";
     fdata=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fdata->cd();
@@ -978,16 +972,16 @@ void Omicron::SaveTS(const bool aWhite){
       GDATA->GetXaxis()->SetLimits(tile->GetChunkTimeCenter()-(double)fWindows[w]/2.0,tile->GetChunkTimeCenter()+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
 	if(aWhite)
-	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"."<<form[f];
 	else
-	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
 	ss.str(""); ss.clear();
 
 	if(aWhite)
-	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"th."<<form[f];
 	else
-	  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"th."<<form[f];
 	GPlot->Print(ss.str().c_str(),0.5);
 	ss.str(""); ss.clear();
       }
@@ -1005,7 +999,7 @@ void Omicron::SaveSG(void){
 
   // text file only
   stringstream ss;
-  ss<<outdir[chanindex]<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
+  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
 
   ofstream outfile(ss.str().c_str());
   outfile.precision(5);
