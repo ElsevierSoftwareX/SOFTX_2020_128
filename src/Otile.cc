@@ -193,6 +193,10 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
 
   // output segments
   Segments *seg = new Segments((double)(SeqT0-TimeRange/2+SeqOverlapCurrent-SeqOverlap/2),(double)(SeqT0+TimeRange/2-SeqOverlap/2));// remove overlaps
+  if(!seg->GetStatus()){
+    cerr<<"Otile::SaveTriggers: the output segment list is corrupted"<<endl;
+    return false;
+  }
   seg->Intersect(SeqOutSegments);// apply user-defined output selection
   if(!seg->GetLiveTime()) {delete seg; return true; } // nothing to do
     
@@ -201,7 +205,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
     if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
   
   // save trigger segments
-  if(seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
+  if(aTriggers->GetNsegments()&&seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
     aTriggers->Append(seg);
   else
     for(int s=0; s<seg->GetNsegments(); s++) aTriggers->AddSegment(seg->GetStart(s),seg->GetEnd(s));

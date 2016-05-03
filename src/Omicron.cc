@@ -45,7 +45,7 @@ Omicron::Omicron(const string aOptionFile){
   for(int c=0; c<(int)fChannels.size(); c++) status_OK*=spectrum[c]->GetStatus();
 
   // chunk FFT
-  offt = new fft(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(), "FFTW_MEASURE", "r2c");
+  offt = new fft(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(), fftplan, "r2c");
  
   // data containers
   ChunkVect     = new double    [offt->GetSize_t()];
@@ -82,6 +82,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_PSDLENGTH");       fOptionType.push_back("i");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_FFTPLAN");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
@@ -129,11 +130,12 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],spectrum[c]->GetDataBufferLength());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],fftplan);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],GPlot->GetCurrentStyle());
   }
   
   // process monitoring
@@ -632,6 +634,7 @@ bool Omicron::WriteOutput(void){
   }
 
   // update monitoring segments
+  // -- do not include output segment selection --
   outSegments[chanindex]->AddSegment((double)(tile->GetChunkTimeStart()+tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2),(double)(tile->GetChunkTimeEnd()-tile->GetOverlapDuration()/2));
 
   chan_write_ctr[chanindex]++;

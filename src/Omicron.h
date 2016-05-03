@@ -61,8 +61,10 @@ class Omicron {
   
 
   /**
-   * Initializes the segments to process.
+   * Initializes the segments to process and to output.
    * This function should always be called before any type of processing. Use NewChunk() to sequence the Omicron analysis.
+   *
+   * Optionally, output segments (for triggers only!) can be specified. If so, triggers outside the output segments will not be saved. Use a pointer to NULL to not use this option.
    * @param aInSeg pointer to the input Segments structure
    * @param aOutSeg pointer to the output Segments structure
    */
@@ -245,6 +247,7 @@ class Omicron {
   vector <string> fChannels;    ///< list of channel names
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
+  string fftplan;               ///< fft plan
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   int fsginj;                   ///< perform SG injections
@@ -266,10 +269,11 @@ class Omicron {
   Spectrum **spectrum;          ///< spectrum structure
   ffl *FFL;                     ///< ffl
   ffl *FFL_inject;              ///< ffl for injection signals
+  fft *offt;                    ///< FFT plan to FFT the input data
   Otile *tile;                  ///< tiling structure
   MakeTriggers **triggers;      ///< output triggers
   Oinject *oinj;                ///< software sg injections
-  InjEct **inject;              ///< software injections
+  InjEct **inject;              ///< software injections (in frame data)
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
@@ -278,8 +282,7 @@ class Omicron {
   bool Whiten(void);            ///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
-  fft *offt;                    ///< FFT plan to FFT the input data
-
+ 
   // OUTPUT
   string maindir;               ///< output main directory
   vector <string> outdir;       ///< output directories per channel

@@ -211,6 +211,13 @@ void Omicron::ReadOptions(void){
   tile->SetSNRScale(fabs(snrscale));
   //*****************************
 
+  //***** fft plans *****
+  if(!io->GetOpt("PARAMETER","FFTPLAN", fftplan)){
+    cerr<<"Omicron::ReadOptions: No fftplan option (PARAMETER/FFTPLAN)  --> set default: FFTW_MEASURE"<<endl;
+    fftplan="FFTW_MEASURE";
+  }
+  //*****************************
+
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------               INJECTIONS               --------------

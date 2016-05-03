@@ -224,7 +224,7 @@ class Otile: public GwollumPlot {
    * The input list of segments will be read sequencially using Sequence.
    * The input segment times must be integer numbers. They will be considered as such!
    *
-   * A selective ouput segment list can be provided to select triggers when calling SaveTriggers(). If null, no time selection is performed.
+   * Optionally, an ouput segment list can be provided to select triggers when calling SaveTriggers(). If pointing to NULL, no time selection is performed.
    * @param aInSeg input segment list
    * @param aOutSeg output segment list
    */
