@@ -24,7 +24,6 @@ Omicron::Omicron(const string aOptionFile){
   ReadOptions();
 
   // output directory
-  maindir=fMaindir;
   MakeDirectories();
   
   // load ffl if any
@@ -307,7 +306,7 @@ bool Omicron::NewChunk(void){
   if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
 
   // stream directories
-  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory()).c_str());
+  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory(maindir,tile->GetChunkTimeStart())).c_str());
 
   // new segment --> reset PSD buffer
   if(newseg){
@@ -352,7 +351,7 @@ bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const boo
   if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
 
   // stream directories
-  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory()).c_str());
+  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory(maindir,tile->GetChunkTimeStart())).c_str());
 
   // reset PSD buffer
   if(aResetPSDBuffer)
