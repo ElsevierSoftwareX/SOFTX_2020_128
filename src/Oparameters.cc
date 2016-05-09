@@ -77,15 +77,18 @@ void Omicron::ReadOptions(void){
     FFL=NULL;
   //*****************************
   
-  //***** List of channels *****
-  if(!io->GetAllOpt("DATA","CHANNELS", fChannels)){
+  //***** List of channels/streams  *****
+  vector <string> channels; nchannels=0;
+  if(!io->GetAllOpt("DATA","CHANNELS", channels)){
     cerr<<"Omicron::ReadOptions: a list of channels is required (DATA/CHANNELS)"<<endl;
-    fChannels.push_back("M1:MISSING");
+    channels.push_back("M1:MISSING");
     status_OK=false;
   }
-  triggers = new MakeTriggers* [(int)fChannels.size()];// output triggers
-  for(int c=0; c<(int)fChannels.size(); c++)
-    triggers[c] = new MakeTriggers(fChannels[c],fVerbosity);
+  nchannels = (int)channels.size();
+  triggers = new MakeTriggers* [nchannels];
+  for(int c=0; c<nchannels; c++)
+    triggers[c] = new MakeTriggers(channels[c],fVerbosity);
+  channels.clear();
   //*****************************
   
   //***** Sampling frequency *****
@@ -100,7 +103,7 @@ void Omicron::ReadOptions(void){
     sampling=16;
     status_OK=false;
   }
-  for(int c=0; c<(int)fChannels.size(); c++)
+  for(int c=0; c<nchannels; c++)
     status_OK*=triggers[c]->SetFrequencies(sampling,sampling,0.0);
   //*****************************
 
@@ -164,7 +167,7 @@ void Omicron::ReadOptions(void){
   tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
   tile->SetOverlapDuration(timing[1]);
   QRange.clear(); FRange.clear();
-  for(int c=0; c<(int)fChannels.size(); c++)
+  for(int c=0; c<nchannels; c++)
     status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
   //*****************************
   
@@ -181,8 +184,8 @@ void Omicron::ReadOptions(void){
   //***** set spectrum *****
   double psdlength;
   if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)) psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
-  spectrum = new Spectrum* [(int)fChannels.size()];
-  for(int c=0; c<(int)fChannels.size(); c++){
+  spectrum = new Spectrum* [nchannels];
+  for(int c=0; c<nchannels; c++){
     if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
       spectrum[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
     else // increase the resolution not to extrapolate the PSD.
@@ -194,7 +197,7 @@ void Omicron::ReadOptions(void){
   double cldt=0.1;
   if(!io->GetOpt("PARAMETER","CLUSTERING", fClusterAlgo)) fClusterAlgo="none";
   if(!io->GetOpt("PARAMETER","CLUSTERDT", cldt)) cldt=0.1;
-  for(int c=0; c<(int)fChannels.size(); c++) triggers[c]->SetClusterizeDt(cldt);
+  for(int c=0; c<(int)nchannels; c++) triggers[c]->SetClusterizeDt(cldt);
   //*****************************
     
   //***** plot windows *****
@@ -226,7 +229,7 @@ void Omicron::ReadOptions(void){
   //***** injection channels *****
   FFL_inject=NULL;
   if(io->GetOpt("INJECTION","CHANNELS", fInjChan)){
-    if(fInjChan.size()!=fChannels.size()){
+    if((int)fInjChan.size()!=nchannels){
       cerr<<"Omicron::ReadOptions: INJECTION/CHANNELS is inconsistent with the number of channels"<<endl;
       fInjChan.clear();
     }
@@ -238,7 +241,7 @@ void Omicron::ReadOptions(void){
       }
     }
     else{
-      for(int i=0; i<(int)fChannels.size(); i++) fInjFact.push_back(1.0);
+      for(int i=0; i<nchannels; i++) fInjFact.push_back(1.0);
     }
     if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
       FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
@@ -251,8 +254,8 @@ void Omicron::ReadOptions(void){
   //***** software injections *****
   inject=NULL; string injfile;
   if(io->GetOpt("INJECTION","FILENAME", injfile)){
-    inject = new InjEct* [(int)fChannels.size()];
-    for(int c=0; c<(int)fChannels.size(); c++) inject[c] = new InjEct(triggers[c],injfile,fVerbosity);
+    inject = new InjEct* [nchannels];
+    for(int c=0; c<nchannels; c++) inject[c] = new InjEct(triggers[c],injfile,fVerbosity);
   }
   //*****************************
 

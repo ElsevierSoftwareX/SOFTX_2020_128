@@ -157,7 +157,12 @@ int main (int argc, char* argv[]){
   delete outsegments;
 
   // create specific trigger directories
-  if(!stop&&!segmentfile.compare("none")&&!O->MakeDirectories(start)) return 2;
+  if(!stop&&!segmentfile.compare("none")){
+    if(!O->MakeDirectories(start)) return 2;
+  }
+  else{
+    if(!O->MakeDirectories()) return 2;
+  }
 
   O->PrintMessage("Start looping over chunks and channels");
 

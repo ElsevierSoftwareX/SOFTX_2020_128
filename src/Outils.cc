@@ -79,3 +79,12 @@ string Omicron::GetColorCode(const double aSNRratio){
 
   return colorcode[((int)floor(aSNRratio/inc))%17];
 }
+
+////////////////////////////////////////////////////////////////////////////////////
+vector <string> Omicron::GetChannels(void){
+////////////////////////////////////////////////////////////////////////////////////
+  vector <string> chanlist;
+  for(int c=0; c<nchannels; c++) chanlist.push_back(triggers[c]->GetName());
+  return chanlist;
+}
+

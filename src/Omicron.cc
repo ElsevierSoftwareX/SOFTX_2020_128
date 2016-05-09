@@ -23,9 +23,10 @@ Omicron::Omicron(const string aOptionFile){
   fOptionFile=aOptionFile;
   ReadOptions();
 
-  // output directory
-  MakeDirectories();
-  
+  // default output directory: main dir
+  maindir=fMaindir;
+  for(int c=0; c<nchannels; c++) outdir.push_back(maindir);
+
   // load ffl if any
   if(FFL!=NULL){
     status_OK*=FFL->DefineTmpDir(fMaindir);
@@ -41,7 +42,7 @@ Omicron::Omicron(const string aOptionFile){
   std::sort(fWindows.begin(), fWindows.end());
 
   // spectrum status
-  for(int c=0; c<(int)fChannels.size(); c++) status_OK*=spectrum[c]->GetStatus();
+  for(int c=0; c<nchannels; c++) status_OK*=spectrum[c]->GetStatus();
 
   // chunk FFT
   offt = new fft(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(), fftplan, "r2c");
@@ -89,13 +90,13 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_OUTPUT_STYLE");              fOptionType.push_back("s");
 
   // triggers metadata
-  for(int c=0; c<(int)fChannels.size(); c++){
+  for(int c=0; c<nchannels; c++){
     triggers[c]->SetMprocessname("OMICRON");
     triggers[c]->SetProcessVersion(GetVersion());
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     if(FFL==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],"none");
     else          status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],FFL->GetInputFfl());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],fChannels[c]);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[1],triggers[c]->GetName());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[2],triggers[c]->GetWorkingFrequency());
     if(FFL_inject==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],"none");
     else                 status_OK*=triggers[c]->SetUserMetaData(fOptionName[3],FFL_inject->GetInputFfl());
@@ -140,15 +141,15 @@ Omicron::Omicron(const string aOptionFile){
   // process monitoring
   chanindex      = -1;
   inSegments     = new Segments();
-  outSegments    = new Segments* [(int)fChannels.size()];
+  outSegments    = new Segments* [nchannels];
   chunk_ctr      = 0;
-  chan_ctr       = new int       [(int)fChannels.size()];
-  chan_data_ctr  = new int       [(int)fChannels.size()];
-  chan_cond_ctr  = new int       [(int)fChannels.size()];
-  chan_proj_ctr  = new int       [(int)fChannels.size()];
-  chan_write_ctr = new int       [(int)fChannels.size()];
-  chan_mapsnrmax = new double    [(int)fChannels.size()];
-  for(int c=0; c<(int)fChannels.size(); c++){
+  chan_ctr       = new int       [nchannels];
+  chan_data_ctr  = new int       [nchannels];
+  chan_cond_ctr  = new int       [nchannels];
+  chan_proj_ctr  = new int       [nchannels];
+  chan_write_ctr = new int       [nchannels];
+  chan_mapsnrmax = new double    [nchannels];
+  for(int c=0; c<nchannels; c++){
     outSegments[c]    = new Segments();
     chan_ctr[c]       = 0;
     chan_data_ctr[c]  = 0;
@@ -171,7 +172,7 @@ Omicron::~Omicron(void){
   delete chan_proj_ctr;
   delete chan_write_ctr;
   delete chan_mapsnrmax;
-  for(int c=0; c<(int)fChannels.size(); c++){
+  for(int c=0; c<nchannels; c++){
     delete outSegments[c];
     delete triggers[c];
     delete spectrum[c];
@@ -182,7 +183,7 @@ Omicron::~Omicron(void){
   if(FFL_inject!=FFL&&FFL_inject!=NULL) delete FFL_inject;
   if(FFL!=NULL) delete FFL;
   if(inject!=NULL){
-    for(int c=0; c<(int)fChannels.size(); c++) delete inject[c];
+    for(int c=0; c<nchannels; c++) delete inject[c];
     delete inject;
   }
   delete oinj;
@@ -192,8 +193,8 @@ Omicron::~Omicron(void){
   delete TukeyWindow;
   delete offt;
 
+  outdir.clear();
   chunkstart.clear();
-  fChannels.clear();
   fInjChan.clear();
   fInjFact.clear();
   fWindows.clear();
@@ -268,7 +269,7 @@ bool Omicron::MakeDirectories(const int aId){
     return false;
   }
 
-  if(fVerbosity) cout<<"Omicron::MakeDirectories: make specific directory structure..."<<endl;
+  if(fVerbosity) cout<<"Omicron::MakeDirectories: make directory structure..."<<endl;
   ostringstream tmpstream;
 
   // Main dir
@@ -279,6 +280,14 @@ bool Omicron::MakeDirectories(const int aId){
     tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aId;
     maindir=tmpstream.str();
     tmpstream.clear(); tmpstream.str("");
+    system(("mkdir -p "+maindir).c_str());
+  }
+
+  // channel directories
+  outdir.clear();
+  for(int c=0; c<nchannels; c++){
+    outdir.push_back(maindir+"/"+triggers[c]->GetName());
+    system(("mkdir -p "+outdir[c]).c_str());
   }
 
   return true;
@@ -305,12 +314,9 @@ bool Omicron::NewChunk(void){
   // save info for html report
   if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
 
-  // stream directories
-  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory(maindir,tile->GetChunkTimeStart())).c_str());
-
   // new segment --> reset PSD buffer
   if(newseg){
-    for(int c=0; c<(int)fChannels.size(); c++) spectrum[c]->Reset();
+    for(int c=0; c<nchannels; c++) spectrum[c]->Reset();
   }
 
   // generate SG parameters
@@ -350,12 +356,9 @@ bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const boo
   // save info for html report
   if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
 
-  // stream directories
-  for(int c=0; c<(int)fChannels.size(); c++) system(("mkdir -p "+triggers[c]->GetDirectory(maindir,tile->GetChunkTimeStart())).c_str());
-
   // reset PSD buffer
   if(aResetPSDBuffer)
-    for(int c=0; c<(int)fChannels.size(); c++) spectrum[c]->Reset();
+    for(int c=0; c<nchannels; c++) spectrum[c]->Reset();
       
   chunk_ctr++;// one more chunk
   return true;
@@ -374,13 +377,13 @@ bool Omicron::NewChannel(void){
   chanindex++;
 
   // last channel
-  if(chanindex==(int)fChannels.size()){
+  if(chanindex==nchannels){
     chanindex=-1;
     if(fVerbosity>1) cout<<"\t- no more channels to load"<<endl;
     return false; 
   }
 
-  if(fVerbosity>1) cout<<"\t- channel "<<fChannels[chanindex]<<" is loaded"<<endl;
+  if(fVerbosity>1) cout<<"\t- channel "<<triggers[chanindex]->GetName()<<" is loaded"<<endl;
   chan_ctr[chanindex]++;
   return true;
 }
@@ -416,11 +419,11 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
 
   // get data vector
   if(fVerbosity>1) cout<<"\t- get data from frames..."<<endl;
-  *aDataVector = FFL->GetData(*aSize, fChannels[chanindex], tile->GetChunkTimeStart(), tile->GetChunkTimeEnd());
+  *aDataVector = FFL->GetData(*aSize, triggers[chanindex]->GetName(), tile->GetChunkTimeStart(), tile->GetChunkTimeEnd());
 
   // cannot retrieve data
   if(*aSize<=0){
-    cerr<<"Omicron::LoadData: cannot retrieve data ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::LoadData: cannot retrieve data ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     aDataVector=NULL; *aSize=0;
     return false;
   }
@@ -428,7 +431,7 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
   // test native sampling (and update if necessary)
   int nativesampling = *aSize/(tile->GetTimeRange());
   if(!triggers[chanindex]->SetNativeFrequency(nativesampling)){
-    cerr<<"Omicron::LoadData: incompatible native/working frequency ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::LoadData: incompatible native/working frequency ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return false;
   }
 
@@ -437,7 +440,7 @@ bool Omicron::LoadData(double **aDataVector, int *aSize){
     if(fVerbosity>1) cout<<"\t- perform software injections..."<<endl;
     inject[chanindex]->UpdateNativeSamplingFrequency();
     if(!inject[chanindex]->Inject(*aSize, *aDataVector, tile->GetChunkTimeStart())){
-      cerr<<"Omicron::LoadData: failed to inject ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+      cerr<<"Omicron::LoadData: failed to inject ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
       return false;
     }
   }
@@ -488,15 +491,15 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // Input data checks
   if(aInVect==NULL){
-    cerr<<"Omicron::Condition: input vector is NULL ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::Condition: input vector is NULL ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 1;
   }
   if(aInVectSize<=0){
-    cerr<<"Omicron::Condition: input vector is empty ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::Condition: input vector is empty ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 2;
   }
   if(aInVect[0]==aInVect[aInVectSize-1]){// FIXME: use mean/min/max
-    cerr<<"Omicron::Condition: input vector appears to be flat ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::Condition: input vector appears to be flat ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 3;
   }
     
@@ -505,7 +508,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   // test native sampling (and update if necessary)
   int nativesampling = aInVectSize/(tile->GetTimeRange());
   if(!triggers[chanindex]->SetNativeFrequency(nativesampling)){
-    cerr<<"Omicron::Condition: incompatible native/working frequency ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::Condition: incompatible native/working frequency ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 4;
   }
 
@@ -609,12 +612,12 @@ bool Omicron::WriteOutput(void){
     double snr;
     if(fVerbosity>1) cout<<"\t- write maps"<<endl;
     if(fOutProducts.find("html")==string::npos) // need to make thumbnails for html
-      snr=tile->SaveMaps(triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart()),
-			 fChannels[chanindex],
+      snr=tile->SaveMaps(outdir[chanindex],
+			 triggers[chanindex]->GetName(),
 			 fOutFormat,fWindows,false);
     else
-      snr=tile->SaveMaps(triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart()),
-			 fChannels[chanindex],
+      snr=tile->SaveMaps(outdir[chanindex],
+			 triggers[chanindex]->GetName(),
 			 fOutFormat,fWindows,true);
     if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
   }
@@ -644,7 +647,7 @@ bool Omicron::WriteTriggers(void){
 
   // sort triggers
   if(!triggers[chanindex]->SortTriggers()){
-    cerr<<"Omicron::WriteTriggers: triggers cannot be sorted ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    cerr<<"Omicron::WriteTriggers: triggers cannot be sorted ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return false;
   }
     
@@ -652,8 +655,8 @@ bool Omicron::WriteTriggers(void){
   if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
   
   // write triggers to disk
-  if(!triggers[chanindex]->Write(maindir,fOutFormat).compare("none")){
-    cerr<<"Omicron::WriteTriggers: triggers cannot be written to disk ("<<fChannels[chanindex]<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+  if(!triggers[chanindex]->Write(outdir[chanindex],fOutFormat).compare("none")){
+    cerr<<"Omicron::WriteTriggers: triggers cannot be written to disk ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return false;
   }
 
@@ -673,8 +676,8 @@ void Omicron::PrintStatusInfo(void){
   cout<<"requested livetime      = "<<(int)inSegments->GetLiveTime()<<"s"<<endl;
   cout<<"number of loaded chunks = "<<chunk_ctr<<endl;
 
-  for(int c=0; c<(int)fChannels.size(); c++){
-    cout<<"\n*** "<<fChannels[c]<<endl;
+  for(int c=0; c<nchannels; c++){
+    cout<<"\n*** "<<triggers[c]->GetName()<<endl;
     cout<<"number of calls                = "<<chan_ctr[c]<<endl;
     cout<<"number of data calls           = "<<chan_data_ctr[c]<<endl;
     cout<<"number of conditioning calls   = "<<chan_cond_ctr[c]<<endl;
@@ -760,11 +763,11 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
   if(aType.compare("ASD")){
     GAPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
-    GAPSD->SetTitle((fChannels[chanindex]+": Power spectrum density").c_str());
+    GAPSD->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
   }
   else{
     GAPSD->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
-    GAPSD->SetTitle((fChannels[chanindex]+": Amplitude spectrum density").c_str());
+    GAPSD->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
   }
   GPlot->Draw(GAPSD,"PLsame");
   GPlot->RedrawAxis();
@@ -780,14 +783,14 @@ void Omicron::SaveAPSD(const string aType){
   // set new name
   stringstream ss;
   ss<<aType;
-  ss<<"_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
+  ss<<"_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
   GAPSD->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
+    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
     ss<<".root";
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
@@ -811,7 +814,7 @@ void Omicron::SaveAPSD(const string aType){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
       ss<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
@@ -838,10 +841,10 @@ void Omicron::SaveSpectral(void){
   TGraph *Gamp   = new TGraph(offt->GetSize_f()-1);
   for(int i=1; i<offt->GetSize_f(); i++)
     Gamp->SetPoint(i-1, (double)i*(double)(triggers[chanindex]->GetWorkingFrequency()/2)/(double)offt->GetSize_f(), offt->GetNorm_f(i));
-  ss<<"SpecAmp_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
+  ss<<"SpecAmp_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
   Gamp->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
-  Gamp->SetTitle((fChannels[chanindex]+": spectral density").c_str());
+  Gamp->SetTitle((triggers[chanindex]->GetName()+": spectral density").c_str());
   Gamp->GetHistogram()->SetXTitle("Frequency [Hz]");
   Gamp->GetHistogram()->SetYTitle("Amplitude /#sqrt{Hz}");
   Gamp->SetLineWidth(1);
@@ -855,7 +858,7 @@ void Omicron::SaveSpectral(void){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fspec;
-    ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec.root";
+    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_spec.root";
     fspec=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fspec->cd();
@@ -884,7 +887,7 @@ void Omicron::SaveSpectral(void){
   // save
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
@@ -908,12 +911,12 @@ void Omicron::SaveTS(const bool aWhite){
  
   // whitened data
   if(aWhite){
-    ss<<"whitets_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
+    ss<<"whitets_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
     for(int i=0; i<offt->GetSize_t(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),offt->GetRe_t(i));
   }
   // conditioned data
   else{
-    ss<<"ts_"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter();
+    ss<<"ts_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
     for(int i=0; i<offt->GetSize_t(); i++) GDATA->SetPoint(i,(double)tile->GetChunkTimeStart()+(double)i/(double)(triggers[chanindex]->GetWorkingFrequency()),ChunkVect[i]);
   }
  
@@ -928,8 +931,8 @@ void Omicron::SaveTS(const bool aWhite){
   GPlot->SetGridy(1);
   GDATA->GetHistogram()->SetXTitle("Time [s]");
   GDATA->GetHistogram()->SetYTitle("Amplitude");
-  if(aWhite) GDATA->SetTitle((fChannels[chanindex]+": amplitude whitened data time series").c_str());
-  else GDATA->SetTitle((fChannels[chanindex]+": amplitude conditionned time series").c_str());
+  if(aWhite) GDATA->SetTitle((triggers[chanindex]->GetName()+": amplitude whitened data time series").c_str());
+  else GDATA->SetTitle((triggers[chanindex]->GetName()+": amplitude conditionned time series").c_str());
   GDATA->SetLineWidth(1);
   GDATA->GetXaxis()->SetNoExponent();
   GDATA->GetXaxis()->SetTitleOffset(1.1);
@@ -944,9 +947,9 @@ void Omicron::SaveTS(const bool aWhite){
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
     if(aWhite)
-      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitets.root";
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitets.root";
     else
-      ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"+fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_ts.root";
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_ts.root";
     fdata=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fdata->cd();
@@ -971,16 +974,16 @@ void Omicron::SaveTS(const bool aWhite){
       GDATA->GetXaxis()->SetLimits(tile->GetChunkTimeCenter()-(double)fWindows[w]/2.0,tile->GetChunkTimeCenter()+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
 	if(aWhite)
-	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"."<<form[f];
 	else
-	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
 	ss.str(""); ss.clear();
 
 	if(aWhite)
-	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"th."<<form[f];
 	else
-	  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"th."<<form[f];
 	GPlot->Print(ss.str().c_str(),0.5);
 	ss.str(""); ss.clear();
       }
@@ -998,7 +1001,7 @@ void Omicron::SaveSG(void){
 
   // text file only
   stringstream ss;
-  ss<<triggers[chanindex]->GetDirectory(maindir,tile->GetChunkTimeStart())<<"/"<<fChannels[chanindex]<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
+  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
 
   ofstream outfile(ss.str().c_str());
   outfile.precision(5);

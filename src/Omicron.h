@@ -183,7 +183,7 @@ class Omicron {
   /**
    * Returns list of channels.
    */
-  inline vector <string> GetChannels(void){return fChannels;};
+  vector <string> GetChannels(void);
 
   /**
    * Returns chunk duration [s].
@@ -244,7 +244,6 @@ class Omicron {
   string fOutFormat;            ///< output format string
   string fOutProducts;          ///< output product string
   bool fNoLogo;                 ///< no logo flag
-  vector <string> fChannels;    ///< list of channel names
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
   string fftplan;               ///< fft plan
@@ -265,15 +264,17 @@ class Omicron {
   vector <int> chunkstart;      ///< save chunk starts (only for html)
   
   // COMPONENTS
+  int nchannels;                ///< number of channels
   GwollumPlot *GPlot;           ///< Gwollum plots
-  Spectrum **spectrum;          ///< spectrum structure
+  vector <string> outdir;       ///< output directories / channel
+  Spectrum **spectrum;          ///< spectrum structure / channel
   ffl *FFL;                     ///< ffl
   ffl *FFL_inject;              ///< ffl for injection signals
   fft *offt;                    ///< FFT plan to FFT the input data
   Otile *tile;                  ///< tiling structure
-  MakeTriggers **triggers;      ///< output triggers
+  MakeTriggers **triggers;      ///< output triggers / channel
   Oinject *oinj;                ///< software sg injections
-  InjEct **inject;              ///< software injections (in frame data)
+  InjEct **inject;              ///< software injections (in frame data) / channel
 
   // DATA VECTORS
   double *ChunkVect;            ///< chunk raw data (time domain)
