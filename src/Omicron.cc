@@ -520,9 +520,13 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
   for(int i=0; i<offt->GetSize_t(); i++) ChunkVect[i] *= TukeyWindow[i];
 
-  // update spectrum
+  // update spectrum (if enough data)
   if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
-  if(!spectrum[chanindex]->AddData((tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(), ChunkVect, (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency())) return 6;
+  int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
+  int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
+  if(dsize>=spectrum[chanindex]->GetSpectrumSize()){
+    if(!spectrum[chanindex]->AddData(dsize, ChunkVect, dstart)) return 6;
+  }
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
