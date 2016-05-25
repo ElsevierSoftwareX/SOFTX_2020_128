@@ -23,10 +23,6 @@ Omicron::Omicron(const string aOptionFile){
   fOptionFile=aOptionFile;
   ReadOptions();
 
-  // default output directory: main dir
-  maindir=fMaindir;
-  for(int c=0; c<nchannels; c++) outdir.push_back(maindir);
-
   // load ffl if any
   if(FFL!=NULL){
     status_OK*=FFL->DefineTmpDir(fMaindir);
@@ -136,6 +132,12 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fOutFormat);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fOutProducts);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],GPlot->GetCurrentStyle());
+  }
+  
+  // default output directory: main dir
+  maindir=fMaindir;
+  for(int c=0; c<nchannels; c++){
+    outdir.push_back(maindir);
   }
   
   // process monitoring
@@ -315,10 +317,9 @@ bool Omicron::NewChunk(void){
   if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
 
   // new segment --> reset PSD buffer
-  if(newseg){
+  if(newseg)
     for(int c=0; c<nchannels; c++) spectrum[c]->Reset();
-  }
-
+  
   // generate SG parameters
   if(fsginj) oinj->MakeWaveform();
     
