@@ -174,13 +174,9 @@ int main (int argc, char* argv[]){
       
       // get data vector
       dvector=NULL; dsize=0;
-      if(strict){
-	if(!O->LoadData(&dvector,&dsize)){
-	  delete O; return 3;
-	}
-      }
-      else{
-	if(!O->LoadData(&dvector,&dsize)) continue;
+      if(!O->LoadData(&dvector,&dsize)){
+	if(strict){ delete O; return 3; }
+	else continue;
       }
 	
       // condition data vector
@@ -197,23 +193,15 @@ int main (int argc, char* argv[]){
       delete dvector;// not needed anymore
 
       // project data
-      if(strict){
-	if(!O->Project()){
-	  delete O; return 5;
-	}
+      if(!O->Project()){
+	if(strict){ delete O; return 5; }
+	else continue;
       }
-      else{
-	if(!O->Project()) continue;
-      }
-      
+            
       // write chunk outputs
-      if(strict){
-	if(!O->WriteOutput()){
-	  delete O; return 6;
-	}
-      }
-      else{
-	if(!O->WriteOutput()) continue;
+      if(!O->WriteOutput()){
+	if(strict){ delete O; return 6; }
+	else continue;
       }
 
     }
