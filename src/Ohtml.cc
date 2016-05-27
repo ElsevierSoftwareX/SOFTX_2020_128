@@ -15,12 +15,14 @@ void Omicron::MakeHtml(void){
   else system(("rm -f "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
-  // select web supported image format
-  string form;
+  // select format
+  string form; vector <string> trigform;
   if(fOutFormat.find("png")!=string::npos) form="png";
   else if(fOutFormat.find("gif")!=string::npos) form="gif";
   else if(fOutFormat.find("jpg")!=string::npos) form="jpg";
   else form="";
+  if(fOutFormat.find("root")!=string::npos) trigform.push_back("root");
+  else if(fOutFormat.find("xml")!=string::npos) trigform.push_back("xml");
 
   // window set
   ostringstream tmpstream;
