@@ -160,9 +160,9 @@ class Omicron {
 
   /**
    * Writes output triggers to disk.
-   * The triggers accumulated so far are written to disk (for the current channel). The trigger object in then flushed.
+   * The triggers accumulated so far are written to disk (for the current channel). The trigger object in then flushed. The trigger file path is returned.
    */
-  bool WriteTriggers(void);
+  string WriteTriggers(void);
 
   /**
    * Prints a progress report of the processing.
@@ -261,8 +261,9 @@ class Omicron {
   int *chan_proj_ctr;           ///< number of Project() calls /channel
   int *chan_write_ctr;          ///< number of WriteOutput() calls /channel
   double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
-  vector <int> chunkstart;      ///< save chunk starts (only for html)
-  
+  vector <int> chunkcenter;     ///< save chunk centers (only for html)
+  vector <string> chunktfile;   ///< save chunk file (only for html)
+
   // COMPONENTS
   int nchannels;                ///< number of channels
   GwollumPlot *GPlot;           ///< Gwollum plots

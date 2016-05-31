@@ -242,14 +242,6 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     return snrmax;
   }
 
-  // open root file
-  TFile *froot;
-  if(aFormat.find("root")!=string::npos){
-    tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_maps.root";
-    froot=TFile::Open(tmpstream.str().c_str(), "recreate");
-    tmpstream.clear(); tmpstream.str("");
-  }
-
   // graphix
   vector <string> form;
   if(aFormat.find("gif")!=string::npos) form.push_back("gif");
@@ -266,12 +258,6 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   for(int q=0; q<nq; q++){
     if(fVerbosity>1) cout<<"\t- map Q"<<q<<" = "<<fixed<<setprecision(3)<<qplanes[q]->GetQ()<<endl;
     
-    // write root
-    if(aFormat.find("root")!=string::npos){
-      froot->cd();
-      qplanes[q]->Write();
-    }
-
     if(form.size()){
       // draw map
       if(fVerbosity>2) cout<<"\t\t- Draw map"<<endl;
@@ -303,11 +289,11 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 
 	// save plot
 	for(int f=0; f<(int)form.size(); f++){
-	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"."<<form[f];
+	  tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str());
 	  tmpstream.clear(); tmpstream.str("");
 	  if(aThumb){ //thumbnail
-	    tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_mapQ"<<q<<"dt"<<aWindows[w]<<"th."<<form[f];
+	    tmpstream<<aOutdir<<"/th"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	    Print(tmpstream.str(),0.5);
 	    tmpstream.clear(); tmpstream.str("");
 	  }
@@ -320,9 +306,6 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     }
 
   }
-
-  // close root file
-  if(aFormat.find("root")!=string::npos) froot->Close();
 
   // full map
   if(form.size()){
@@ -349,11 +332,11 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 
       // save plot
       for(int f=0; f<(int)form.size(); f++){
-	tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_fullmapdt"<<aWindows[w]<<"."<<form[f];
+	tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());
 	tmpstream.clear(); tmpstream.str("");
 	if(aThumb){ //thumbnail
-	  tmpstream<<aOutdir<<"/"<<aName<<"_"<<SeqT0<<"_fullmapdt"<<aWindows[w]<<"th."<<form[f];
+	  tmpstream<<aOutdir<<"/th"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}

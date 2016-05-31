@@ -196,7 +196,8 @@ Omicron::~Omicron(void){
   delete offt;
 
   outdir.clear();
-  chunkstart.clear();
+  chunkcenter.clear();
+  chunktfile.clear();
   fInjChan.clear();
   fInjFact.clear();
   fWindows.clear();
@@ -314,7 +315,7 @@ bool Omicron::NewChunk(void){
   }
   
   // save info for html report
-  if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
+  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
 
   // new segment --> reset PSD buffer
   if(newseg)
@@ -355,7 +356,7 @@ bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const boo
   if(!tile->NewChunk(newseg)) return false;
     
   // save info for html report
-  if(fOutProducts.find("html")!=string::npos) chunkstart.push_back(tile->GetChunkTimeStart());
+  if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
 
   // reset PSD buffer
   if(aResetPSDBuffer)
@@ -618,11 +619,11 @@ bool Omicron::WriteOutput(void){
     if(fVerbosity>1) cout<<"\t- write maps"<<endl;
     if(fOutProducts.find("html")==string::npos) // need to make thumbnails for html
       snr=tile->SaveMaps(outdir[chanindex],
-			 triggers[chanindex]->GetName(),
+			 triggers[chanindex]->GetNameConv()+"_OMICRON",
 			 fOutFormat,fWindows,false);
     else
       snr=tile->SaveMaps(outdir[chanindex],
-			 triggers[chanindex]->GetName(),
+			 triggers[chanindex]->GetNameConv()+"_OMICRON",
 			 fOutFormat,fWindows,true);
     if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
   }
@@ -630,8 +631,8 @@ bool Omicron::WriteOutput(void){
   //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
-    if(!tile->SaveTriggers(triggers[chanindex])) return false;
-    if(!WriteTriggers()) return false;
+    if(!tile->SaveTriggers(triggers[chanindex])) return false; // extract triggers
+    chunktfile.push_back(GetFileName(WriteTriggers())); // write triggers to disk
   }
 
   // update monitoring segments
@@ -643,29 +644,24 @@ bool Omicron::WriteOutput(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::WriteTriggers(void){
+string Omicron::WriteTriggers(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::WriteTriggers: the Omicron object is corrupted"<<endl;
-    return false;
+    return "none";
   }
 
   // sort triggers
   if(!triggers[chanindex]->SortTriggers()){
     cerr<<"Omicron::WriteTriggers: triggers cannot be sorted ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return false;
+    return "none";
   }
     
   // clustering if any
   if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
   
   // write triggers to disk
-  if(!triggers[chanindex]->Write(outdir[chanindex],fOutFormat).compare("none")){
-    cerr<<"Omicron::WriteTriggers: triggers cannot be written to disk ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return false;
-  }
-
-  return true;
+  return triggers[chanindex]->Write(outdir[chanindex],fOutFormat);
 }
 
 

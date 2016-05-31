@@ -16,13 +16,11 @@ void Omicron::MakeHtml(void){
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
 
   // select format
-  string form; vector <string> trigform;
+  string form;
   if(fOutFormat.find("png")!=string::npos) form="png";
   else if(fOutFormat.find("gif")!=string::npos) form="gif";
   else if(fOutFormat.find("jpg")!=string::npos) form="jpg";
   else form="";
-  if(fOutFormat.find("root")!=string::npos) trigform.push_back("root");
-  else if(fOutFormat.find("xml")!=string::npos) trigform.push_back("xml");
 
   // window set
   ostringstream tmpstream;
@@ -47,16 +45,14 @@ void Omicron::MakeHtml(void){
   report<<"<link rel=\"icon\" type=\"image/x-icon\" href=\"./icon.gif\" />"<<endl;
   report<<"<link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"./icon.gif\" />"<<endl;
   report<<"<script type=\"text/javascript\">"<<endl;
-  report<<"function showImage(channel, type, timerange, format) {"<<endl;
+  report<<"function showImage(channel, channelconv, type, timerange, format) {"<<endl;
   report<<"  for (var dt in timerange) {"<<endl;
   report<<"    var basename ="<<endl;
-  report<<"      channel + \"_\" + type + \"dt\" + timerange[dt];"<<endl;
-  report<<"    var basenameth ="<<endl;
-  report<<"      channel + \"_\" + type + \"dt\" + timerange[dt] + \"th\";"<<endl;
-  report<<"    document.getElementById(\"a_\" + channel + \"_dt\" + timerange[dt]).href ="<<endl;
+  report<<"      channelconv + \"_\" + type + \"-\" + timerange[dt];"<<endl;
+  report<<"    document.getElementById(\"a_\" + channelconv + \"-\" + timerange[dt]).href ="<<endl;
   report<<"      \"./\" + channel + \"/\" + basename + \".\" + format;"<<endl;
-  report<<"    document.getElementById(\"img_\" + channel + \"_dt\" + timerange[dt]).src ="<<endl;
-  report<<"      \"./\" + channel + \"/\" + basenameth + \".\" + format;"<<endl;
+  report<<"    document.getElementById(\"img_\" + channelconv + \"-\" + timerange[dt]).src ="<<endl;
+  report<<"      \"./\" + channel + \"/th\" + basename + \".\" + format;"<<endl;
   report<<"  }"<<endl;
   report<<"}"<<endl;
   report<<"</script>"<<endl;
@@ -128,7 +124,7 @@ void Omicron::MakeHtml(void){
   if(fOutProducts.find("maps")!=string::npos){// color scale for glitchiness
     report<<"<table><tr>"<<endl;
     for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
-    report<<"<td>glitch strength</td>"<<endl;
+    report<<"<td>event strength</td>"<<endl;
     report<<"</tr></table>"<<endl;
   }
   report<<"<table class=\"omicronindex\">"<<endl;
@@ -137,8 +133,8 @@ void Omicron::MakeHtml(void){
     colcode="";
     if(tile->GetSNRMapThr()>0) colcode=GetColorCode((chan_mapsnrmax[c]-tile->GetSNRMapThr())/tile->GetSNRMapThr());
     if(!(c%6)) report<<"  <tr>"<<endl;
-    if(colcode.compare("")) report<<"    <td style=\"border:2px solid "<<colcode<<"\"><a href=\"#"<<triggers[c]->GetName()<<"\">"<<triggers[c]->GetName()<<"</a></td>"<<endl;
-    else report<<"    <td><a href=\"#"<<triggers[c]->GetName()<<"\">"<<triggers[c]->GetName()<<"</a></td>"<<endl;
+    if(colcode.compare("")) report<<"    <td style=\"border:2px solid "<<colcode<<"\"><a href=\"#"<<triggers[c]->GetNameConv()<<"\">"<<triggers[c]->GetName()<<"</a></td>"<<endl;
+    else report<<"    <td><a href=\"#"<<triggers[c]->GetNameConv()<<"\">"<<triggers[c]->GetName()<<"</a></td>"<<endl;
     if(!((c+1)%6)) report<<"  </tr>"<<endl;
   }
   for(int c=0; c<6-(nchannels)%6; c++) report<<"    <td></td>"<<endl;
@@ -161,12 +157,12 @@ void Omicron::MakeHtml(void){
 
     // processing report
     if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<tile->GetSNRMapThr()){
-      report<<"<h2 class=\"off\"><img src=\"./led-"<<led<<".gif\"\\>&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetName()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetName()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
-      report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetName()<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
+      report<<"<h2 class=\"off\"><img src=\"./led-"<<led<<".gif\" />&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetNameConv()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetNameConv()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
+      report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetNameConv()<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
     else{
-      report<<"<h2 class=\"on\"><img src=\"./led-"<<led<<".gif\"\\>&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetName()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetName()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
-      report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetName()<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
+      report<<"<h2 class=\"on\"><img src=\"./led-"<<led<<".gif\" />&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetNameConv()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetNameConv()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
+      report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetNameConv()<<"\" style=\"visibility:visible;height:auto;\">"<<endl;
     }
     report<<"Processing:"<<endl;
     report<<"  <table class=\"omicronsummary\">"<<endl;
@@ -179,32 +175,35 @@ void Omicron::MakeHtml(void){
     report<<"<table class=\"omicronsummary\">"<<endl;
       
     // loop over chunks
-    for(int s=0; s<(int)chunkstart.size(); s++){
+    for(int s=0; s<(int)chunkcenter.size(); s++){
       report<<"  <tr>"<<endl;
-      report<<"    <td>"<<chunkstart[s]<<":</td>"<<endl;
+      report<<"    <td>"<<chunkcenter[s]<<":</td>"<<endl;
 
       // triggers
-      if(fOutProducts.find("triggers")!=string::npos){
-	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<".root\">Triggers</a></td>"<<endl;
-	if(!type_first.compare("")) type_first="triggers";
+      if(fOutProducts.find("triggers")!=string::npos)
+	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<chunktfile[s]<<"\">Triggers</a></td>"<<endl;
+      
+      // maps
+      if(fOutProducts.find("maps")!=string::npos){
+	tmpstream.clear(); tmpstream.str("");
+	tmpstream<<outdir[c]<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[s]<<"-"<<fWindows[0]<<"."<<form;
+	if(IsBinaryFile(tmpstream.str())){
+	  for(int q=0; q<=tile->GetNQ(); q++){
+	    if(q) report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAPQ"<<q-1<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
+	    else  report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAP"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
+	  }
+	}
+	else{
+	  for(int q=0; q<=tile->GetNQ(); q++){
+	    if(q) report<<"    <td>mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</td>"<<endl;
+ 	    else  report<<"    <td>Full map</td>"<<endl;
+	  }
+	}
       }
+      
     }
     
       /*
-      // maps
-      if(fOutProducts.find("maps")!=string::npos){
-      for(int q=0; q<=tile->GetNQ(); q++){
-      tmpstream<<outdir[c]<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<"_fullmapdt"<<fWindows[0]<<"."<<form;
-      if(!IsBinaryFile(tmpstream.str())){// check full map exists
-      report<<"    <td colspan=\""<<tile->GetNQ()+1<<"\">no maps</td>"<<endl; tmpstream.clear(); tmpstream.str("");
-      break;
-      }
-      tmpstream.clear(); tmpstream.str("");
-      if(q) report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<chunkstart[s]<<"_mapQ"<<q-1<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
-      else  report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<chunkstart[s]<<"_fullmap', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="fullmap";
-      }
-      }
       
       // ASD
       if(fOutProducts.find("asd")!=string::npos){
@@ -244,49 +243,18 @@ void Omicron::MakeHtml(void){
       }
       report<<"  </tr>"<<endl;
       }
-
-      
-      // Map links
-      if(form.compare("")&&fOutProducts.find("maps")!=string::npos){
-      report<<"Maps:"<<endl;
-      report<<"<table class=\"omicronsummary\">"<<endl;
-      
-      // loop over segments
-      sfirst=-1;
-      for(int s=0; s<(int)mapcenter.size(); s++){
-      
-      // check image presence
-      tmpstream<<triggers[c]->GetName()<<"_"<<mapcenter[s]<<"_fullmapdt"<<fWindows[0];
-      if(!IsBinaryFile(outdir[c]+"/"+tmpstream.str()+"."+form)){
-      tmpstream.clear(); tmpstream.str("");
-      continue;
-      }
-      tmpstream.clear(); tmpstream.str("");
-      if(sfirst<0) sfirst=s;
-      
-      // add links
-      report<<"  <tr>"<<endl;
-      for(int q=0; q<=tile->GetNQ(); q++){
-      if(q) report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<mapcenter[s]<<"_mapQ"<<q-1<<"', "<<windowset<<", '"<<form<<"');\">Q="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
-      else  report<<"    <td>"<<mapcenter[s]<<":</td><td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<mapcenter[s]<<"_fullmap', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
-      }
-      report<<"  </tr>"<<endl;
-      }
-      if(sfirst<0) report<<"<tr><td>missing</td></tr>"<<endl;
+     
       */
     report<<"</table>"<<endl;
-      /*
-      // add window plots
-      if(type_first.compare("")){
-	report<<"<table>"<<endl;
-	report<<"  <tr>"<<endl;
-	for(int w=0; w<(int)fWindows.size(); w++)
-	  report<<"    <td><a id=\"a_"<<triggers[c]->GetName()<<"_dt"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetName()<<"_dt"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[0]<<"_"<<type_first<<"dt"<<fWindows[w]<<"th."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<type_first<<" dt="<<fWindows[w]<<"\" /></a></td>"<<endl;
-	report<<"  </tr>"<<endl;
-	report<<"</table>"<<endl;
-      }
-      */
-       
+
+    // add window plots
+    report<<"<table>"<<endl;
+    report<<"  <tr>"<<endl;
+    for(int w=0; w<(int)fWindows.size(); w++)
+      report<<"    <td><a id=\"a_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/th"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<fWindows[w]<<"s\" /></a></td>"<<endl;
+    report<<"  </tr>"<<endl;
+    report<<"</table>"<<endl;
+    
     report<<"</div>"<<endl;
     report<<"<hr />"<<endl;
     report<<endl;
