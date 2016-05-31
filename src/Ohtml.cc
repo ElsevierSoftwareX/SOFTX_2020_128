@@ -201,41 +201,26 @@ void Omicron::MakeHtml(void){
 	}
       }
       
+      // ASD
+      if(fOutProducts.find("asd")!=string::npos)
+	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONASD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">ASD</a></td>"<<endl;
+	
+      // PSD
+      if(fOutProducts.find("psd")!=string::npos)
+	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
+	
+      // conditioned time-series
+      if(fOutProducts.find("timeseries")!=string::npos)
+	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONCONDTS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Conditioned data"<<"</a></td>"<<endl;
+      
+      // whitened time-series
+      if(fOutProducts.find("white")!=string::npos)
+	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONWHITETS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Whitened data"<<"</a></td>"<<endl;
+      
     }
     
       /*
-      
-      // ASD
-      if(fOutProducts.find("asd")!=string::npos){
-      report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<"_ASD."<<form<<"\" target=\"_blank\">ASD</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="";
-      }
-      
-      // PSD
-      if(fOutProducts.find("psd")!=string::npos){
-      report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<"_PSD."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="";
-      }
-      
-      // Spectral
-      if(fOutProducts.find("spectral")!=string::npos){
-      report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<"_spec."<<form<<"\" target=\"_blank\">Spectral</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="";
-      }
-      
-      // time-series
-      if(fOutProducts.find("timeseries")!=string::npos){
-      report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<chunkstart[s]<<"_ts', "<<windowset<<", '"<<form<<"');\">Conditionned time series</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="ts";
-      }
-      
-      // whitened data
-      if(fOutProducts.find("white")!=string::npos){
-      report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<chunkstart[s]<<"_whitets', "<<windowset<<", '"<<form<<"');\">Whitened time series</a></td>"<<endl;
-      if(!type_first.compare("")) type_first="whitets";
-      }
-      
-      
+             
       // injection
       if(fsginj==1&&fOutProducts.find("injection")!=string::npos){
       report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetName()<<"_"<<chunkstart[s]<<"_sginjection.txt\">Injection</a></td>"<<endl;
@@ -248,12 +233,31 @@ void Omicron::MakeHtml(void){
     report<<"</table>"<<endl;
 
     // add window plots
-    report<<"<table>"<<endl;
-    report<<"  <tr>"<<endl;
-    for(int w=0; w<(int)fWindows.size(); w++)
-      report<<"    <td><a id=\"a_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/th"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<fWindows[w]<<"s\" /></a></td>"<<endl;
-    report<<"  </tr>"<<endl;
-    report<<"</table>"<<endl;
+    if(fOutProducts.find("maps")!=string::npos){
+      report<<"<table>"<<endl;
+      report<<"  <tr>"<<endl;
+      for(int w=0; w<(int)fWindows.size(); w++)
+	report<<"    <td><a id=\"a_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/th"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<fWindows[w]<<"s\" /></a></td>"<<endl;
+      report<<"  </tr>"<<endl;
+      report<<"</table>"<<endl;
+    }
+    else if(fOutProducts.find("white")!=string::npos){
+      report<<"<table>"<<endl;
+      report<<"  <tr>"<<endl;
+      for(int w=0; w<(int)fWindows.size(); w++)
+	report<<"    <td><a id=\"a_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONWHITETS-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/th"<<triggers[c]->GetNameConv()<<"_OMICRONWHITETS-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<fWindows[w]<<"s\" /></a></td>"<<endl;
+      report<<"  </tr>"<<endl;
+      report<<"</table>"<<endl;
+    }
+    else if(fOutProducts.find("timeseries")!=string::npos){
+      report<<"<table>"<<endl;
+      report<<"  <tr>"<<endl;
+      for(int w=0; w<(int)fWindows.size(); w++)
+	report<<"    <td><a id=\"a_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONCONDTS-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\"><img id=\"img_"<<triggers[c]->GetNameConv()<<"-"<<fWindows[w]<<"\" src=\"./"<<triggers[c]->GetName()<<"/th"<<triggers[c]->GetNameConv()<<"_OMICRONCONDTS-"<<chunkcenter[0]<<"-"<<fWindows[w]<<"."<<form<<"\" alt=\""<<triggers[c]->GetName()<<" "<<fWindows[w]<<"s\" /></a></td>"<<endl;
+      report<<"  </tr>"<<endl;
+      report<<"</table>"<<endl;
+    }
+    else;
     
     report<<"</div>"<<endl;
     report<<"<hr />"<<endl;

@@ -791,8 +791,7 @@ void Omicron::SaveAPSD(const string aType){
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
     TFile *fpsd;
-    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
-    ss<<".root";
+    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRON"<<aType<<"-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<".root";
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fpsd->cd();
@@ -815,8 +814,7 @@ void Omicron::SaveAPSD(const string aType){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
-      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_"<<aType;
-      ss<<"."<<form[f];
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRON"<<aType<<"-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<"."<<form[f];
       GPlot->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
@@ -948,9 +946,9 @@ void Omicron::SaveTS(const bool aWhite){
   if(fOutFormat.find("root")!=string::npos){
     TFile *fdata;
     if(aWhite)
-      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitets.root";
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<".root";
     else
-      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_ts.root";
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<".root";
     fdata=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fdata->cd();
@@ -975,16 +973,16 @@ void Omicron::SaveTS(const bool aWhite){
       GDATA->GetXaxis()->SetLimits(tile->GetChunkTimeCenter()-(double)fWindows[w]/2.0,tile->GetChunkTimeCenter()+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
 	if(aWhite)
-	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	else
-	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"."<<form[f];
+	  ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str());
 	ss.str(""); ss.clear();
 
 	if(aWhite)
-	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_whitetsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<outdir[chanindex]<<"/th"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	else
-	  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_tsdt"<<fWindows[w]<<"th."<<form[f];
+	  ss<<outdir[chanindex]<<"/th"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	GPlot->Print(ss.str().c_str(),0.5);
 	ss.str(""); ss.clear();
       }
