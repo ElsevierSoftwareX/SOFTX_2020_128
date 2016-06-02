@@ -140,6 +140,13 @@ Omicron::Omicron(const string aOptionFile){
     outdir.push_back(maindir);
   }
   
+  //SG injections file
+  if(fsginj){
+    oinjfile.open((maindir+"/sginjections.txt").c_str());
+    oinjfile<<"# Time # Frequency # Q # Amplitude # Phase # True SNR # sigma_t # sigma_f"<<endl;
+    oinjfile.precision(5);
+  }
+
   // process monitoring
   chanindex      = -1;
   inSegments     = new Segments();
@@ -194,7 +201,8 @@ Omicron::~Omicron(void){
   delete ChunkVect;
   delete TukeyWindow;
   delete offt;
-
+  
+  if(fsginj) oinjfile.close();
   outdir.clear();
   chunkcenter.clear();
   chunktfile.clear();
@@ -293,6 +301,15 @@ bool Omicron::MakeDirectories(const int aId){
     system(("mkdir -p "+outdir[c]).c_str());
   }
 
+
+  //SG injections file
+  if(fsginj){
+    oinjfile.close();
+    oinjfile.open((maindir+"/sginjections.txt").c_str());
+    oinjfile<<"# Time # Frequency # Q # Amplitude # Phase # True SNR # sigma_t # sigma_f"<<endl;
+    oinjfile.precision(5);
+  }
+  
   return true;
 }
 
@@ -534,6 +551,9 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
   if(!tile->SetPower(spectrum[chanindex])) return 7;
 
+  // save sg injection parameters
+  if(fsginj) SaveSG();
+
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
   if(!offt->Forward(ChunkVect)) return 8;
@@ -607,12 +627,6 @@ bool Omicron::WriteOutput(void){
     SaveTS(true);
   }
   
-  //*** INJECTIONS
-  if(fsginj==1&&fOutProducts.find("injection")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- write injection data..."<<endl;
-    SaveSG();
-  }
-
   //*** MAPS
   if(fOutProducts.find("maps")!=string::npos){
     double snr;
@@ -998,21 +1012,15 @@ void Omicron::SaveTS(const bool aWhite){
 void Omicron::SaveSG(void){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  // text file only
-  stringstream ss;
-  ss<<outdir[chanindex]<<"/"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_sginjection.txt";
-
-  ofstream outfile(ss.str().c_str());
-  outfile.precision(5);
-  outfile<<"Oinject: sinusoidal Gaussian waveform:"<<endl;
-  outfile<<"         peak time = "<<fixed<<(double)tile->GetChunkTimeCenter()+oinj->GetTime()<<endl;
-  outfile<<"         frequency = "<<fixed<<oinj->GetFrequency()<<endl;
-  outfile<<"         Q         = "<<fixed<<oinj->GetQ()<<endl;
-  outfile<<"         amplitude = "<<scientific<<oinj->GetAmplitude()<<endl;
-  outfile<<"         phase     = "<<fixed<<oinj->GetPhase()<<endl;
-  outfile<<"         SNR       = "<<fixed<<oinj->GetTrueSNR(spectrum[chanindex])<<endl;
-  outfile<<"         sigma_t   = "<<fixed<<oinj->GetSigmat()<<endl;
-  outfile<<"         sigma_f   = "<<fixed<<oinj->GetSigmaf()<<endl;
-  outfile.close();
+  oinjfile<<fixed<<(double)tile->GetChunkTimeCenter()+oinj->GetTime()<<" ";
+  oinjfile<<fixed<<oinj->GetFrequency()<<" ";
+  oinjfile<<fixed<<oinj->GetQ()<<" ";
+  oinjfile<<scientific<<oinj->GetAmplitude()<<" ";
+  oinjfile<<fixed<<oinj->GetPhase()<<" ";
+  oinjfile<<fixed<<oinj->GetTrueSNR(spectrum[chanindex])<<" ";
+  oinjfile<<fixed<<oinj->GetSigmat()<<" ";
+  oinjfile<<fixed<<oinj->GetSigmaf()<<" ";
+  oinjfile<<endl;
+  
   return;
 }

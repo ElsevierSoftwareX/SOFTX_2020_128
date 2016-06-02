@@ -119,6 +119,32 @@ void Omicron::MakeHtml(void){
   report<<"<hr />"<<endl;
   report<<endl;
 
+  // Injection parameters
+  report<<"<h2>Injections</h2>"<<endl;
+  if(fsginj){
+    report<<"<h3>Sinusoidal Gaussian waveforms:</h3>"<<endl;
+    report<<"<table>"<<endl;
+    report<<"  <tr><td>Frequency range:</td><td>"<<oinj->GetFrequencyMin()<<" &rarr; "<<oinj->GetFrequencyMax()<<" Hz</td></tr>"<<endl;
+    report<<"  <tr><td>Q range:</td><td>"<<oinj->GetQMin()<<" &rarr; "<<oinj->GetQMax()<<"</td></tr>"<<endl;
+    report<<"  <tr><td>Amplitude range:</td><td>"<<scientific<<oinj->GetAmplitudeMin()<<" &rarr; "<<oinj->GetAmplitudeMax()<<"</td></tr>"<<endl;
+    report<<"  <tr><td>Time range /chunk center:</td><td>"<<oinj->GetTimeMin()<<" &rarr; "<<oinj->GetTimeMax()<<" s</td></tr>"<<endl;
+    report<<"  <tr><td>Parameters:</td><td><a href=\"./sginjections.txt\">injection parameters</a></td></tr>"<<endl;
+    report<<"</table>"<<endl;
+  }
+  if(FFL_inject!=NULL){
+    report<<"<h3>Injection channels:</h3>"<<endl;
+    report<<"<table>"<<endl;
+    report<<"  <tr><td>FFL data:</td><td>"<<FFL_inject->GetInputFfl()<<"</td></tr>"<<endl;
+    report<<"</table>"<<endl;
+    report<<"<table>"<<endl;
+    for(int c=0; c<nchannels; c++) report<<"  <tr><td>"<<triggers[c]->GetName()<<"</td><td>"<<fInjChan[c]<<"</td><td>"<<fInjFact[c]<<"</td>"<<endl;
+    report<<"</table>"<<endl;
+  }
+  if(!fsginj&&FFL_inject==NULL)
+    report<<"<p>No injection was performed</p>"<<endl;
+  report<<"<hr />"<<endl;
+  report<<endl;
+
   // channel index
   report<<"<h2>Channel index</h2>"<<endl;
   if(fOutProducts.find("maps")!=string::npos){// color scale for glitchiness

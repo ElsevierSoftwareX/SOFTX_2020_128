@@ -263,7 +263,8 @@ class Omicron {
   double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
   vector <int> chunkcenter;     ///< save chunk centers (only for html)
   vector <string> chunktfile;   ///< save chunk file (only for html)
-
+  ofstream oinjfile;            ///< file with sg injection parameters
+  
   // COMPONENTS
   int nchannels;                ///< number of channels
   GwollumPlot *GPlot;           ///< Gwollum plots
