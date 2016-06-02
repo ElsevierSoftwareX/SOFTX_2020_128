@@ -57,15 +57,14 @@ double Oinject::GetTrueSNR(Spectrum *aSpec){
   // because the window is only non zero over positive frequencies (anti-aliasing)
   double freq, win, sum=0;
   double dfreq=aSpec->GetSpectrumResolution();
+ 
   for(int i=1; i<aSpec->GetSpectrumSize(); i++){
     freq=aSpec->GetSpectrumFrequency(i);
     win = Wg * exp(-(phi-freq)*(phi-freq)/4.0*Q*Q/phi/phi);
-    sum += win*win * aSpec->GetPower(freq) * dfreq;
-    //cout<<freq<<" "<<scientific<<win*win<<" "<<aSpec->GetPower(freq)<<endl;
+    sum += win*win /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
   }
-  sum/=2.0;
 
-  return amp/sqrt(sum/2.0);// remove negative frequencies
+  return amp*sum/2.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

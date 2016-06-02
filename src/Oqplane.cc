@@ -180,7 +180,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
     for(int t=tstart; t<tend; t++){
 
       // compute tile snr
-      snr2=2.0*bandFFT[f]->GetNorm2_t(t)/bandMeanEnergy[f]-1.0;
+      snr2=2.0*bandFFT[f]->GetNorm2_t(t)/bandMeanEnergy[f]-2.0;
 
       // apply SNR threshold
       if(snr2<SNRThr2) continue;
