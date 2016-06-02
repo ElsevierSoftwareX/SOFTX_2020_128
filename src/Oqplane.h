@@ -42,10 +42,6 @@ class Oqplane: public Omap {
 
   // GETS
   inline double GetQ(void){ return Q; };
-  //inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){    
-  //return GetTileContent(aTimeTileIndex,aBandIndex)*sqrt(bandPower[aBandIndex]);
-  //};
-
   inline double GetSNRThr(void){ return SNRThr; };
 
   // SETS
@@ -68,7 +64,7 @@ class Oqplane: public Omap {
   // FREQUENCY BANDS
   int *bandWindowSize;              ///< band bisquare window size
   double **bandWindow;              ///< band bisquare windows
-  double *bandPower;                ///< band power
+  double *bandNoiseAmplitude;       ///< band noise power
   fft **bandFFT;                    ///< band ffts
   double *bandMeanEnergy;           ///< band mean energy
   

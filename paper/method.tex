@@ -227,64 +227,17 @@ where $\theta_{bn}$ is the phase between the burst and the noise signals. Using 
   + |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 -2
   + 2|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| \cos{\theta_{bn}}.
 \end{equation}
-From this expression, we see that our SNR estimator can differ from the true value because of two causes: the random fluctuations of white noise around the mean value of 2 and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. Two additional sources of uncertainty result from the assumptions made until now. First, the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$). Second, the relation $\langle |X(t_i, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}=\langle |X_n(\phi_{ql}, Q_q)|^2 \rangle$ is only true in the limit $\cal{T}\rightarrow \infty$. However, the central limit theorem tells us that the uncertainty can be neglected when working with a large enough set of representative tiles (in the limit that the noise stationarity remain true). All these effects have been quantified using Monte-Carlo studies, described in~\cite{Chatterji:2004}. They have shown that sinusoidal Gaussian burst SNRs can be recovered accurately for SNR~$\gtrsim 3$ and with a small bias of $-2.5\%$. \bluenote{update numbers!}
-
-
-
-
-%If we assume that the noise is a stationary stochastic process, it is possible to estimate the noise contribution, $|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$, using the expectation value of multiple measurements over time. Indeed the last term of Eq.~\ref{eq:sqmag} vanishes and we get:
-%\begin{equation}
-%  |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \simeq |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle.
-%\end{equation}
-
-%Then we have
-%\begin{equation}
-%  \rho_{qlm}^2 =  \frac{|X(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2} -1 - 2 \frac{|X_b(\tau_{qlm}, \phi_{ql}, Q_q)|}{|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|}\cos{\theta}.
-%\end{equation}
-
-%It is a random variable for a stochastic process. The last term vanishes when we consider the expectation value for multiple measurements:
-%\begin{equation}
-%  \langle |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + \langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle.
-%\end{equation}
-
-
-%In real life, the burst signal always lives on top of a stochastic noise which we assume to be stationary, and the measured signal can be written as $x(t) = b(t) + n(t)$. The squared magnitude of the Q transform coefficient for tile $b$ is then
-%\begin{equation}
-%  |X(\tau_b, \phi_b, Q_b)|^2 = |X_b(\tau_b, \phi_b, Q_b)|^2 + |X_n(\tau_b, \phi_b, Q_b)|^2 + 2|X_n(\tau_b, \phi_b, Q_b)|\ |X_b(\tau_b, \phi_b, Q_b)|\cos{\theta},
-%\end{equation}
-%where the phase between the burst and the noise signals, $\theta$, is a random variable. The last term va%nishes when we consider the expectation value for multiple measurements:
-%\begin{equation}
-%  \langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle= |X_b(\tau_b, \phi_b, Q_b)|^2 + \langle |X_n(\tau_b, \phi_b, Q_b)|^2 \rangle.
-%\end{equation}
-
-%The noise $Q$ transform coefficient is estimated by the expectation value obtained from multiple measurments (see Sec.~\ref{sec:algorithm:snr} for the implementation of this estimator). Therefore the SNR can be estimated:
-%\begin{equation}
-%  \rho_b \simeq  \sqrt{\frac{|X(\tau_b, \phi_b, Q_b)|^2}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr3},
-%\end{equation}
-%where we used the fact that the last term vanishes when we consider the expectation value for multiple measurements
-%  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
-%\end{align}
-
-
-%For tile $b$, it is possible to define an amplitude signal-to-noise ratio:
-%\begin{align}
-%  \rho(\tau_b, \phi_b, Q_b) &=  \sqrt{\frac{\langle|X_b(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}} \label{eq:snr1} \\
-%  &=  \sqrt{\frac{\langle|X(\tau_b, \phi_b, Q_b)|^2\rangle}{\langle |X_n(\tau_b, \phi_b, Q_b)|^2\rangle}-1} \label{eq:snr2} \\
-%  &= \sqrt{\frac{2\langle |X(\tau_b, \phi_b, Q_b)|^2 \rangle}{\int_{-\infty}^{+\infty}{ |\tilde{w}(f,\phi_b,Q_b)|^2S_n(f) df}} -1 }\label{eq:snr3}.
-%\end{align}
-%For a noise spectrum which is approximately constant over the bandwidth of the tile, we obtain the intuitive result:
-%\begin{equation}
-%  \rho(\tau_b, \phi_b, Q_b) \simeq \frac{B}{\sqrt{S_n}}
-%\end{equation}
-
+From this expression, we see that our SNR estimate can differ from the true value because of two causes: the random fluctuations of white noise around the mean value of 2 and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. Two additional sources of uncertainty result from the assumptions made until now. First, the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$). Second, the relation $\langle |X(t_i, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}=\langle |X_n(\phi_{ql}, Q_q)|^2 \rangle$ is only true in the limit $\cal{T}\rightarrow \infty$. However, the central limit theorem tells us that the uncertainty can be neglected when working with a large enough set of representative tiles (in the limit that the noise stationarity remain true). All these effects have been quantified using Monte-Carlo studies, described in~\cite{Chatterji:2004}. They have shown that sinusoidal Gaussian burst SNRs can be recovered accurately for SNR~$\gtrsim 3$ and with a small bias of $-2.5\%$. \bluenote{update numbers!}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\subsection{The $Q$ transform}
+\subsection{The signal amplitude and phase} \label{sec:method:ampphase}
 
-%When working with discrete data vectors of size $N$\footnote{All data sequences are assumed to be infinite and of period $N$}, Eq.~\ref{eq:qtransform2} becomes:
-%\begin{equation}
-%  X(m,l,q) = \frac{f_w}{N}\sum_{k=0}^{N-1}{\tilde{x}[k+l]\tilde{w}^{*}[k,l,q]e^{+2i\pi mk/N}},
-%  \label{eq:qtransform3}
-%\end{equation}
-%where $m$, $l$ and $q$ index the tiles in the three dimensions of time, frequency and quality factor respectively.  This expression is favored when it comes to implement an efficient discrete $Q$ transform, as with the Omicron algorithm. Indeed, the input time series $x$ is only Fourier-transformed once and used as such for all the tiles. Moreover, the inverse Fourier transform is only performed for the frequencies and quality factors that we are interested in.
+The SNR expression in Eq.~\ref{eq:snr_white} suggests that it is possible to estimate the signal amplitude:
+\begin{equation}
+  \hat{B} = \frac{\hat{\rho}_{qlm}}{\int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f,\phi_{ql},Q_q)|^2}{2\sqrt{(S_n(|f|)/2)}}df}}.
+  \label{eq:amplitude}
+\end{equation}
+By construction, this estimate of the amplitude differ from the true amplitude value for the same reasons listed in the previous section. Moreover, this amplitude only reflects how a given signal projects on a sinusoidal Gaussian waveform.
+
+ \bluenote{What about the phase?}

@@ -56,11 +56,11 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   SetSNRThr(2.0);
     
   // band variables
-  bandPower      = new double  [GetNBands()];
-  bandFFT        = new fft*    [GetNBands()];
-  bandMeanEnergy = new double  [GetNBands()];
-  bandWindow     = new double* [GetNBands()];
-  bandWindowSize = new int     [GetNBands()];
+  bandNoiseAmplitude = new double  [GetNBands()];
+  bandFFT            = new fft*    [GetNBands()];
+  bandMeanEnergy     = new double  [GetNBands()];
+  bandWindow         = new double* [GetNBands()];
+  bandWindowSize     = new int     [GetNBands()];
 
   double windowargument;
   double winnormalization;
@@ -72,7 +72,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   for(int f=0; f<GetNBands(); f++){
     
     // no power
-    bandPower[f]=0.0;
+    bandNoiseAmplitude[f]=0.0;
     bandMeanEnergy[f]=1.0;
             
     // band fft
@@ -110,7 +110,7 @@ Oqplane::~Oqplane(void){
   }
   delete bandWindowSize;
   delete bandFFT;
-  delete bandPower;
+  delete bandNoiseAmplitude;
   delete bandMeanEnergy;
   delete bandWindow;
 }
@@ -124,17 +124,16 @@ void Oqplane::FillMap(const string aContentType){
     for(int f=0; f<GetNBands(); f++){
       for(int t=0; t<GetBandNtiles(f); t++){
 	energy=bandFFT[f]->GetNorm2_t(t);
-	//if(2.0*energy>bandMeanEnergy[f]) SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-1.0));
 	SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-2.0));
-	
-	//else SetTileContent(t,f,0.0);
       }
     }
   }
   else if(!aContentType.compare("amplitude")){
+    double energy;
     for(int f=0; f<GetNBands(); f++){
       for(int t=0; t<GetBandNtiles(f); t++){
-	SetTileContent(t,f,1.0);
+	energy=bandFFT[f]->GetNorm2_t(t);
+	SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-2.0)*bandNoiseAmplitude[f]);
       }
     }
   }
@@ -164,7 +163,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
 			   ){
 ////////////////////////////////////////////////////////////////////////////////////
   int tstart, tend;
-  double snr2;
+  double snr2, snr;
   double SNRThr2 = SNRThr*SNRThr;
   
   for(int f=0; f<GetNBands(); f++){
@@ -188,16 +187,19 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
       // time select
       if(!aSeg->IsInsideSegment(GetTileTime(t,f)+aT0)) continue;
 
+      // amplitude SNR
+      snr=sqrt(snr2);
+      
       // save trigger
       if(!aTriggers->AddTrigger(GetTileTime(t,f)+aT0,
 				GetBandFrequency(f),
-				sqrt(snr2),
+				snr,
 				Q,
 				GetTileTimeStart(t,f)+aT0,
 				GetTileTimeEnd(t,f)+aT0,
 				GetBandStart(f),
 				GetBandEnd(f),
-				1.0,
+				snr*bandNoiseAmplitude[f],
 				bandFFT[f]->GetPhase_t(t)))
 	return false;
     }
@@ -256,20 +258,6 @@ bool Oqplane::ProjectData(fft *aDataFft){
       cerr<<"Oqplane::ProjectData: cannot normalize energies"<<endl;
       return false;
     }
-    /*
-    // fill tile content
-    for(int t=0; t<GetBandNtiles(f); t++){
-      if(2.0*energies[t]>meanenergy){
-        snr=sqrt(2.0*energies[t]/meanenergy-1);
-        SetTileContent(t,f,snr,phases[t],true);// eq. 5.79
-        if(snr>=SNRThr) nTriggers++;
-      }
-      else SetTileContent(t,f,0.0);
-    }
-
-    delete energies;
-    delete phases;
-    */
   }
  
   return true;
@@ -316,36 +304,26 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 
   //double sumofweight;
-  double power, psdval;
-  int k, end;
+  double sum, Wb, deltaf, freq, win;
+
+  double dfreq=aSpec->GetSpectrumResolution();
 
   // set power for each f-row
   for(int f=0; f<GetNBands(); f++){
-    power=0;
-    //sumofweight=0;
-    k=0;
+    sum=0;
+    Wb = sqrt(315.0/128.0*QPrime/GetBandFrequency(f));
+    deltaf = GetBandFrequency(f) / QPrime;
     
-    // weighted average over the window
-    end=(bandWindowSize[f]+1)/2;
-    for(; k<end; k++){
-      psdval=aSpec->GetPower(GetBandFrequency(f)+(double)k / GetTimeRange());
-      if(psdval<0) return false;
-      //sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
-      power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
-    }
-    //end=GetBandNtiles(f);
-    end=bandWindowSize[f];
-    //for(int k=end-(bandWindowSize[f]-1)/2; k<end; k++){
-    for(; k<end; k++){
-      psdval=aSpec->GetPower(GetBandFrequency(f)-(double)(end-k) / GetTimeRange());
-      if(psdval<0) return false;
-      //sumofweight+=(bandWindow[f][k]*bandWindow[f][k]);
-      power+=psdval*(bandWindow[f][k]*bandWindow[f][k]);
+    for(int i=1; i<aSpec->GetSpectrumSize(); i++){
+      freq=aSpec->GetSpectrumFrequency(i);
+      if(freq>=deltaf) break;
+      win = Wb * (1.0-freq*freq/deltaf/deltaf) * (1.0-freq*freq/deltaf/deltaf);
+      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
     }
 
-    //bandPower[f]=power/sumofweight;
-    bandPower[f]=power/2.0;
+    bandNoiseAmplitude[f]=1.0/sum;
   }
+  
   return true;
 }
 
