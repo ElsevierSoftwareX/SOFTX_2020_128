@@ -89,7 +89,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     end=(bandWindowSize[f]+1)/2;
     for(k=0; k<end; k++){
       windowargument=2.0*(double)k/(double)(bandWindowSize[f] - 1);
-      bandWindow[f][k] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
+      bandWindow[f][k] = winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument);// bisquare window (1-x^2)^2
     }
     // do not save 0s in the center
     end=bandWindowSize[f];
@@ -316,9 +316,12 @@ bool Oqplane::SetPower(Spectrum *aSpec){
     
     for(int i=1; i<aSpec->GetSpectrumSize(); i++){
       freq=aSpec->GetSpectrumFrequency(i);
+      //if(fabs(GetBandFrequency(f)-freq)>=deltaf) continue;
       if(freq>=deltaf) break;
       win = Wb * (1.0-freq*freq/deltaf/deltaf) * (1.0-freq*freq/deltaf/deltaf);
-      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+      //win = Wb * (1.0-(GetBandFrequency(f)-freq)*(GetBandFrequency(f)-freq)/deltaf/deltaf) * (1.0-(GetBandFrequency(f)-freq)*(GetBandFrequency(f)-freq)/deltaf/deltaf);
+      sum += win*win /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+      //sum += win*win*aSpec->GetPower(freq) * dfreq;
     }
 
     bandNoiseAmplitude[f]=1.0/sum;

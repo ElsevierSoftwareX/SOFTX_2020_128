@@ -64,7 +64,7 @@ double Oinject::GetTrueSNR(Spectrum *aSpec){
     sum += win*win /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
   }
 
-  return amp*sum/2.0;
+  return amp*sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
