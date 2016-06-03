@@ -156,7 +156,7 @@ Let's consider a burst of energy, the waveform of which is $b(t)$. It lies on to
 \end{equation}
 where $X_b(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform coefficient for the burst waveform in tile $(q,l,m)$. The expectation value of the $Q$ transform coefficient for noise in tile $(q,l,m)$, obtained from multiple measurements, is given by $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2\rangle$.
 
-The SNR definition given by Eq.~\ref{eq:snrdef} is consistent with the maximum achievable SNR defined in the framework of the matched filter theory~\cite{helstrom:1968}. To demonstrate this, let's consider a burst test signal exactly matching the tile under consideration. The burst waveform is a sinusoidal Gaussian function of time, the parameters of which exactly match tile $(q,l,m)$:
+The SNR definition given by Eq.~\ref{eq:snrdef} is consistent with the maximum achievable SNR defined in the framework of the matched filter theory~\cite{helstrom:1968}. To demonstrate this, let's consider a burst test signal exactly matching the tile under consideration. The burst waveform is a sinusoidal Gaussian function of time, the parameters of which match the tile $(q,l,m)$:
 \begin{align}
   b(t) &= Bw(t-\tau_{qlm}, \phi_{ql}, Q_q)\cos(2\pi\phi_{ql} t + \theta_{bt}),\\
   \tilde{b}(f) &= \frac{B}{2}e^{-2i\pi f\tau_{qlm}}\left[ \tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f-\phi_{ql})}e^{i\theta_{bt}}+\tilde{w}(f+\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f+\phi_{ql})}e^{-i\theta_{bt}}\right],
@@ -197,16 +197,16 @@ As previously announced, this result is exactly what is obtained in the context 
 
 One must keep in mind that the $Q$ transform is performed after whitening the time series as described in Sec.~\ref{sec:method:whitening}. The above calculation must therefore be modified. In particular, Eq.~\ref{eq:qtransform_signal} and Eq.~\ref{eq:qtransform_noise} become:
 \begin{align}
-  |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| &= B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f,\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df}, \\
+  |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| &= B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df}, \\
   \langle |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle &= 2.
   \label{eq:qtransform_whitened}
 \end{align}
 The SNR is then given by
 \begin{equation}
-  \rho_{qlm} = |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| = B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f,\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df},
+  \rho_{qlm} = |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| = B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df},
   \label{eq:snr_white}
 \end{equation}
-and the approximation in Eq.~\ref{eq:snrmatch} remains true.
+and the special case of Eq.~\ref{eq:snrmatch} remains true.
 
 ~
 
@@ -235,7 +235,7 @@ From this expression, we see that our SNR estimate can differ from the true valu
 
 The SNR expression in Eq.~\ref{eq:snr_white} suggests that it is possible to estimate the signal amplitude:
 \begin{equation}
-  \hat{B} = \frac{\hat{\rho}_{qlm}}{\int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f,\phi_{ql},Q_q)|^2}{2\sqrt{(S_n(|f|)/2)}}df}}.
+  \hat{B} = \frac{\hat{\rho}_{qlm}}{\int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{(S_n(|f|)/2)}}df}}.
   \label{eq:amplitude}
 \end{equation}
 By construction, this estimate of the amplitude differ from the true amplitude value for the same reasons listed in the previous section. Moreover, this amplitude only reflects how a given signal projects on a sinusoidal Gaussian waveform.

@@ -52,16 +52,14 @@ void Oinject::MakeWaveform(void){
 double Oinject::GetTrueSNR(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  // sum = <|X_n|^2>
-  // integrating over positive frequencies and over all frequencies gives the same result,
-  // because the window is only non zero over positive frequencies (anti-aliasing)
   double freq, win, sum=0;
   double dfreq=aSpec->GetSpectrumResolution();
- 
+
+  // only positive frequencies. No negative frequency contribution w=0.
   for(int i=1; i<aSpec->GetSpectrumSize(); i++){
     freq=aSpec->GetSpectrumFrequency(i);
-    win = Wg * exp(-(phi-freq)*(phi-freq)/4.0*Q*Q/phi/phi);
-    sum += win*win /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+    win = Wg * exp(-(freq-phi)*(freq-phi)/2.0/sigma_f/sigma_f);
+    sum += win*win/2.0 / sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
   }
 
   return amp*sum;

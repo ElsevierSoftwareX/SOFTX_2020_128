@@ -305,25 +305,41 @@ bool Oqplane::SetPower(Spectrum *aSpec){
 
   //double sumofweight;
   double sum, Wb, deltaf, freq, win;
-
-  double dfreq=aSpec->GetSpectrumResolution();
+  int i, end;
+  
+  double dfreq=1.0 / GetTimeRange();
 
   // set power for each f-row
   for(int f=0; f<GetNBands(); f++){
     sum=0;
     Wb = sqrt(315.0/128.0*QPrime/GetBandFrequency(f));
     deltaf = GetBandFrequency(f) / QPrime;
+    i=0;
     
+    end=(bandWindowSize[f]+1)/2;
+    for(; i<end; i++){
+      freq=GetBandFrequency(f)+ (double)i / GetTimeRange();
+      win = Wb * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf) * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf);
+      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+    }
+    
+    end=bandWindowSize[f];
+    for(; i<end; i++){
+      freq=GetBandFrequency(f)-(double)(end-i) / GetTimeRange();
+      win = Wb * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf) * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf);
+      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+    }
+    
+    end=bandWindowSize[f];
+    
+    /*
     for(int i=1; i<aSpec->GetSpectrumSize(); i++){
       freq=aSpec->GetSpectrumFrequency(i);
-      //if(fabs(GetBandFrequency(f)-freq)>=deltaf) continue;
-      if(freq>=deltaf) break;
-      win = Wb * (1.0-freq*freq/deltaf/deltaf) * (1.0-freq*freq/deltaf/deltaf);
-      //win = Wb * (1.0-(GetBandFrequency(f)-freq)*(GetBandFrequency(f)-freq)/deltaf/deltaf) * (1.0-(GetBandFrequency(f)-freq)*(GetBandFrequency(f)-freq)/deltaf/deltaf);
-      sum += win*win /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
-      //sum += win*win*aSpec->GetPower(freq) * dfreq;
+      if(fabs(freq-GetBandFrequency(f))>=deltaf) continue;
+      win = Wb * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf) * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf);
+      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
     }
-
+    */
     bandNoiseAmplitude[f]=1.0/sum;
   }
   
