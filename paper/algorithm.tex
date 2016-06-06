@@ -251,12 +251,12 @@ The second term consists of summing $N_c-M_{ql}$ zeros. It is possible to remove
 \end{align}
 Note that the index $k$ of the third sum has been shifted to match the end of the second sum: $k-(N_c-N_\tau) \rightarrow k$. This is only possible because both $N_c$ and $N_\tau$ are power-of-two values so we have: $\mathrm{e}^{+2i\pi m(k+N_c-N_\tau)/N_\tau} = \mathrm{e}^{+2i\pi mk/N_\tau}$. Finally, the sum of Eq.~\ref{eq:dqtransform4} can be recombined into a single sum:
 \begin{equation}
-  X(m, l, q) = \frac{N_\tau}{N_c} \; \times \; \frac{f_w}{N_\tau} \sum_{k=0}^{N_\tau-1}{\tilde{v}[k]\mathrm{e}^{+2i\pi mk/N_\tau}},
+  X(m, l, q) = \frac{N_\tau}{N_c} \; \times \; \frac{f_w}{N_\tau} \sum_{k=0}^{N_\tau-1}{\tilde{v}_{ql}[k]\mathrm{e}^{+2i\pi mk/N_\tau}},
   \label{eq:dqtransform5}
 \end{equation}
 where
 \begin{equation}
-  \tilde{v}[k] =
+  \tilde{v}_{ql}[k] =
   \begin{cases}
     \tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]                     & 0 \le k < (M_{ql}+1)/2 \\
     0                                                        & (M_{ql}+1)/2 \le k < N_\tau-(M_{ql}-1)/2 \\
@@ -264,11 +264,11 @@ where
   \end{cases}
   \label{eq:v1}
 \end{equation}
-This equation shows that a single and less expensive inverse Fourier transform of $\tilde{v}$ is necessary to populate the $N_\tau$ tiles of a frequency row $(q,l)$. As prescribed in Sec.~\ref{sec:algorithm:tiling}, $N_\tau(Q_q, \phi_{ql})$ is rounded up to a power of 2 to offer an optimal Fourier transform.
+This equation shows that a single and less expensive inverse Fourier transform of $\tilde{v}_{ql}$ is necessary to populate the $N_\tau$ tiles of a frequency row $(q,l)$. As prescribed in Sec.~\ref{sec:algorithm:tiling}, $N_\tau(Q_q, \phi_{ql})$ is rounded up to a power of 2 to offer an optimal Fourier transform.
 
-When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier transform plans are created to perform the inverse Fourier transforms for all $Q$ planes and all frequency rows. Care must be taken when populating the $\tilde{v}$ array. Indeed, one must conciliate the different size conventions used until this point: $\tilde{v}$ is of size $N_\tau $, the whitened data vector, $\tilde{x}$, resulting from a real-to-complex Fourier transforms, is of size $N_c/2+1$ (cf. Sec.~\ref{sec:algorithm:whitening}), and the window, $\tilde{w}^*_{ql}$, saved without the zero values, is of size $M_{ql}$ (cf. Eq.~\ref{eq:dbisquare2}). When taking into account these conventions, the array $\tilde{v}$ now writes:
+When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier transform plans are created to perform the inverse Fourier transforms for all $Q$ planes and all frequency rows. Care must be taken when populating the $\tilde{v}_{ql}$ array. Indeed, one must conciliate the different size conventions used until this point: $\tilde{v}_{ql}$ is of size $N_\tau $, the whitened data vector, $\tilde{x}$, resulting from a real-to-complex Fourier transforms, is of size $N_c/2+1$ (cf. Sec.~\ref{sec:algorithm:whitening}), and the window, $\tilde{w}^*_{ql}$, saved without the zero values, is of size $M_{ql}$ (cf. Eq.~\ref{eq:dbisquare2}). When taking into account these conventions, the array $\tilde{v}_{ql}$ now writes:
 \begin{equation}
-  \tilde{v}[k] =
+  \tilde{v}_{ql}[k] =
   \begin{cases}
     \tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]                     & 0 \le k < (M_{ql}+1)/2 \\
     0                                                        & (M_{ql}+1)/2 \le k < N_\tau-(M_{ql}-1)/2 \\
@@ -280,7 +280,7 @@ The indexes used in Eq.~\ref{eq:v2} are all consistent with vector sizes. The ou
 
 To summarize, the $Q$ tansform coefficients are computed for all tiles, $(m,l,q)$, after performing $N_Q\times N_{\phi}(Q,\phi)$ inverse Fourier transforms:
 \begin{equation}
-  X(m, l, q) = \frac{N_\tau}{N_c} v[m].
+  X(m, l, q) = \frac{N_\tau}{N_c} v_{ql}[m].
   \label{eq:qcoeff}
 \end{equation}
 

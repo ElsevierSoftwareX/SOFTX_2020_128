@@ -159,12 +159,6 @@ class Omicron {
   bool WriteOutput();
 
   /**
-   * Writes output triggers to disk.
-   * The triggers accumulated so far are written to disk (for the current channel). The trigger object in then flushed. The trigger file path is returned.
-   */
-  string WriteTriggers(void);
-
-  /**
    * Prints a progress report of the processing.
    */
   void PrintStatusInfo(void);
@@ -288,6 +282,7 @@ class Omicron {
  
   // OUTPUT
   string maindir;               ///< output main directory
+  string WriteTriggers(void);   ///< write triggers to disk
   void SaveAPSD(const string aType);///< Save current PSD/ASD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters
