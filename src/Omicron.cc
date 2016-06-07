@@ -609,14 +609,6 @@ bool Omicron::WriteOutput(void){
     SaveTS(false);
   }
 
-  //*** SPECTRAL DATA
-  /*
-  if(fOutProducts.find("spectral")!=string::npos){
-    if(fVerbosity>1) cout<<"\t- write spectral data..."<<endl;
-    SaveSpectral();
-  }
-  */
-
   //*** WHITENED TS
   if(fOutProducts.find("white")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write whitened data..."<<endl;
@@ -645,7 +637,7 @@ bool Omicron::WriteOutput(void){
   //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
-    if(!tile->SaveTriggers(triggers[chanindex])) return false; // extract triggers
+    if(!ExtractTriggers()) return false; // extract triggers
     chunktfile.push_back(GetFileName(WriteTriggers())); // write triggers to disk
   }
 
@@ -654,6 +646,19 @@ bool Omicron::WriteOutput(void){
   outSegments[chanindex]->AddSegment((double)(tile->GetChunkTimeStart()+tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2),(double)(tile->GetChunkTimeEnd()-tile->GetOverlapDuration()/2));
 
   chan_write_ctr[chanindex]++;
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Omicron::ExtractTriggers(void){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK){
+    cerr<<"Omicron::ExtractTriggers: the Omicron object is corrupted"<<endl;
+    return false;
+  }
+
+  if(!tile->SaveTriggers(triggers[chanindex])) return false;
+
   return true;
 }
 

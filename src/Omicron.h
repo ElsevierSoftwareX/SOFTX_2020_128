@@ -153,10 +153,22 @@ class Omicron {
   bool Project(void);
   
   /**
+   * Extract triggers above threshold.
+   */
+  bool ExtractTriggers(void);
+
+  /**
+   * Write triggers to disk.
+   * All triggers collected until now are saved to disk.
+   * This function returns the trigger file path. "none" is returned if this function fails.
+   */
+  string WriteTriggers(void);
+
+  /**
    * Writes output products to disk.
    * The output data products selected by the user in the option file and for the current chunk/channel are written to disk.
    */
-  bool WriteOutput();
+  bool WriteOutput(void);
 
   /**
    * Prints a progress report of the processing.
@@ -282,7 +294,6 @@ class Omicron {
  
   // OUTPUT
   string maindir;               ///< output main directory
-  string WriteTriggers(void);   ///< write triggers to disk
   void SaveAPSD(const string aType);///< Save current PSD/ASD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters
