@@ -30,7 +30,6 @@ alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
 alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
 alias GetTriggerFileList   "$(OMICRONROOT)/scripts/GetTriggerFileList.sh"
 alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
-alias GetOmicronDAG        "$(OMICRONROOT)/scripts/GetOmicronDAG.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
