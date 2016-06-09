@@ -663,7 +663,7 @@ bool Omicron::ExtractTriggers(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-string Omicron::WriteTriggers(void){
+string Omicron::WriteTriggers(const bool aLVDirConvention){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::WriteTriggers: the Omicron object is corrupted"<<endl;
@@ -678,6 +678,16 @@ string Omicron::WriteTriggers(void){
     
   // clustering if any
   if(fClusterAlgo.compare("none")) triggers[chanindex]->Clusterize();
+
+  // LIGO directory convention
+  if(aLVDirConvention){
+    int gps_5=0;
+    if(triggers[chanindex]->GetNsegments()) gps_5 = (int) triggers[chanindex]->GetStart(0) / 100000;
+    stringstream lv_dir;
+    lv_dir << maindir << "/" << triggers[chanindex]->GetNamePrefix() << "/" << triggers[chanindex]->GetNameSuffixUnderScore() << "_OMICRON/" << gps_5;
+    system(("mkdir -p " + lv_dir.str()).c_str());
+    return triggers[chanindex]->Write(lv_dir.str(),fOutFormat);
+  }
   
   // write triggers to disk
   return triggers[chanindex]->Write(outdir[chanindex],fOutFormat);

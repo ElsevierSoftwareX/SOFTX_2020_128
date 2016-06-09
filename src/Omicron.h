@@ -161,8 +161,11 @@ class Omicron {
    * Write triggers to disk.
    * All triggers collected until now are saved to disk.
    * This function returns the trigger file path. "none" is returned if this function fails.
+   *
+   * Optionally, the trigger files can be saved in a directory structure defined by a LIGO-virgo convention: [main dir]/[IFO prefix]/[channel]_OMICRON/
+   * @param aLVDirConvention set to true to apply the LIGO trigger path convention
    */
-  string WriteTriggers(void);
+  string WriteTriggers(const bool aLVDirConvention = false);
 
   /**
    * Writes output products to disk.
