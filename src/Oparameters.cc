@@ -51,6 +51,13 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** set map format ***** 
+  if(!io->GetOpt("OUTPUT","MAPFILL", fMapfill)){
+    cerr<<"Omicron::ReadOptions: No map fill format (OUTPUT/MAPFILL)  --> set default: snr"<<endl;
+    fMapfill="snr";
+  }
+  //*****************************
+
   //***** set output style *****
   string outstyle;
   if(!io->GetOpt("OUTPUT","STYLE", outstyle)){
@@ -166,6 +173,7 @@ void Omicron::ReadOptions(void){
   }
   tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
   tile->SetOverlapDuration(timing[1]);
+  tile->SetMapFill(fMapfill);
   QRange.clear(); FRange.clear();
   for(int c=0; c<nchannels; c++)
     status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
@@ -206,12 +214,12 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   //***** vertical scale *****
-  double snrscale;
-  if(!io->GetOpt("PARAMETER","SNRSCALE", snrscale)){
-    cerr<<"Omicron::ReadOptions: No snr scale option (PARAMETER/SNRSCALE)  --> set default: 50"<<endl;
-    snrscale=50;
+  double vscale;
+  if(!io->GetOpt("PARAMETER","VSCALE", vscale)){
+    cerr<<"Omicron::ReadOptions: No vertical scale option (PARAMETER/VSCALE)  --> set default: -1"<<endl;
+    vscale=-1.0;
   }
-  tile->SetSNRScale(fabs(snrscale));
+  tile->SetVScale(vscale);
   //*****************************
 
   //***** fft plans *****

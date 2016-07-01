@@ -122,12 +122,12 @@ void Oqplane::FillMap(const string aContentType){
   if(!aContentType.compare("snr")){
     for(int f=0; f<GetNBands(); f++)
       for(int t=0; t<GetBandNtiles(f); t++)
-	SetTileContent(t,f,sqrt(TMath::Max(bandFFT[f]->GetNorm2_t(t)-2.0,0.0)));
+	SetTileContent(t,f,sqrt(GetTileSNR2(t,f)));
   }
   else if(!aContentType.compare("amplitude")){
     for(int f=0; f<GetNBands(); f++)
       for(int t=0; t<GetBandNtiles(f); t++)
-	SetTileContent(t,f,sqrt(TMath::Max(bandFFT[f]->GetNorm2_t(t)-2.0,0.0))*bandNoiseAmplitude[f]);
+	SetTileContent(t,f,GetTileAmplitude(t,f));
   }
   else if(!aContentType.compare("phase")){
     for(int f=0; f<GetNBands(); f++)

@@ -326,5 +326,22 @@ An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using 
 %%%%%%%%%%  TRIGGERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The triggers} \label{sec:algorithm:triggering}
+One of the output products of Omicron is a list of tiles with a SNR, $\hat{\rho}_{qlm}$ above a threshold, $\rho_{min}$, defined in the user parameter file: a tile with $\hat{\rho}_{qlm} > \rho_{min}$ is called a trigger. A trigger, associated to tile $(q,l,m)$, is described by a set of 10 parameters:
+\begin{enumerate}
+  \item the tile central time, $\tau_{qlm}$ defined by Eq.~\ref{eq:tau},
+  \item the tile central frequency, $\phi_{ql}$ defined by Eq.~\ref{eq:phi},
+  \item the $Q$ plane $Q$ value, $Q_{q}$ defined by Eq.~\ref{eq:q},
+  \item an amplitude SNR estimated by Eq.~\ref{eq:snrestimator}: $\hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}$,
+  \item an amplitude estimated by Eq.~\ref{eq:amplitude}
+  \item a phase value, \bluenote{TBD}
+  \item a starting time, $\tau_{qlm} - \Delta \tau_{ql}/2$, using Eq.~\ref{eq:dtau},
+  \item an ending time, $\tau_{qlm} +\Delta \tau_{ql}/2$, using Eq.~\ref{eq:dtau},
+  \item a starting frequency given by the frequency lower edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{l/N_{\phi}(Q_q)}$,
+  \item a ending frequency given by the frequency upper edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{(l+1)/N_{\phi}(Q_q)}$.
+\end{enumerate}
+Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}. The TTree class is optimized to reduce disk space and enhance access speed. The trigger TTree is saved in a ROOT file for every data chunk. Besides the triggers, the list of processed time segments\footnote{List of chunks excluding the overlaps.} are saved as well as the Omicron process metadata.
+
 
 \subsection{The mapping} \label{sec:algorithm:mapping}
+
+As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2-dimensional histograms (see Fig.~\ref{fig:tiling}), where bins are used to represent the time-frequency tiles. These histograms can be filled by the tile parameters such as the SNR, the amplitude or the phase. Hence time-frequency planes can be graphically displayed; this is called mapping. Omicron can produce maps and save them in an output file with many formats.

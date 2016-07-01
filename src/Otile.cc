@@ -15,7 +15,7 @@ Otile::Otile(const int aTimeRange,
  
   // Plot default
   SetLogx(0); SetLogy(1); SetLogz(1);
-  snrscale=50;
+  vscale=-1.0;
 
   // save parameters
   TimeRange=(int)fabs(aTimeRange);
@@ -51,8 +51,12 @@ Otile::Otile(const int aTimeRange,
   // create Q planes
   if(aVerbosity) cout<<"Otile::Otile: creating "<<nq<<" Q-planes"<<endl;
   qplanes = new Oqplane* [nq];
+  t_snrmax=new int* [nq];
+  f_snrmax=new int* [nq];
   for(int q=0; q<nq; q++){
     qplanes[q]=new Oqplane(Qs[q],SampleFrequency,TimeRange,FrequencyMin,FrequencyMax,MismatchStep);
+    t_snrmax[q] = new int [0];
+    f_snrmax[q] = new int [0];
     if(aVerbosity>1) qplanes[q]->PrintParameters();
   }
   Qs.clear();
@@ -62,6 +66,9 @@ Otile::Otile(const int aTimeRange,
 
   // set default SNR threshold
   SetSNRThr();
+
+  // set default fill type
+  SetMapFill();
 
   // Sequence
   SeqInSegments  = new Segments();
@@ -76,8 +83,14 @@ Otile::Otile(const int aTimeRange,
 Otile::~Otile(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(fVerbosity>1) cout<<"Otile::~Otile"<<endl;
-  for(int p=0; p<nq; p++) delete qplanes[p];
+  for(int q=0; q<nq; q++){
+    delete qplanes[q];
+    delete t_snrmax[q];
+    delete f_snrmax[q];
+  }
   delete qplanes;
+  delete t_snrmax;
+  delete f_snrmax;
   delete SeqInSegments;
   delete SeqOutSegments;
 }
@@ -226,20 +239,58 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<SeqT0<<"..."<<endl;
   ostringstream tmpstream;
 
-  // make maps and apply SNR threshold
-  double snrmax=-1, snr;
-  int n=0;
+  // reset SNR-max bins
   for(int q=0; q<nq; q++){
-    qplanes[q]->FillMap("snr");
-    qplanes[q]->GetXaxis()->SetRangeUser(-(double)aWindows[0]/2.0,(double)aWindows[0]/2.0);
-    snr=qplanes[q]->GetBinContent(qplanes[q]->GetMaximumBin());// get max
-    if(snr<SNRThr_map) n++;
-    if(snr>snrmax) snrmax=snr;
-    qplanes[q]->GetXaxis()->UnZoom();
+    delete t_snrmax[q];
+    delete f_snrmax[q];
   }
-  if(n==nq){
+
+  // get SNR-max bins /qplane and /window
+  int tstart, tend;
+  double snr2max, snr2;
+  for(int q=0; q<nq; q++){
+    t_snrmax[q] = new int [(int)aWindows.size()];
+    f_snrmax[q] = new int [(int)aWindows.size()];
+
+    for(int w=0; w<(int)aWindows.size(); w++){
+      snr2max =-1.0;
+      
+      for(int f=0; f<qplanes[q]->GetNBands(); f++){
+	tstart=qplanes[q]->GetTimeTileIndex(f,-(double)aWindows[w]/2.0);
+	tend=qplanes[q]->GetTimeTileIndex(f,(double)aWindows[w]/2.0);
+
+	for(int t=tstart; t<tend; t++){
+	  snr2=qplanes[q]->GetTileSNR2(t,f);
+	  if(snr2>snr2max){
+	    snr2max=snr2;
+	    t_snrmax[q][w] = t;
+	    f_snrmax[q][w] = f;
+	  }
+	}
+      }
+    }
+  }
+
+  // get qplane with SNR-max /window (for full map)
+  int *q_snrmax = new int [(int)aWindows.size()];
+  for(int w=0; w<(int)aWindows.size(); w++){
+    snr2max=-1.0;
+    for(int q=0; q<nq; q++){
+      snr2=qplanes[q]->GetTileSNR2(t_snrmax[q][w],f_snrmax[q][w]);
+      if(snr2>snr2max){
+	snr2max=snr2;
+	q_snrmax[w]=q;
+      }
+    }
+  }
+
+
+  // apply map SNR threshold
+  if(qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0])<SNRThr_map*SNRThr_map){
     if(fVerbosity) cout<<"Otile::SaveMaps: map "<<aName<<" (+-"<<aWindows[0]/2.0<<"s) is below SNR threshold -> do not save"<<endl;
-    return snrmax;
+    int qq = q_snrmax[0];
+    delete q_snrmax;
+    return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
   }
 
   // graphix
@@ -253,100 +304,112 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   if(aFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
   if(aFormat.find("svg")!=string::npos) form.push_back("svg");
 
+  // no graphical format --> stop here
+  if(!form.size()){
+    int qq = q_snrmax[0];
+    delete q_snrmax;
+    return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
+  }
+  
+  // fill maps
+  for(int q=0; q<nq; q++) qplanes[q]->FillMap(mapfill);
+  
   // save maps for each Q plane
-  int xmax, ymax, zmax;
   for(int q=0; q<nq; q++){
     if(fVerbosity>1) cout<<"\t- map Q"<<q<<" = "<<fixed<<setprecision(3)<<qplanes[q]->GetQ()<<endl;
     
-    if(form.size()){
-      // draw map
-      if(fVerbosity>2) cout<<"\t\t- Draw map"<<endl;
-      ApplyOffset(qplanes[q],(double)SeqT0);
-      qplanes[q]->GetXaxis()->SetRange((double)SeqT0-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)SeqT0+(double)aWindows[(int)aWindows.size()-1]/2.0);
-      Draw(qplanes[q],"COLZ");
-
-      // title
-      tmpstream<<aName<<": Q="<<fixed<<setprecision(3)<<qplanes[q]->GetQ();
-      qplanes[q]->SetTitle(tmpstream.str().c_str());
-      tmpstream.clear(); tmpstream.str("");
-
-      // loop over time windows
-      if(fVerbosity>2) cout<<"\t\t- Save windowed maps"<<endl;
-      for(int w=0; w<(int)aWindows.size(); w++){
-	
-	// zoom in
-	qplanes[q]->GetXaxis()->SetRangeUser((double)SeqT0-(double)aWindows[w]/2.0,(double)SeqT0+(double)aWindows[w]/2.0);
-	
-	// loudest tile
-	qplanes[q]->GetMaximumBin(xmax, ymax, zmax);
-	tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<qplanes[q]->GetXaxis()->GetBinCenter(xmax)<<", f="<<qplanes[q]->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<qplanes[q]->GetBinContent(xmax,ymax);
-	AddText(tmpstream.str(), 0.01,0.01,0.03);
-	tmpstream.clear(); tmpstream.str("");
-	      
-	// set vertical range
-	if(snrscale>1) qplanes[q]->GetZaxis()->SetRangeUser(1,snrscale);
-	else qplanes[q]->GetZaxis()->SetRangeUser(1,TMath::Max(qplanes[q]->GetBinContent(xmax,ymax),5.0));
-
-	// save plot
-	for(int f=0; f<(int)form.size(); f++){
-	  tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
-	  Print(tmpstream.str());
-	  tmpstream.clear(); tmpstream.str("");
-	  if(aThumb){ //thumbnail
-	    tmpstream<<aOutdir<<"/th"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
-	    Print(tmpstream.str(),0.5);
-	    tmpstream.clear(); tmpstream.str("");
-	  }
-	}
-      }
-
-      // unzoom
-      qplanes[q]->GetXaxis()->UnZoom();
-      ApplyOffset(qplanes[q],-(double)SeqT0);
-    }
-
-  }
-
-  // full map
-  if(form.size()){
-    if(fVerbosity>1) cout<<"\t- full map"<<endl;
-    TH2D* fullmap;
+    // draw map
+    if(fVerbosity>2) cout<<"\t\t- Draw map"<<endl;
+    ApplyOffset(qplanes[q],(double)SeqT0);
+    qplanes[q]->GetXaxis()->SetRange((double)SeqT0-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)SeqT0+(double)aWindows[(int)aWindows.size()-1]/2.0);
+    Draw(qplanes[q],"COLZ");
+    
+    // title
+    tmpstream<<aName<<": Q="<<fixed<<setprecision(3)<<qplanes[q]->GetQ();
+    qplanes[q]->SetTitle(tmpstream.str().c_str());
+    tmpstream.clear(); tmpstream.str("");
+    
+    // loop over time windows
+    if(fVerbosity>2) cout<<"\t\t- Save windowed maps"<<endl;
     for(int w=0; w<(int)aWindows.size(); w++){
-      fullmap = MakeFullMap(aWindows[w]);
       
-      // draw map
-      Draw(fullmap,"COLZ");
-      
-      // title
-      fullmap->SetTitle(aName.c_str());
+      // zoom in
+      qplanes[q]->GetXaxis()->SetRangeUser((double)SeqT0-(double)aWindows[w]/2.0,(double)SeqT0+(double)aWindows[w]/2.0);
       
       // loudest tile
-      fullmap->GetMaximumBin(xmax, ymax, zmax);
-      tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<fullmap->GetXaxis()->GetBinCenter(xmax)<<", f="<<fullmap->GetYaxis()->GetBinCenter(ymax)<<" Hz, SNR="<<fullmap->GetBinContent(xmax,ymax);
+      tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q]->GetTileTime(t_snrmax[q][w],f_snrmax[q][w])<<", f="<<qplanes[q]->GetBandFrequency(f_snrmax[q][w])<<" Hz, "<<mapfill<<"="<<qplanes[q]->GetTileContent(t_snrmax[q][w],f_snrmax[q][w]);
       AddText(tmpstream.str(), 0.01,0.01,0.03);
       tmpstream.clear(); tmpstream.str("");
       
       // set vertical range
-      if(snrscale>1) fullmap->GetZaxis()->SetRangeUser(1,snrscale);
-      else fullmap->GetZaxis()->SetRangeUser(1,TMath::Max(fullmap->GetBinContent(xmax,ymax),5.0));
-
+      if(vscale>=0.0){
+	if(!mapfill.compare("snr")) qplanes[q]->GetZaxis()->SetRangeUser(1,vscale);
+	else if(!mapfill.compare("amplitude")) qplanes[q]->GetZaxis()->SetRangeUser(vscale/100,vscale);
+	else if(!mapfill.compare("phase")) qplanes[q]->GetZaxis()->SetRangeUser(-vscale,vscale);
+	else;
+      }
+      
       // save plot
       for(int f=0; f<(int)form.size(); f++){
-	tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());
 	tmpstream.clear(); tmpstream.str("");
 	if(aThumb){ //thumbnail
-	  tmpstream<<aOutdir<<"/th"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	  tmpstream<<aOutdir<<"/th"<<aName<<"MAPQ"<<q<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}
       }
-    
-      delete fullmap;
     }
+    
+    // unzoom
+    qplanes[q]->GetXaxis()->UnZoom();
+    ApplyOffset(qplanes[q],-(double)SeqT0);
+  }
+  
+  // full map
+  if(fVerbosity>1) cout<<"\t- full map"<<endl;
+  TH2D* fullmap;
+  for(int w=0; w<(int)aWindows.size(); w++){
+    fullmap = MakeFullMap(aWindows[w]);
+    
+    // draw map
+    Draw(fullmap,"COLZ");
+    
+    // title
+    fullmap->SetTitle(aName.c_str());
+    
+    // loudest tile
+    tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
+    AddText(tmpstream.str(), 0.01,0.01,0.03);
+    tmpstream.clear(); tmpstream.str("");
+    
+    // set vertical range
+    if(vscale>=0.0){
+      if(!mapfill.compare("snr")) fullmap->GetZaxis()->SetRangeUser(1,vscale);
+      else if(!mapfill.compare("amplitude")) fullmap->GetZaxis()->SetRangeUser(vscale/100,vscale);
+      else if(!mapfill.compare("phase")) fullmap->GetZaxis()->SetRangeUser(-vscale,vscale);
+      else;
+    }
+    
+    // save plot
+    for(int f=0; f<(int)form.size(); f++){
+      tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+      Print(tmpstream.str());
+      tmpstream.clear(); tmpstream.str("");
+      if(aThumb){ //thumbnail
+	tmpstream<<aOutdir<<"/th"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	Print(tmpstream.str(),0.5);
+	tmpstream.clear(); tmpstream.str("");
+      }
+    }
+    
+    delete fullmap;
   }
 
-  return snrmax;
+  int qq = q_snrmax[0];
+  delete q_snrmax;
+  return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -402,7 +465,7 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
   delete fbins;
   fullmap->GetXaxis()->SetTitle("Time [s]");
   fullmap->GetYaxis()->SetTitle("Frequency [Hz]");
-  fullmap->GetZaxis()->SetTitle("SNR");
+  fullmap->GetZaxis()->SetTitle(mapfill.c_str());
   fullmap->GetXaxis()->SetNoExponent();
   fullmap->GetXaxis()->SetNdivisions(4,5,0);
   fullmap->GetXaxis()->SetLabelSize(0.045);
@@ -411,10 +474,9 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
   fullmap->GetXaxis()->SetTitleSize(0.045);
   fullmap->GetYaxis()->SetTitleSize(0.045);
   fullmap->GetZaxis()->SetTitleSize(0.045);
-  fullmap->GetZaxis()->SetRangeUser(1,50);
-
+  
   int ttstart, ttend, ffstart, ffend;
-  double content;
+  double content, snr2;
 
   // loop over q planes
   for(int q=0; q<nq; q++){
@@ -426,13 +488,16 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
       for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
 	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+SeqT0);
 	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+SeqT0);
-	
+
+	snr2=qplanes[q]->GetTileSNR2(t,f);
 	content=qplanes[q]->GetTileContent(t,f);
 	
 	for(int tt=ttstart; tt<=ttend; tt++)
 	  for(int ff=ffstart; ff<=ffend; ff++)
-	    if(content>fullmap->GetBinContent(tt,ff)) fullmap->SetBinContent(tt,ff,content);
-	
+	    if(snr2>fullmap->GetBinError(tt,ff)){
+	      fullmap->SetBinContent(tt,ff,content);
+	      fullmap->SetBinError(tt,ff,snr2);
+	    }
       }
     }
     

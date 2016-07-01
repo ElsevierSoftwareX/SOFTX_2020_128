@@ -43,6 +43,12 @@ class Oqplane: public Omap {
   // GETS
   inline double GetQ(void){ return Q; };
   inline double GetSNRThr(void){ return SNRThr; };
+  inline double GetTileSNR2(const int aTimeTileIndex, const int aBandIndex){
+    return TMath::Max(bandFFT[aBandIndex]->GetNorm2_t(aTimeTileIndex)-2.0,0.0);
+  };
+  inline double GetTileAmplitude(const int aTimeTileIndex, const int aBandIndex){
+    return sqrt(GetTileSNR2(aTimeTileIndex,aBandIndex))*bandNoiseAmplitude[aBandIndex];
+  };
 
   // SETS
   bool SetPower(Spectrum *aSpec);
