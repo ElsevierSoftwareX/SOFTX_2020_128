@@ -137,9 +137,9 @@ As we will see in Sec.~\ref{sec:method:snr}, whitening the noise before applying
   \tilde{x}^{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S_n(|f|)/2}},
   \label{eq:whitening}
 \end{equation}
-where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random process is equally distributed over the frequencies and the one-sided noise PSD of $x^{white}$ is flat and equal to 2.
+where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random noise process is equally distributed over the frequencies and the one-sided PSD of $x^{white}$ is flat and equal to 2.
 
-The one-sided noise PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$ (Welch method):
+The noise one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$ (Welch method):
 \begin{equation}
   P_T(f) = \frac{2}{T}\left|\tilde{x}_T(f)\right|^2, \qquad f \ge 0.
   \label{eq:periodogram}
@@ -154,21 +154,21 @@ Let's consider a burst of energy, the waveform of which is $b(t)$. It lies on to
 \begin{equation}
   \rho_{qlm}^2 =  \frac{|X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle/2}, \label{eq:snrdef}
 \end{equation}
-where $X_b(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform coefficient for the burst waveform in tile $(q,l,m)$. The expectation value of the $Q$ transform coefficient for noise in tile $(q,l,m)$, obtained from multiple measurements, is given by $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2\rangle$.
+where $X_b(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform coefficient for the burst waveform in tile $(q,l,m)$. The expectation value of the $Q$ transform energies for noise in tile $(q,l,m)$, obtained from multiple measurements, is given by $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2\rangle$.
 
 The SNR definition given by Eq.~\ref{eq:snrdef} is consistent with the maximum achievable SNR defined in the framework of the matched filter theory~\cite{helstrom:1968}. To demonstrate this, let's consider a burst test signal exactly matching the tile under consideration. The burst waveform is a sinusoidal Gaussian function of time, the parameters of which match the tile $(q,l,m)$:
 \begin{align}
   b(t) &= Bw(t-\tau_{qlm}, \phi_{ql}, Q_q)\cos(2\pi\phi_{ql} t + \theta_{bt}),\\
   \tilde{b}(f) &= \frac{B}{2}e^{-2i\pi f\tau_{qlm}}\left[ \tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f-\phi_{ql})}e^{i\theta_{bt}}+\tilde{w}(f+\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f+\phi_{ql})}e^{-i\theta_{bt}}\right],
 \end{align}
-where $B$ is the signal amplitude and $\theta_{bt}$ is the arbitrary phase between the burst and the tile. Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we compute the squared magnitude of the $Q$ transform coefficient for tile $(q,l,m)$:
+where $B$ is the signal amplitude and $\theta_{bt}$ is the arbitrary phase between the burst and the tile. Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we compute the squared magnitude of the $Q$ transform coefficient, or energy, for tile $(q,l,m)$:
 \begin{align}
   |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2}\left[ \tilde{w}(f,\phi_{ql},Q_q)+\tilde{w}(f+2\phi_{ql},\phi_{ql},Q_q)\right] \tilde{w}^{*}(f,\phi_{ql},Q_q) df} \right|^2\\
   &= \left|\int_{-\infty}^{+\infty}{ \frac{B}{2} \tilde{w}(f,\phi_{ql},Q_q) \tilde{w}^{*}(f,\phi_{ql},Q_q) df}\right|^2 \\
   &= B^2,
   \label{eq:qtransform_signal}
 \end{align}
-where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation and verify condition~\ref{eq:antialias1}.
+where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation verifying condition~\ref{eq:antialias1}.
 
 Now, let's estimate the mean squared magnitude of the $Q$ transform coefficient for the noise in the denominator of Eq.~\ref{eq:snrdef}. We assume that the noise, $n(t)$, is a stationary stochastic process. With this assumption, the expectation value $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle$ is time-independent and the $\tau$ dependency can be dropped:
 \begin{equation}
@@ -195,7 +195,7 @@ Taking into account the normalization condition~\ref{eq:winnorm}, the mean squar
 \end{equation}
 As previously announced, this result is exactly what is obtained in the context of the matched filtering theory~\cite{helstrom:1968}. The factor 2 is used to correct for the power of negative frequencies folded in the one-sided PSD.
 
-One must keep in mind that the $Q$ transform is performed after whitening the time series as described in Sec.~\ref{sec:method:whitening}. The above calculation must therefore be modified. In particular, Eq.~\ref{eq:qtransform_signal} and Eq.~\ref{eq:qtransform_noise} become:
+One must recall that the $Q$ transform is performed after whitening the time series as described in Sec.~\ref{sec:method:whitening}. The above calculation must therefore be modified. In particular, Eq.~\ref{eq:qtransform_signal} and Eq.~\ref{eq:qtransform_noise} become:
 \begin{align}
   |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| &= B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df}, \\
   \langle |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle &= 2.
@@ -212,10 +212,9 @@ and the special case of Eq.~\ref{eq:snrmatch} remains true.
 
 For obvious reasons, the burst signal cannot be disentangled from noise; only $x$ is measured. As a result, the SNR of Eq.~\ref{eq:snrdef} cannot be exactly computed. Instead, it is estimated using the $Q$ transform coefficient of $x$:
 \begin{equation}
-  \hat{\rho}_{qlm}^2 =  \frac{|X(\tau_{qlm}, \phi_{ql}, Q_q)|^2}{\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle/2}-2 . \label{eq:snrestimator}
+  \hat{\rho}_{qlm}^2 =  |X^{white}(\tau_{qlm}, \phi_{ql}, Q_q)|^2-2 . \label{eq:snrestimator}
 \end{equation}
-To estimate the denominator, we rely, once more, on the noise stationarity hypothesis. The expectation value for noise can be evaluated using tiles at different times where we know that no burst signal is present: $x(t)=n(t)$. We note $\cal{T}$ such a representative set of tiles such as $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle = \langle |X(\tau_{qli}, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}$. In Sec.~\ref{sec:algorithm:snr}, we will describe how the set $\cal{T}$ can be constructed.
-
+%To estimate the denominator, we rely, once more, on the noise stationarity hypothesis. The expectation value for noise can be evaluated using tiles at different times where we know that no burst signal is present, i.e. $x(t)=n(t)$. We note $\cal{T}$ such a representative set of tiles such as $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle = \langle |X(\tau_{qli}, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}$. In Sec.~\ref{sec:algorithm:snr}, we will describe how the set $\cal{T}$ can be constructed.
 The squared magnitude of the $Q$ transform coefficient of $x=b+n$ for tile $(q,l,m)$ can be expanded as
 \begin{equation}
   |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 = |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + 2|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|\cos{\theta_{bn}},
@@ -227,7 +226,7 @@ where $\theta_{bn}$ is the phase between the burst and the noise signals. Using 
   + |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 -2
   + 2|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| \cos{\theta_{bn}}.
 \end{equation}
-From this expression, we see that our SNR estimate can differ from the true value because of two causes: the random fluctuations of white noise around the mean value of 2 and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. Two additional sources of uncertainty result from the assumptions made until now. First, the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$). Second, the relation $\langle |X(t_i, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}=\langle |X_n(\phi_{ql}, Q_q)|^2 \rangle$ is only true in the limit $\cal{T}\rightarrow \infty$. However, the central limit theorem tells us that the uncertainty can be neglected when working with a large enough set of representative tiles (in the limit that the noise stationarity remain true). All these effects have been quantified using Monte-Carlo studies, described in~\cite{Chatterji:2004}. They have shown that sinusoidal Gaussian burst SNRs can be recovered accurately for SNR~$\gtrsim 3$ and with a small bias of $-2.5\%$. \bluenote{update numbers!}
+From this expression, we see that our SNR estimate can differ from the true value because of two causes: the random fluctuations of white noise around the mean value of 2 and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. Both distributions are known. In~\cite{Chatterji:2004}, it is shown that the distribution of $|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ is an exponential distribution with mean $\langle |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = 2$. The standard deviation of $|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ from 2 is therefore 2. In addition, assuming that the signal and the noise are independent, the distribution of the phase $\theta_{bn}$ is uniform over all angles. One additional source of uncertainty result from the assumption made until now: the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

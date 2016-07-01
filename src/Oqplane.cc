@@ -58,7 +58,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // band variables
   bandNoiseAmplitude = new double  [GetNBands()];
   bandFFT            = new fft*    [GetNBands()];
-  bandMeanEnergy     = new double  [GetNBands()];
+  //bandMeanEnergy     = new double  [GetNBands()];
   bandWindow         = new double* [GetNBands()];
   bandWindowSize     = new int     [GetNBands()];
 
@@ -73,7 +73,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
     // no power
     bandNoiseAmplitude[f]=0.0;
-    bandMeanEnergy[f]=1.0;
+    //bandMeanEnergy[f]=1.0;
             
     // band fft
     ifftnormalization = 1.0 / (double)TimeRange;
@@ -111,7 +111,7 @@ Oqplane::~Oqplane(void){
   delete bandWindowSize;
   delete bandFFT;
   delete bandNoiseAmplitude;
-  delete bandMeanEnergy;
+  //delete bandMeanEnergy;
   delete bandWindow;
 }
 
@@ -120,36 +120,24 @@ void Oqplane::FillMap(const string aContentType){
 ////////////////////////////////////////////////////////////////////////////////////
 
   if(!aContentType.compare("snr")){
-    double energy;
-    for(int f=0; f<GetNBands(); f++){
-      for(int t=0; t<GetBandNtiles(f); t++){
-	energy=bandFFT[f]->GetNorm2_t(t);
-	SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-2.0));
-      }
-    }
+    for(int f=0; f<GetNBands(); f++)
+      for(int t=0; t<GetBandNtiles(f); t++)
+	SetTileContent(t,f,sqrt(TMath::Max(bandFFT[f]->GetNorm2_t(t)-2.0,0.0)));
   }
   else if(!aContentType.compare("amplitude")){
-    double energy;
-    for(int f=0; f<GetNBands(); f++){
-      for(int t=0; t<GetBandNtiles(f); t++){
-	energy=bandFFT[f]->GetNorm2_t(t);
-	SetTileContent(t,f,sqrt(2.0*energy/bandMeanEnergy[f]-2.0)*bandNoiseAmplitude[f]);
-      }
-    }
+    for(int f=0; f<GetNBands(); f++)
+      for(int t=0; t<GetBandNtiles(f); t++)
+	SetTileContent(t,f,sqrt(TMath::Max(bandFFT[f]->GetNorm2_t(t)-2.0,0.0))*bandNoiseAmplitude[f]);
   }
   else if(!aContentType.compare("phase")){
-    for(int f=0; f<GetNBands(); f++){
-      for(int t=0; t<GetBandNtiles(f); t++){
+    for(int f=0; f<GetNBands(); f++)
+      for(int t=0; t<GetBandNtiles(f); t++)
 	SetTileContent(t,f,bandFFT[f]->GetPhase_t(t));
-      }
-    }
   }
   else{
-    for(int f=0; f<GetNBands(); f++){
-      for(int t=0; t<GetBandNtiles(f); t++){
+    for(int f=0; f<GetNBands(); f++)
+      for(int t=0; t<GetBandNtiles(f); t++)
 	SetTileContent(t,f,100.0);
-      }
-    }
   }
   
   return;
@@ -179,10 +167,10 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
     for(int t=tstart; t<tend; t++){
 
       // compute tile snr
-      snr2=2.0*bandFFT[f]->GetNorm2_t(t)/bandMeanEnergy[f]-2.0;
+      snr2=bandFFT[f]->GetNorm2_t(t)-2.0;
 
       // apply SNR threshold
-      if(snr2<SNRThr2) continue;
+      if(snr2<SNRThr2||snr2<0.0) continue;
 
       // time select
       if(!aSeg->IsInsideSegment(GetTileTime(t,f)+aT0)) continue;
@@ -200,6 +188,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
 				GetBandStart(f),
 				GetBandEnd(f),
 				snr*bandNoiseAmplitude[f],
+				//bandFFT[f]->GetNorm2_t(t),
 				bandFFT[f]->GetPhase_t(t)))
 	return false;
     }
@@ -210,7 +199,7 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::ProjectData(fft *aDataFft){
+bool Oqplane::ProjectData(fft *aDataFft, const double aPadding){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
@@ -247,30 +236,27 @@ bool Oqplane::ProjectData(fft *aDataFft){
     // note the FFT normalization was already included in the window definition
 
     // from now on, the final Q coefficients are stored in the time vector of bandFFT[f]
- 
-    // get energies/phases
-    //energies = bandFFT[f]->GetNorm2_t();
-    //phases   = bandFFT[f]->GetPhase_t();
 
+    /*
     // get mean energy
-    bandMeanEnergy[f]=GetMeanEnergy(f);
+    bandMeanEnergy[f]=GetMeanEnergy(f, aPadding);
     if(bandMeanEnergy[f]<=0.0){
       cerr<<"Oqplane::ProjectData: cannot normalize energies"<<endl;
       return false;
     }
+    */
   }
  
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Oqplane::GetMeanEnergy(const int aBandIndex){
+double Oqplane::GetMeanEnergy(const int aBandIndex, const double aPadding){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // remove segment edges (2 x 25%)
-  // FIXME: use the overlap
-  int tstart=GetTimeTileIndex(aBandIndex, -GetTimeRange()/4.0);
-  int tend=GetTimeTileIndex(aBandIndex, GetTimeRange()/4.0);
+  int tstart=GetTimeTileIndex(aBandIndex, GetTimeMin()+aPadding);
+  int tend=GetTimeTileIndex(aBandIndex, GetTimeMax()-aPadding);
   vector <double> v;
   for(int t=tstart; t<tend; t++) v.push_back(bandFFT[aBandIndex]->GetNorm2_t(t));    
 
@@ -292,7 +278,7 @@ double Oqplane::GetMeanEnergy(const int aBandIndex){
   }
   if(n){
     MeanEnergy/=(double)n;
-    MeanEnergy/=BIASFACT2;// bias factor for alpha=2.0
+    MeanEnergy*=BIASFACT2;// bias factor for alpha=2.0
     return MeanEnergy;
   }
 

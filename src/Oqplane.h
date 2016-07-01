@@ -9,7 +9,7 @@
 #include "Omap.h"
 
 // eq 5.95 with alpha=2
-#define BIASFACT2 (1.0-log(4.0*3.0*3.0)/(4.0*3.0*3.0-1.0))
+#define BIASFACT2 1.1140649371721838001292326225666329264640808105469
 
 using namespace std;
 
@@ -36,7 +36,7 @@ class Oqplane: public Omap {
   virtual ~Oqplane(void);
 
   void PrintParameters(void);
-  bool ProjectData(fft *aDataFft);
+  bool ProjectData(fft *aDataFft, const double aPadding=0.0);
   void FillMap(const string aContentType="snr");
   bool SaveTriggers(MakeTriggers *aTriggers, const double aT0, Segments* aSeg);
 
@@ -50,7 +50,7 @@ class Oqplane: public Omap {
 
 
   // INTERNAL
-  double GetMeanEnergy(const int aBandIndex);
+  double GetMeanEnergy(const int aBandIndex, const double aPadding);
   double GetA1(void);
  
   // Q-PLANE
@@ -66,7 +66,7 @@ class Oqplane: public Omap {
   double **bandWindow;              ///< band bisquare windows
   double *bandNoiseAmplitude;       ///< band noise power
   fft **bandFFT;                    ///< band ffts
-  double *bandMeanEnergy;           ///< band mean energy
+  //double *bandMeanEnergy;           ///< band mean energy
   
   ClassDef(Oqplane,0)  
 };

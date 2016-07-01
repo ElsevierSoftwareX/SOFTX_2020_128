@@ -11,7 +11,7 @@ A fully object-oriented framework is adopted when developing GWOLLUM and Omicron
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/omicron_flowchart.eps}
-  \caption{Standard \texttt{Omicron} analysis flowchart. The standard sequence of class functions is presented. Loops must be perfomed over data chunks and channels. They are represented by the dashed-line rectangles.}
+  \caption{Standard \texttt{Omicron} analysis flowchart. The standard sequence of class functions is presented. Loops must be performed over data chunks and channels. They are represented by the dashed-line rectangles.}
   \label{fig:omicron_flowchart}
 \end{figure}
 
@@ -178,7 +178,7 @@ The data conditioning is performed using the \texttt{Condition()} function of th
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data whitening} \label{sec:algorithm:whitening}
 
-As described in Sec.~\ref{sec:method:whitening}, the $Q$ transform is applied over whitened data. The conditioned chunk data vector elements are re-weighted using the one-sided power spectral density. The PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
+As described in Sec.~\ref{sec:method:whitening}, the $Q$ transform is applied to whitened data. The conditioned chunk data vector elements are re-weighted using the noise one-sided power spectral density. The noise PSD is estimated using the method developed for the \texttt{FINDCHIRP} algorithm~\cite{Allen:2005fk}. This method, inspired from the Welch method~\cite{Welch:1967}, offers a reliable and robust PSD estimate for non-Gaussian data.
 
 A time-domain data vector $d$ of duration $T_\mathrm{PSD}$ and sampled at the Omicron working frequency $f_w$ is divided into sub-vectors $d_s$. These sub-segments of duration $T_\mathrm{spec}$, are indexed by $s$ and overlap by 50\%, as represented at the top of Fig.~\ref{fig:psdseg}. The one-sided periodograms, defined in Eq.~\ref{eq:periodogram}, are computed for all sub-segments using $f_wT_\mathrm{spec}$ data points and a normalized\footnote{the window is normalized such that $\sum_{j=0}^{f_wT_\mathrm{spec}-1}{w_H^2[i]} = f_wT_\mathrm{spec}$} Hann window, $w_H$:
 \begin{align}
@@ -186,7 +186,7 @@ A time-domain data vector $d$ of duration $T_\mathrm{PSD}$ and sampled at the Om
   &= \frac{2}{T_\mathrm{spec}f_w^2}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{d_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
 \end{align}
 
-To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the traditional Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, for Gaussian noise, the resulting median value must be corrected by a bias factor, $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$, to recover an estimate using a mean value: $S^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S[k]=(N^eS^e[k]+N^oS^o[k])/(N^e+N^o)$. This procedure to estimate the PSD is illustrated in Fig.~\ref{fig:psdseg}.
+To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the traditional Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, for Gaussian noise, the resulting median value must be corrected by a bias factor, $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$, to recover an estimate using a mean value: $S_n^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S_n^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S_n[k]=(N^eS_n^e[k]+N^oS_n^o[k])/(N^e+N^o)$. This procedure to estimate the PSD is illustrated in Fig.~\ref{fig:psdseg}.
 \begin{figure}
   \center
   \epsfig{width=15cm, file=./figures/psdseg.eps} \\
@@ -200,7 +200,7 @@ For Omicron, the time scale to estimate the PSD is decoupled from the chunk stru
 
 The PSD frequency resolution must be compatible with the Omicron tiling structure described in Sec.~\ref{sec:algorithm:tiling} and be high enough to resolve all the $Q$ plane frequency rows. The PSD resolution is set by the hard-coded parameter $T_\mathrm{spec}$. If the search frequency range, $[\phi_{min}; \phi_{max}]$, is above 1~Hz, $T_\mathrm{spec}=2$~s. The PSD frequency resolution is then fixed at $1/T_\mathrm{spec}=0.5$~Hz. If the search frequency range goes below 1~Hz, $T_\mathrm{spec}=\lceil4/\phi_{min}\rceil$.
 
-Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:whitening}. However, the PSD, $S$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data sample $\tilde{x}[k]$, a linear interpolation is used to estimate the PSD value at the frequency corresponding $k/T_c$.
+Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:whitening}. However, the noise PSD, $S_n$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data sample $\tilde{x}[k]$, a linear interpolation is used to estimate the PSD value at the frequency $k/T_c$.
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/white_1.eps} \\
@@ -211,11 +211,11 @@ Before projecting the data onto the tiling structure, the data chunk, $x$, is Fo
 
 Finally, as suggested in Sec.~\ref{sec:algorithm:discrete}, to optimize the processing, real-to-complex Fourier transforms are performed to compute both the periodograms, $P_s$, and the frequency-domain chunk data vector, $\tilde{x}$. The whitened frequency-domain vector elements are simply given by
 \begin{equation}
-  \tilde{x}_{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S[k]/2}}, \qquad 0 \le k \le \frac{N_c}{2}.
+  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S_n[k]/2}}, \qquad 0 \le k \le \frac{N_c}{2}.
 \end{equation}
-In the following, for brevity, we will drop the $white$ subscript and assume that $\tilde{x}$ refers to the whitened data.
 
 Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is estimated using 300 s of data and is used to whiten one data chunk of 64 s. The plots in Fig.\ref{fig:white} show the PSD of the chunk before and after whitening. As expected, the PSD of the whitened data is flat and equal to 2. We note that, powerful spectral lines tend to be over-whitened. This effect is due to the low PSD resolution and the linear interpolation which is performed to match the chunk frequency resolution: on both sides of a narrow line, the PSD is over-estimated.
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -223,12 +223,12 @@ Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is es
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data projection} \label{sec:algorithm:projection}
 
-The whitened frequency-domain chunk data vector $\tilde{x}$ is applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
+The whitened frequency-domain chunk data vector $\tilde{x}$ (in this section, for brevity, we drop the $white$ superscript) is applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
 \begin{equation}
   X(j,l,q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
   \label{eq:dqtransform1}
 \end{equation}
-where $p_{ql}=\lfloor \phi_{ql}T_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_{ql}$. Note that the index shift $k+p_{ql}$ seems to lead to out-of-range issues for the $\tilde{x}$ array. One must keep in mind that anti-aliasing conditions are in applied to prevent this. This issue will be properly addressed below, in Eq.~\ref{eq:v2}. After being applied the frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_\tau(Q_q, \phi_{ql})$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the simple relation $j=m\frac{N_c}{N_\tau}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
+where $p_{ql}=\lfloor \phi_{ql}T_c \rfloor$ is the number of frequency samples associated to a frequency shift of $+\phi_{ql}$. Note that the shifted index, $k+p_{ql}$, seems to lead to out-of-range issues for the $\tilde{x}$ array. One must keep in mind that anti-aliasing conditions are applied to prevent this. This issue, not important at this point, will be properly addressed below, in Eq.~\ref{eq:v2}. After being applied the frequency shift, the data vector $\tilde{x}$ is multiplied by the window derived in Eq.~\ref{eq:dbisquare1} and is Fourier-transformed back in the time domain, as defined by Eq.~\ref{eq:dFTbackward}. In the tiling structure generated in Sec.\ref{sec:algorithm:tiling}, for a given $Q$ plane and frequency row, only $N_\tau(Q_q, \phi_{ql})$ $Q$ transform coefficients must be computed to cover the time chunk $T_c$. Using the time position of tile $(m,l,q)$, we get the simple relation $j=m\frac{N_c}{N_\tau}$. As a result, the discrete $Q$ transform coefficient for tile $(m,l,q)$ becomes
 \begin{equation}
   X(m, l, q) = \frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi mk/N_\tau}}.
   \label{eq:dqtransform2}
@@ -266,7 +266,7 @@ where
 \end{equation}
 This equation shows that a single and less expensive inverse Fourier transform of $\tilde{v}_{ql}$ is necessary to populate the $N_\tau$ tiles of a frequency row $(q,l)$. As prescribed in Sec.~\ref{sec:algorithm:tiling}, $N_\tau(Q_q, \phi_{ql})$ is rounded up to a power of 2 to offer an optimal Fourier transform.
 
-When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier transform plans are created to perform the inverse Fourier transforms for all $Q$ planes and all frequency rows. Care must be taken when populating the $\tilde{v}_{ql}$ array. Indeed, one must conciliate the different size conventions used until this point: $\tilde{v}_{ql}$ is of size $N_\tau $, the whitened data vector, $\tilde{x}$, resulting from a real-to-complex Fourier transforms, is of size $N_c/2+1$ (cf. Sec.~\ref{sec:algorithm:whitening}), and the window, $\tilde{w}^*_{ql}$, saved without the zero values, is of size $M_{ql}$ (cf. Eq.~\ref{eq:dbisquare2}). When taking into account these conventions, the array $\tilde{v}_{ql}$ now writes:
+When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier transform plans are created to perform the inverse Fourier transforms for all $Q$ planes and all frequency rows. Care must be taken when populating the $\tilde{v}_{ql}$ array. Indeed, one must conciliate the different size conventions used until this point: $\tilde{v}_{ql}$ is of size $N_\tau $, the whitened data vector, $\tilde{x}$, resulting from a real-to-complex Fourier transform, is of size $N_c/2+1$ (cf. Sec.~\ref{sec:algorithm:whitening}), and the window, $\tilde{w}^*_{ql}$, saved without the zero values, is of size $M_{ql}$ (cf. Eq.~\ref{eq:dbisquare2}). When taking into account these conventions, the array $\tilde{v}_{ql}$ now writes:
 \begin{equation}
   \tilde{v}_{ql}[k] =
   \begin{cases}
@@ -278,18 +278,49 @@ When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier tr
 \end{equation}
 The indexes used in Eq.~\ref{eq:v2} are all consistent with vector sizes. The out-of-range issue described at the beginning of this section no longer exists.
 
-To summarize, the $Q$ tansform coefficients are computed for all tiles, $(m,l,q)$, after performing $N_Q\times N_{\phi}(Q,\phi)$ inverse Fourier transforms:
+The $Q$ tansform coefficients are computed by the \texttt{Omicron::Project()} function, for all tiles, $(m,l,q)$, after performing $N_Q\times N_{\phi}(Q,\phi)$ inverse Fourier transforms:
 \begin{equation}
   X(m, l, q) = \frac{N_\tau}{N_c} v_{ql}[m].
   \label{eq:qcoeff}
 \end{equation}
 
+To test the $Q$ transform implementation, we ran the Omicron algorithm over a pure Gaussian colored noise data set. As explained in Sec.~\ref{sec:method:snr}, after the whitening step, we expect an exponential distribution for the $Q$ transform energies $|X_n(m, l, q)|^2$ along a frequency row $(q,l)$. Figure~\ref{fig:noise_energy_gaus} presents the distribution of the energy coefficients obtained by Omicron for $Q=20$ and the frequency row centered on 108.1~Hz. As expected, the distribution mean value is 2.0 and it is well fitted by an exponential.
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/noise_energy_gaus.eps}
+  \caption{Distribution of energies, $|X|^2$, measured by Omicron when ran over Gaussian colored noise data (blue points).  Only tiles in the $Q$ plane with $Q=20$ and along the frequency row centered on 108.1~Hz are selected. The distribution is fitted by an exponential with a very good $\chi^2/ndf$ and the mean value is 2.0, as expected from a whitened signal (see Sec.~\ref{sec:method:snr}).}
+  \label{fig:noise_energy_gaus}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  SNR
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The signal-to-noise ratio} \label{sec:algorithm:snr}
 
+An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using the estimator in Eq.~\ref{eq:snrestimator}:
+\begin{equation}
+  \hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}.
+\end{equation}
+
+%For the denominator, the expectation value for the noise energy is evaluated using a set of tiles, $(i,l,q)$, $i\in\cal{T}$, representing the local stationary white noise. We consider all the tiles in the same $Q$ plane $q$ and along the same frequency row $l$. The time index $i$ can take any value over the chunk duration, excluding the edges overlapping the surrounding chunks: $i \in [f_wT_o/2; N_\tau(Q_q,\phi_l)-f_wT_o/2[$. Across the chunk frequency row, the data may contain outliers which should not be considered as they contradict the stationary noise hypothesis. To exclude these tiles we use the box-plot prescription from Tukey~\cite{tukey:1977}, illustrated in Fig.~\ref{fig:boxplot}. The $Q$ transform energies, $|X|^2$, are distributed into quartiles. Outliers are rejected if they stand above a threshold given by $|X|^2_{75} + 2\Delta |X|^2$, where $|X|^2_{75}$ is the third quartile and $\Delta |X|^2$ is the interquartile range.
+%\begin{figure}
+%  \center
+%  \epsfig{width=10cm, file=./figures/boxplot.eps}
+%  \caption{Box-plot method used to estimate the expectation value of the $Q$ transform energies for a local stationary white noise. For a given chunk of data, the $Q$ transform energies,$|X|^2$, of a frequency row of a $Q$ plane are distributed into quartiles. Outliers are rejected if they lie above a threshold given by $|X|^2_{75} + 2\Delta |X|^2$. Below this value, the distribution is assumed to result from a stationary white noise.}
+%  \label{fig:boxplot}
+%\end{figure}
+%The mean value $\langle |X(i,l,q)|^2 \rangle_{i\in \cal{T}}$ estimated with the box-plot method is biased since a part of the distribution was truncated: $\langle |X_n(m,l,q)|^2 \rangle \neq \langle |X(i,l,q)|^2 \rangle_{i\in \cal{T}}$. However we know that the energy coefficients are exponentially distributed (see Sec.~\ref{sec:method:snr} and Fig.~\ref{fig:boxplot}), it is therefore possible to calculate the bias and correct for it~\cite{Chatterji:2004}:
+%\begin{equation}
+%  \langle |X_n(m,l,q)|^2 \rangle =  \frac{35}{35-\ln(36)} \langle |X(i,l,q)|^2 \rangle_{i\in \cal{T}}.
+%\end{equation}
+%Fig.~\ref{fig:noise_energy} shows an example of the outlier rejection procedure. The $Q$ transform energies computed for real non-stationary data are represented in red and present high-energy outliers. The box-plot procedure is applied and coefficients with $|X|^2>7.2$ are rejected. The right-hand plot in Fig.~\ref{fig:noise_energy} shows the remaining distribution which is highly compatible with an exponential distribution (in blue) expected from a stationary noise.
+%\begin{figure}
+%  \center
+%  \epsfig{width=8cm, file=./figures/noise_energy_comp.eps}
+%  \epsfig{width=8cm, file=./figures/noise_energy_norm.eps}
+%  \caption{Noise energy.as Tiles , 8192 tiles, thr=7.2. }
+%  \label{fig:noise_energy}
+%\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  TRIGGERS

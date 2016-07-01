@@ -172,7 +172,7 @@ bool Otile::ProjectData(fft *aDataFft){
 ////////////////////////////////////////////////////////////////////////////////////
   // project onto q planes
   for(int p=0; p<nq; p++){
-    if(!qplanes[p]->ProjectData(aDataFft)){
+    if(!qplanes[p]->ProjectData(aDataFft,(double)(SeqOverlap/2))){
       cerr<<"Otile::ProjectData: cannot project data onto plane #"<<p<<endl;
       return false;
     }

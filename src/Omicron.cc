@@ -747,7 +747,7 @@ bool Omicron::Whiten(void){
   for(; i<offt->GetSize_f(); i++){
     asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;
     if(asdval<=0){
-      cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz"<<endl;
+      cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz (="<<asdval<<")"<<endl;
       return false;
     }
     asdval=sqrt(asdval);
