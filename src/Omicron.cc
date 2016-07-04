@@ -620,18 +620,13 @@ bool Omicron::WriteOutput(void){
   }
   
   //*** MAPS
-  if(fOutProducts.find("maps")!=string::npos){
-    double snr;
+  if(fOutProducts.find("map")!=string::npos){
+    double snr;// snr max of the full map
     if(fVerbosity>1) cout<<"\t- write maps"<<endl;
-    if(fOutProducts.find("html")==string::npos) // need to make thumbnails for html
-      snr=tile->SaveMaps(outdir[chanindex],
-			 triggers[chanindex]->GetNameConv()+"_OMICRON",
-			 fOutFormat,fWindows,false);
-    else
-      snr=tile->SaveMaps(outdir[chanindex],
-			 triggers[chanindex]->GetNameConv()+"_OMICRON",
-			 fOutFormat,fWindows,true);
-    if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;
+    snr=tile->SaveMaps(outdir[chanindex],
+		       triggers[chanindex]->GetNameConv()+"_OMICRON",
+		       fOutFormat,fWindows,(bool)(fOutProducts.find("html")+1));
+    if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;// get snr max over all chunks
   }
 
   //*** TRIGGERS

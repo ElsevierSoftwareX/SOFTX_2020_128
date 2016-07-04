@@ -178,16 +178,20 @@ class Otile: public GwollumPlot {
     if(!aMapFill.compare("amplitude")) mapfill="amplitude";
     else if(!aMapFill.compare("phase")) mapfill="phase";
     else mapfill="snr";
-    for(int q=0; q<nq; q++) qplanes[q]->GetZaxis()->SetTitle(mapfill.c_str());
+    for(int q=0; q<nq; q++) qplanes[q]->GetZaxis()->SetTitle(StringToUpper(mapfill).c_str());
     return;
   };
 
   /**
-   * Sets the maximum for the map vertical scale.
-   * If the value is negative, an automatic scale is used.
-   * @param aVScale maximal value
+   * Sets the map vertical range.
+   * If aZmin>=aZmax, the map is automatically ranged.
+   * @param aZmin minimum Z value
+   * @param aZmax maximum Z value
    */
-  inline void SetVScale(const double aVScale){ vscale=aVScale; };
+  inline void SetRangez(const double aZmin=-1.0, const double aZmax=-1.0){
+    vrange[0]=aZmin;
+    vrange[1]=aZmax;
+  };
 
   /**
    * Sets a SNR threshold when saving maps and triggers.
@@ -199,6 +203,12 @@ class Otile: public GwollumPlot {
     SNRThr_map=aSNRThr_map;
     for(int q=0; q<nq; q++) qplanes[q]->SetSNRThr(aSNRThr_trigger);
   };
+  
+  /**
+   * Returns the current map fill type.
+   * See SetMapFill().
+   */
+  inline string GetMapFill(void){ return mapfill; };
 
   /**
    * Returns the current SNR threshold for maps.
@@ -297,7 +307,7 @@ class Otile: public GwollumPlot {
   Oqplane **qplanes;            ///< Q planes
   int nq;                       ///< number of q planes
   int TimeRange;                ///< map time range
-  double vscale;                ///< map vertical scale
+  double vrange[2];             ///< map vertical range
   double SNRThr_map;            ///< map SNR threshold
   string mapfill;               ///< map fill type
   int **t_snrmax;               ///< loudest time tile (SNR)

@@ -51,13 +51,6 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
-  //***** set map format ***** 
-  if(!io->GetOpt("OUTPUT","MAPFILL", fMapfill)){
-    cerr<<"Omicron::ReadOptions: No map fill format (OUTPUT/MAPFILL)  --> set default: snr"<<endl;
-    fMapfill="snr";
-  }
-  //*****************************
-
   //***** set output style *****
   string outstyle;
   if(!io->GetOpt("OUTPUT","STYLE", outstyle)){
@@ -173,7 +166,10 @@ void Omicron::ReadOptions(void){
   }
   tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
   tile->SetOverlapDuration(timing[1]);
-  tile->SetMapFill(fMapfill);
+  if(fOutProducts.find("mapsnr")!=string::npos) tile->SetMapFill("snr");
+  else if(fOutProducts.find("mapamplitude")!=string::npos) tile->SetMapFill("amplitude");
+  else if(fOutProducts.find("mapphase")!=string::npos) tile->SetMapFill("phase");
+  else tile->SetMapFill("snr");
   QRange.clear(); FRange.clear();
   for(int c=0; c<nchannels; c++)
     status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
@@ -213,13 +209,36 @@ void Omicron::ReadOptions(void){
     fWindows.push_back(tile->GetTimeRange()-tile->GetOverlapDuration());
   //*****************************
 
-  //***** vertical scale *****
-  double vscale;
-  if(!io->GetOpt("PARAMETER","VSCALE", vscale)){
-    cerr<<"Omicron::ReadOptions: No vertical scale option (PARAMETER/VSCALE)  --> set default: -1"<<endl;
-    vscale=-1.0;
+  //***** map scale *****
+  int mapvscale;
+  if(!io->GetOpt("PARAMETER","MAPLOGSCALE", mapvscale)){
+    cerr<<"Omicron::ReadOptions: No map vertical scale option (PARAMETER/MAPLOGSCALE)  --> set default: 1"<<endl;
+    mapvscale=1;
   }
-  tile->SetVScale(vscale);
+  tile->SetLogz(mapvscale);
+  //*****************************
+
+  //***** map vertical scale *****
+  vector <double> mapvrange;
+  if(!io->GetOpt("PARAMETER","MAPVRANGE", mapvrange)){
+    if(!tile->GetMapFill().compare("snr")){
+      cerr<<"Omicron::ReadOptions: No map vertical range option (PARAMETER/MAPVRANGE)  --> set default: 1-30"<<endl;
+      mapvrange.push_back(1.0); mapvrange.push_back(30);
+    }
+    else if(!tile->GetMapFill().compare("amplitude")){
+      cerr<<"Omicron::ReadOptions: No map vertical range option (PARAMETER/MAPVRANGE)  --> set default: automatic"<<endl;
+      mapvrange.push_back(-1.0); mapvrange.push_back(-1.0);
+    }
+    else{
+      cerr<<"Omicron::ReadOptions: No map vertical range option (PARAMETER/MAPVRANGE)  --> set default: -pi-pi"<<endl;
+      mapvrange.push_back(-TMath::Pi()); mapvrange.push_back(-TMath::Pi());
+    }
+  }
+  if(mapvrange.size()<2){
+    if(mapvrange[0]>0) mapvrange.insert(mapvrange.begin(),mapvrange[0]/10);
+    else mapvrange.push_back(mapvrange[0]);
+  }
+  tile->SetRangez(mapvrange[0],mapvrange[1]);
   //*****************************
 
   //***** fft plans *****

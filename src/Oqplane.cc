@@ -54,7 +54,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
   // default snr threshold
   SetSNRThr(2.0);
-    
+
   // band variables
   bandNoiseAmplitude = new double  [GetNBands()];
   bandFFT            = new fft*    [GetNBands()];

@@ -112,7 +112,7 @@ void Omicron::MakeHtml(void){
   report<<"  <tr><td>Q range:</td><td>"<<tile->GetQ(0)<<" &rarr; "<<tile->GetQ(tile->GetNQ()-1)<<"</td></tr>"<<endl;
   report<<"  <tr><td>Tiling maximal mismatch:</td><td>"<<tile->GetMismatchMax()*100.0<<" %</td></tr>"<<endl;
   if(fOutProducts.find("triggers")!=string::npos) report<<"  <tr><td>SNR threshold (triggers):</td><td>SNR &gt; "<<tile->GetSNRTriggerThr()<<"</td></tr>"<<endl;
-  if(fOutProducts.find("maps")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<tile->GetSNRMapThr()<<"</td></tr>"<<endl;
+  if(fOutProducts.find("map")!=string::npos) report<<"  <tr><td>SNR threshold (maps):</td><td>SNR &gt; "<<tile->GetSNRMapThr()<<"</td></tr>"<<endl;
   if(fClusterAlgo.compare("none")) report<<"  <tr><td>Trigger clustering:</td><td>"<<fClusterAlgo<<", dt = "<<triggers[0]->GetClusterizeDt()<<" sec</td></tr>"<<endl;
   else report<<"  <tr><td>Trigger clustering:</td><td>NONE</td></tr>"<<endl;
   report<<"</table>"<<endl;
@@ -147,7 +147,7 @@ void Omicron::MakeHtml(void){
 
   // channel index
   report<<"<h2>Channel index</h2>"<<endl;
-  if(fOutProducts.find("maps")!=string::npos){// color scale for glitchiness
+  if(fOutProducts.find("map")!=string::npos){// color scale for glitchiness
     report<<"<table><tr>"<<endl;
     for(int c=0; c<17; c++) report<<"<td bgcolor=\""<<colorcode[c]<<"\"></td>"<<endl;
     report<<"<td>event strength</td>"<<endl;
@@ -182,7 +182,7 @@ void Omicron::MakeHtml(void){
     outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
 
     // processing report
-    if(fOutProducts.find("maps")!=string::npos&&chan_mapsnrmax[c]<tile->GetSNRMapThr()){
+    if(fOutProducts.find("map")!=string::npos&&chan_mapsnrmax[c]<tile->GetSNRMapThr()){
       report<<"<h2 class=\"off\"><img src=\"./led-"<<led<<".gif\" />&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetNameConv()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetNameConv()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetNameConv()<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
@@ -210,7 +210,7 @@ void Omicron::MakeHtml(void){
 	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<chunktfile[s]<<"\">Triggers</a></td>"<<endl;
       
       // maps
-      if(fOutProducts.find("maps")!=string::npos){
+      if(fOutProducts.find("map")!=string::npos){
 	tmpstream.clear(); tmpstream.str("");
 	tmpstream<<outdir[c]<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[s]<<"-"<<fWindows[0]<<"."<<form;
 	if(IsBinaryFile(tmpstream.str())){
@@ -259,7 +259,7 @@ void Omicron::MakeHtml(void){
     report<<"</table>"<<endl;
 
     // add window plots
-    if(fOutProducts.find("maps")!=string::npos){
+    if(fOutProducts.find("map")!=string::npos){
       report<<"<table>"<<endl;
       report<<"  <tr>"<<endl;
       for(int w=0; w<(int)fWindows.size(); w++)
