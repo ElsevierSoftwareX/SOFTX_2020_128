@@ -281,13 +281,13 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   // apply map SNR threshold (first window only!)
   if(qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0])<SNRThr_map*SNRThr_map){
     if(fVerbosity) cout<<"Otile::SaveMaps: map "<<aName<<" (+-"<<aWindows[0]/2.0<<"s) is below SNR threshold -> do not save"<<endl;
-    int qq = q_snrmax[0];
+    double ss = qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0]);
     delete q_snrmax;
     for(int q=0; q<nq; q++){
       delete t_snrmax[q];
       delete f_snrmax[q];
     }
-    return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
+    return sqrt(ss);
   }
 
   // graphix
@@ -303,13 +303,13 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 
   // no graphical format --> stop here
   if(!form.size()){
-    int qq = q_snrmax[0];
+    double ss = qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0]);
     delete q_snrmax;
     for(int q=0; q<nq; q++){
       delete t_snrmax[q];
       delete f_snrmax[q];
     }
-    return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
+    return sqrt(ss);
   }
   
   // fill maps
@@ -402,9 +402,13 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     delete fullmap;
   }
 
-  int qq = q_snrmax[0];
+  double ss = qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0]);
+  for(int q=0; q<nq; q++){
+    delete t_snrmax[q];
+    delete f_snrmax[q];
+  }
   delete q_snrmax;
-  return sqrt(qplanes[qq]->GetTileSNR2(t_snrmax[qq][0],f_snrmax[qq][0]));
+  return sqrt(ss);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
