@@ -517,8 +517,8 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     cerr<<"Omicron::Condition: input vector is empty ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 2;
   }
-  if(aInVect[0]==aInVect[aInVectSize-1]){// FIXME: use mean/min/max
-    cerr<<"Omicron::Condition: input vector appears to be flat ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+  if(aInVect[0]==aInVect[aInVectSize-1]&&IsFlat(aInVectSize,aInVect)){
+    cerr<<"Omicron::Condition: input vector is flat ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 3;
   }
     
