@@ -59,9 +59,9 @@ double* Omicron::GetTukeyWindow(const int aSize, const int aFractionSize){
 ////////////////////////////////////////////////////////////////////////////////////
 bool Omicron::IsFlat(const int aInVectSize, double *aInVect){
 ////////////////////////////////////////////////////////////////////////////////////
-  double val = aInVectSize[0];
+  double val = aInVect[0];
   for(int i=0; i<aInVectSize; i++){
-    if(aInVect[i]!=prev) return false;
+    if(aInVect[i]!=val) return false;
   }
   return true;
 }
