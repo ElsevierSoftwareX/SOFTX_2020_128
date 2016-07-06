@@ -307,6 +307,7 @@ class Omicron {
   void PrintASCIIlogo(void);    ///< print ascii logo
   static const string colorcode[17];
   string GetColorCode(const double aSNRratio);
+  bool IsFlat(const int aInVectSize, double *aInVect);
 
   ClassDef(Omicron,0)  
 };
