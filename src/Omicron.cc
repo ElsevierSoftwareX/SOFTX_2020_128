@@ -76,6 +76,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_MISMATCHMAX");     fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_SNRTHRESHOLD");    fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_PSDLENGTH");       fOptionType.push_back("i");
+  fOptionName.push_back("omicron_PARAMETER_HIGHPASS");        fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FFTPLAN");         fOptionType.push_back("s");
@@ -124,14 +125,15 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],tile->GetMismatchMax());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],tile->GetSNRTriggerThr());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],spectrum[c]->GetDataBufferLength());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],fClusterAlgo);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],triggers[c]->GetClusterizeDt());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],fftplan);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],triggers[c]->GetHighPassFrequency());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],fClusterAlgo);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],triggers[c]->GetClusterizeDt());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fftplan);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],GPlot->GetCurrentStyle());
   }
   
   // default output directory: main dir

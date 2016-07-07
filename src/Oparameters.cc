@@ -172,7 +172,7 @@ void Omicron::ReadOptions(void){
   else tile->SetMapFill("snr");
   QRange.clear(); FRange.clear();
   for(int c=0; c<nchannels; c++)
-    status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin());
+    status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin()*0.0);
   //*****************************
   
   //***** Tile selection *****
@@ -194,6 +194,14 @@ void Omicron::ReadOptions(void){
       spectrum[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
     else // increase the resolution not to extrapolate the PSD.
       spectrum[c] = new Spectrum(2*(int)ceil((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  }
+  //*****************************
+
+  //***** set highpass filter *****
+  double hplf;
+  if(io->GetOpt("PARAMETER","HIGHPASS", hplf)){
+    for(int c=0; c<nchannels; c++)
+      status_OK*=triggers[c]->SetHighPassFrequency(hplf);
   }
   //*****************************
   
