@@ -86,8 +86,10 @@ void Omicron::ReadOptions(void){
   }
   nchannels = (int)channels.size();
   triggers = new MakeTriggers* [nchannels];
-  for(int c=0; c<nchannels; c++)
+  for(int c=0; c<nchannels; c++){
     triggers[c] = new MakeTriggers(channels[c],fVerbosity);
+    triggers[c]->SetDCRemoval(true);
+  }
   channels.clear();
   //*****************************
   
