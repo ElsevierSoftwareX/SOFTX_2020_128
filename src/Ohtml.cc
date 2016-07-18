@@ -170,20 +170,20 @@ void Omicron::MakeHtml(void){
   report<<endl;
 
   //**** channel report *********
-  string type_first="", led;
+  string type_first="", led, led_h;
   for(int c=0; c<nchannels; c++){
 
     // select processing led
-    if(chan_write_ctr[c]==chunk_ctr) led="green";
-    else if(chan_data_ctr[c]!=chunk_ctr) led="blue";
-    else led="red";
+    if(chan_write_ctr[c]==chunk_ctr){ led="green"; led_h="Processing OK"; }
+    else if(chan_data_ctr[c]!=chunk_ctr){ led="blue"; led_h="Data access failed"; }
+    else{ led="red"; led_h="Processing failed"; }
 
     // write processed segments
     outSegments[c]->Write(outdir[c]+"/omicron.segments.txt");
 
     // processing report
     if(fOutProducts.find("map")!=string::npos&&chan_mapsnrmax[c]<tile->GetSNRMapThr()){
-      report<<"<h2 class=\"off\"><img src=\"./led-"<<led<<".gif\" />&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetNameConv()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetNameConv()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
+      report<<"<h2 class=\"off\"><img src=\"./led-"<<led<<".gif\" alt=\""<<led_h<<"\" title=\""<<led_h<<"\"/>&nbsp;"<<triggers[c]->GetName()<<" <a href=\"javascript:void(0)\" name=\""<<triggers[c]->GetNameConv()<<"\" onclick=\"toggle('id_"<<triggers[c]->GetNameConv()<<"')\">[click here to expand/hide]</a></h2>"<<endl;
       report<<"<div class=\"omicronchannel\" id=\"id_"<<triggers[c]->GetNameConv()<<"\" style=\"visibility:hidden;height:0;\">"<<endl;
     }
     else{

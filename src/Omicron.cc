@@ -619,6 +619,12 @@ bool Omicron::WriteOutput(void){
     // apply FFT normalization
     for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
     SaveTS(true);
+    int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
+    int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
+    if(dsize>=spectrum[chanindex]->GetSpectrumSize()){
+      if(!spectrum[chanindex]->AddData(dsize, offt->GetRe_t(), dstart)) return 6;
+    }
+    SaveAPSD("ASD");
   }
   
   //*** MAPS
@@ -765,7 +771,6 @@ void Omicron::SaveAPSD(const string aType){
   if(!aType.compare("ASD")) GAPSD = spectrum[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   else                     GAPSD = spectrum[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD==NULL) return;
-
   // extract sub-segment A/PSD
   TGraph **G;
   G = new TGraph* [spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1)];
@@ -805,7 +810,7 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD->GetYaxis()->SetLabelSize(0.045);
   GAPSD->GetXaxis()->SetTitleSize(0.045);
   GAPSD->GetYaxis()->SetTitleSize(0.045);
-  //GAPSD->GetYaxis()->SetRangeUser(1e-25,1e-21);
+  //GAPSD->GetYaxis()->SetRangeUser(1e-10,1e-6);
   
   // set new name
   stringstream ss;
