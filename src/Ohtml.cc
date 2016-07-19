@@ -101,8 +101,6 @@ void Omicron::MakeHtml(void){
   report<<"<hr />"<<endl;
   report<<endl;
 
-  // FIXME: add injections
-
   // search parameters
   report<<"<h2>Parameters</h2>"<<endl;
   report<<"<table>"<<endl;
@@ -137,7 +135,8 @@ void Omicron::MakeHtml(void){
     report<<"  <tr><td>FFL data:</td><td>"<<FFL_inject->GetInputFfl()<<"</td></tr>"<<endl;
     report<<"</table>"<<endl;
     report<<"<table>"<<endl;
-    for(int c=0; c<nchannels; c++) report<<"  <tr><td>"<<triggers[c]->GetName()<<"</td><td>"<<fInjChan[c]<<"</td><td>"<<fInjFact[c]<<"</td>"<<endl;
+    report<<"  <tr><th>Main channel</th><th>Injection channel</th><th>Injection factor</th></tr>"<<endl;
+    for(int c=0; c<nchannels; c++) report<<"  <tr><td>"<<triggers[c]->GetName()<<"</td><td>"<<fInjChan[c]<<"</td><td>"<<fInjFact[c]<<"</td></tr>"<<endl;
     report<<"</table>"<<endl;
   }
   if(!fsginj&&FFL_inject==NULL)

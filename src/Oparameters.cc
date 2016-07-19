@@ -71,8 +71,10 @@ void Omicron::ReadOptions(void){
 
   //***** ffl file *****
   string fflfile;
-  if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile))
+  if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile)){
     FFL = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+    FFL->SetName("mainffl");
+  }
   else
     FFL=NULL;
   //*****************************
@@ -282,12 +284,13 @@ void Omicron::ReadOptions(void){
     }
     if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
       FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+      FFL_inject->SetName("injffl");
     }
     else
       FFL_inject=FFL;
   }
   //*****************************
-
+  
   //***** software injections *****
   inject=NULL; string injfile;
   if(io->GetOpt("INJECTION","FILENAME", injfile)){

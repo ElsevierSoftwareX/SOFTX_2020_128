@@ -52,6 +52,18 @@ td {
     padding-bottom: 0px;
 }
     
+th {
+    font-family:"helvetica", helvetica;
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+    text-align: left;
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+    
 a:link, a:visited {
     font-family:"helvetica", helvetica; 
     font-size: 13px;
