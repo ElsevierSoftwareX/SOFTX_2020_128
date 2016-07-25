@@ -119,8 +119,8 @@ class Omicron {
    * It is the user's responsibility to delete the returned data vector.
    *
    * If this function fails, a pointer to NULL is returned.
-   * @param aDataVector pointer to the data vector
-   * @param aSize sample size of the data vector
+   * @param aDataVector pointer to the returned data vector
+   * @param aSize sample size of the return ed data vector
    */
   bool LoadData(double **aDataVector, int *aSize);
 
@@ -133,7 +133,7 @@ class Omicron {
    * If the returned value is negative, it means that a fatal error occured and the Omicron object got corrupted. If it is positive, it means that the conditioning failed but the Omicron object is still valid for further use. If it is 0, the conditioning ended correctly. The error code is the following:
    * - -1 = the Omicron object is corrupted.
    * -  0 = OK
-   * -  1 = the input vector is NULL
+   * -  1 = the input vector is pointing to NULL
    * -  2 = the input vector size is 0
    * -  3 = the input vector appears to be flat
    * -  4 = the native sampling frequency cannot be updated

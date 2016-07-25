@@ -866,8 +866,7 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD1->GetYaxis()->SetLabelSize(0.045);
   GAPSD1->GetXaxis()->SetTitleSize(0.045);
   GAPSD1->GetYaxis()->SetTitleSize(0.045);
-  GAPSD1->GetYaxis()->SetRangeUser(GAPSD1->GetMinimum()/10.0,GAPSD1->GetMinimum()*10.0);
-  
+   
   // set new name
   stringstream ss;
   ss<<aType;
