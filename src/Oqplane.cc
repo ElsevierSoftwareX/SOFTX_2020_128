@@ -32,7 +32,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // derived parameters
   QPrime                           = Q / sqrt(11.0);
   int NyquistFrequency             = SampleFrequency/2;
-  double MinimumAllowableFrequency = 50.0 * Q / (2.0 * TMath::Pi() * (double)TimeRange);
+  double MinimumAllowableFrequency = 4.0 * Q / (2.0 * TMath::Pi() * (double)TimeRange);
   double MaximumAllowableFrequency = (double)NyquistFrequency/(1.0 + sqrt(11.0) / Q);
   
   // adjust frequency range
@@ -137,7 +137,7 @@ void Oqplane::FillMap(const string aContentType){
   else{
     for(int f=0; f<GetNBands(); f++)
       for(int t=0; t<GetBandNtiles(f); t++)
-	SetTileContent(t,f,100.0);
+	SetTileContent(t,f,50.0*(t%2));
   }
   
   return;

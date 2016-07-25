@@ -4,8 +4,7 @@
 #include "Omicron.h"
 
 ClassImp(Omicron)
-  
-const string Omicron::colorcode[17] = {"#1b02e6","#0220e6","#0257e6","#028ee6","#01c5e6","#01e6cf","#01e698","#01e660","#01e629","#10e601","#7fe601","#b6e601","#e6de00","#e6a600","#e66f00","#e63800","#e60000"};
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 Omicron::Omicron(const string aOptionFile){ 
@@ -38,7 +37,7 @@ Omicron::Omicron(const string aOptionFile){
   std::sort(fWindows.begin(), fWindows.end());
 
   // spectrum status
-  for(int c=0; c<nchannels; c++) status_OK*=spectrum[c]->GetStatus();
+  for(int c=0; c<nchannels; c++) status_OK*=spectrum1[c]->GetStatus()*spectrum2[c]->GetStatus()*spectrumw->GetStatus();
 
   // chunk FFT
   offt = new fft(tile->GetTimeRange()*triggers[0]->GetWorkingFrequency(), fftplan, "r2c");
@@ -124,7 +123,7 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[21],tile->GetOverlapDuration());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[22],tile->GetMismatchMax());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[23],tile->GetSNRTriggerThr());
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],spectrum[c]->GetDataBufferLength());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[24],spectrum1[c]->GetDataBufferLength());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[25],triggers[c]->GetHighPassFrequency());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],triggers[c]->GetClusterizeDt());
@@ -186,10 +185,13 @@ Omicron::~Omicron(void){
   for(int c=0; c<nchannels; c++){
     delete outSegments[c];
     delete triggers[c];
-    delete spectrum[c];
+    delete spectrum1[c];
+    delete spectrum2[c];
   }
   delete outSegments;
-  delete spectrum;
+  delete spectrum1;
+  delete spectrum2;
+  delete spectrumw;
   delete triggers;
   if(FFL_inject!=FFL&&FFL_inject!=NULL) delete FFL_inject;
   if(FFL!=NULL) delete FFL;
@@ -338,8 +340,7 @@ bool Omicron::NewChunk(void){
 
   // new segment --> reset PSD buffer
   if(newseg)
-    for(int c=0; c<nchannels; c++) spectrum[c]->Reset();
-  
+    for(int c=0; c<nchannels; c++){ spectrum1[c]->Reset(); spectrum2[c]->Reset(); }  
   // generate SG parameters
   if(fsginj) oinj->MakeWaveform();
     
@@ -379,7 +380,7 @@ bool Omicron::DefineNewChunk(const int aTimeStart, const int aTimeEnd, const boo
 
   // reset PSD buffer
   if(aResetPSDBuffer)
-    for(int c=0; c<nchannels; c++) spectrum[c]->Reset();
+    for(int c=0; c<nchannels; c++){ spectrum1[c]->Reset(); spectrum2[c]->Reset(); }
       
   chunk_ctr++;// one more chunk
   return true;
@@ -541,29 +542,51 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
   for(int i=0; i<offt->GetSize_t(); i++) ChunkVect[i] *= TukeyWindow[i];
 
-  // update spectrum (if enough data)
-  if(fVerbosity>1) cout<<"\t- update spectrum..."<<endl;
+  // update first spectrum (if enough data)
+  if(fVerbosity>1) cout<<"\t- update spectrum 1..."<<endl;
   int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
   int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
-  if(dsize>=spectrum[chanindex]->GetSpectrumSize()){
-    if(!spectrum[chanindex]->AddData(dsize, ChunkVect, dstart)) return 6;
+  if(dsize>=spectrum1[chanindex]->GetSpectrumSize()){
+    if(!spectrum1[chanindex]->AddData(dsize, ChunkVect, dstart)) return 6;
   }
-
-  // compute tiling power
-  if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
-  if(!tile->SetPower(spectrum[chanindex])) return 7;
-
-  // save sg injection parameters
-  if(fsginj) SaveSG();
 
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
-  if(!offt->Forward(ChunkVect)) return 8;
+  if(!offt->Forward(ChunkVect)) return 7;
   // note: the FFT normalization is performed in Whiten()
 
-  // whitening
-  if(fVerbosity>1) cout<<"\t- whiten chunk"<<endl;
-  if(!Whiten()) return 9;
+  // 1st whitening
+  if(fVerbosity>1) cout<<"\t- whiten chunk (first)"<<endl;
+  if(!Whiten(spectrum1[chanindex])) return 8;
+
+  // back in the time domain
+  if(fVerbosity>1) cout<<"\t- move the data back in the time domain..."<<endl;
+  offt->Backward();
+
+  // apply FFT normalization
+  for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
+
+  // update second spectrum
+  if(fVerbosity>1) cout<<"\t- update spectrum 2..."<<endl;
+  double *rvec = offt->GetRe_t();
+  if(!spectrum2[chanindex]->AddData(dsize, rvec, dstart)){ delete rvec; return 9; }
+  delete rvec;
+  
+  // fft-forward the chunk data
+  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
+  offt->Forward();
+  // note: the FFT normalization is performed in Whiten()
+
+  // 2nd whitening
+  if(fVerbosity>1) cout<<"\t- whiten chunk (second)"<<endl;
+  if(!Whiten(spectrum2[chanindex])) return 10;
+
+  // compute tiling power
+  if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
+  if(!tile->SetPower(spectrum1[chanindex])) return 11;///////////////////// FIXME!!!
+
+  // save sg injection parameters
+  if(fsginj) SaveSG();
 
   chan_cond_ctr[chanindex]++;
   return 0;
@@ -619,12 +642,12 @@ bool Omicron::WriteOutput(void){
     // apply FFT normalization
     for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
     SaveTS(true);
-    int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
-    int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
-    if(dsize>=spectrum[chanindex]->GetSpectrumSize()){
-      if(!spectrum[chanindex]->AddData(dsize, offt->GetRe_t(), dstart)) return 6;
+
+    if(fOutProducts.find("whitepsd")!=string::npos){
+      int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
+      int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
+      if(spectrumw->LoadData(dsize, offt->GetRe_t(), dstart)) SaveWPSD();
     }
-    SaveAPSD("ASD");
   }
   
   //*** MAPS
@@ -728,7 +751,7 @@ void Omicron::PrintStatusInfo(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Whiten(void){
+bool Omicron::Whiten(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 
   int i=0; // frequency index
@@ -739,7 +762,7 @@ bool Omicron::Whiten(void){
   i++;
   
   // zero-out below highpass frequency
-  int n = (int)(tile->GetFrequencyMin()*tile->GetTimeRange());
+  int n = (int)(triggers[chanindex]->GetHighPassFrequency()*tile->GetTimeRange());
   for(; i<n; i++){
     offt->SetRe_f(i,0.0);
     offt->SetIm_f(i,0.0);
@@ -748,7 +771,7 @@ bool Omicron::Whiten(void){
   // normalize data by the ASD
   double asdval;
   for(; i<offt->GetSize_f(); i++){
-    asdval=spectrum[chanindex]->GetPower((double)i/(double)tile->GetTimeRange())/2.0;
+    asdval=aSpec->GetPower((double)i/(double)tile->GetTimeRange())/2.0;
     if(asdval<=0){
       cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz (="<<asdval<<")"<<endl;
       return false;
@@ -766,57 +789,90 @@ bool Omicron::Whiten(void){
 void Omicron::SaveAPSD(const string aType){
 ////////////////////////////////////////////////////////////////////////////////////
 
-  // extract A/PSD 
-  TGraph *GAPSD;
-  if(!aType.compare("ASD")) GAPSD = spectrum[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
-  else                     GAPSD = spectrum[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
-  if(GAPSD==NULL) return;
-  // extract sub-segment A/PSD
-  TGraph **G;
-  G = new TGraph* [spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1)];
+  // extract A/PSD 1
+  TGraph *GAPSD1;
+  if(!aType.compare("ASD")) GAPSD1 = spectrum1[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  else                      GAPSD1 = spectrum1[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(GAPSD1==NULL) return;
+  /*
+  // extract A/PSD 2
+  TGraph *GAPSD2;
+  if(!aType.compare("ASD")) GAPSD2 = spectrum2[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  else                     GAPSD2 = spectrum2[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(GAPSD2==NULL) return;
+  
+  // combine the 2 apsd (geometrically)
+  for(int i=0; i<GAPSD1->GetN(); i++) GAPSD1->GetY()[i] *= (GAPSD2->GetY()[i]/2.0);
+  delete GAPSD2;
+  */
+  // extract sub-segment A/PSD 1
+  TGraph **G1;
+  G1 = new TGraph* [spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1)];
   if(!aType.compare("ASD")){
-    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0); i++) G[i] = spectrum[chanindex]->GetSubASD(0,i);
-    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(1); i++) G[spectrum[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum[chanindex]->GetSubASD(1,i);
+    for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0); i++) G1[i] = spectrum1[chanindex]->GetSubASD(0,i);
+    for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++) G1[spectrum1[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum1[chanindex]->GetSubASD(1,i);
   }
   else{
-    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0); i++) G[i] = spectrum[chanindex]->GetSubPSD(0,i);
-    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(1); i++) G[spectrum[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum[chanindex]->GetSubPSD(1,i);
+    for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0); i++) G1[i] = spectrum1[chanindex]->GetSubPSD(0,i);
+    for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++) G1[spectrum1[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum1[chanindex]->GetSubPSD(1,i);
   }
 
+  /*
+  // extract sub-segment A/PSD 2
+  TGraph **G2;
+  G2 = new TGraph* [spectrum2[chanindex]->GetNSubSegmentsMax(0)+spectrum2[chanindex]->GetNSubSegmentsMax(1)];
+  if(!aType.compare("ASD")){
+    for(int i=0; i<spectrum2[chanindex]->GetNSubSegmentsMax(0); i++) G2[i] = spectrum2[chanindex]->GetSubASD(0,i);
+    for(int i=0; i<spectrum2[chanindex]->GetNSubSegmentsMax(1); i++) G2[spectrum2[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum2[chanindex]->GetSubASD(1,i);
+  }
+  else{
+    for(int i=0; i<spectrum2[chanindex]->GetNSubSegmentsMax(0); i++) G2[i] = spectrum2[chanindex]->GetSubPSD(0,i);
+    for(int i=0; i<spectrum2[chanindex]->GetNSubSegmentsMax(1); i++) G2[spectrum2[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum2[chanindex]->GetSubPSD(1,i);
+  }
+  
+  // combine the 2 apsd (geometrically)
+  for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
+    if(G1[i]==NULL) continue;
+    for(int j=0; j<G1[i]->GetN(); j++) G1[i]->GetY()[j] *= (G2[i]->GetY()[j]/2.0);
+    delete G2[i];
+  }
+  delete G2;
+  */
+  
   // cosmetics
   GPlot->SetLogx(1);
   GPlot->SetLogy(1);
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
-  GPlot->Draw(GAPSD,"AP");
-  for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++){
-    if(G[i]!=NULL) GPlot->Draw(G[i],"Lsame");
+  GPlot->Draw(GAPSD1,"AP");
+  for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
+    if(G1[i]!=NULL) GPlot->Draw(G1[i],"Lsame");
   }
-  GAPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
+  GAPSD1->GetHistogram()->SetXTitle("Frequency [Hz]");
   if(aType.compare("ASD")){
-    GAPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
-    GAPSD->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
+    GAPSD1->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
+    GAPSD1->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
   }
   else{
-    GAPSD->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
-    GAPSD->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
+    GAPSD1->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
+    GAPSD1->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
   }
-  GPlot->Draw(GAPSD,"PLsame");
+  GPlot->Draw(GAPSD1,"PLsame");
   GPlot->RedrawAxis();
   GPlot->RedrawAxis("g");
-  GAPSD->SetLineWidth(1);
-  GAPSD->GetXaxis()->SetTitleOffset(1.1);
-  GAPSD->GetXaxis()->SetLabelSize(0.045);
-  GAPSD->GetYaxis()->SetLabelSize(0.045);
-  GAPSD->GetXaxis()->SetTitleSize(0.045);
-  GAPSD->GetYaxis()->SetTitleSize(0.045);
-  //GAPSD->GetYaxis()->SetRangeUser(1e-10,1e-6);
+  GAPSD1->SetLineWidth(1);
+  GAPSD1->GetXaxis()->SetTitleOffset(1.1);
+  GAPSD1->GetXaxis()->SetLabelSize(0.045);
+  GAPSD1->GetYaxis()->SetLabelSize(0.045);
+  GAPSD1->GetXaxis()->SetTitleSize(0.045);
+  GAPSD1->GetYaxis()->SetTitleSize(0.045);
+  //GAPSD1->GetYaxis()->SetRangeUser(1e-10,1e-6);
   
   // set new name
   stringstream ss;
   ss<<aType;
   ss<<"_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
-  GAPSD->SetName(ss.str().c_str());
+  GAPSD1->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
   // ROOT
@@ -826,9 +882,9 @@ void Omicron::SaveAPSD(const string aType){
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fpsd->cd();
-    GAPSD->Write();
-    for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++){
-      if(G[i]!=NULL) G[i]->Write();
+    GAPSD1->Write();
+    for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
+      if(G1[i]!=NULL) G1[i]->Write();
     }
     fpsd->Close();
   }
@@ -852,10 +908,79 @@ void Omicron::SaveAPSD(const string aType){
   }
   
   form.clear();
-  delete GAPSD;
-  for(int i=0; i<spectrum[chanindex]->GetNSubSegmentsMax(0)+spectrum[chanindex]->GetNSubSegmentsMax(1); i++)
-    if(G[i]!=NULL) delete G[i];
-  delete G;
+  delete GAPSD1;
+  for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++)
+    if(G1[i]!=NULL) delete G1[i];
+  delete G1;
+
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Omicron::SaveWPSD(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // extract PSD
+  TGraph *GPSD;
+  GPSD = spectrumw->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(GPSD==NULL) return;
+  
+  // cosmetics
+  GPlot->SetLogx(1);
+  GPlot->SetLogy(1);
+  GPlot->SetGridx(1);
+  GPlot->SetGridy(1);
+  GPlot->Draw(GPSD,"APL");
+  GPlot->RedrawAxis();
+  GPlot->RedrawAxis("g");
+  GPSD->SetLineWidth(1);
+  GPSD->GetXaxis()->SetTitleOffset(1.1);
+  GPSD->GetXaxis()->SetLabelSize(0.045);
+  GPSD->GetYaxis()->SetLabelSize(0.045);
+  GPSD->GetXaxis()->SetTitleSize(0.045);
+  GPSD->GetYaxis()->SetTitleSize(0.045);
+  GPSD->GetHistogram()->SetXTitle("Frequency [Hz]");
+  GPSD->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
+  GPSD->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
+  
+
+  // set new name
+  stringstream ss;
+  ss<<"PSDW_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
+  GPSD->SetName(ss.str().c_str());
+  ss.str(""); ss.clear();
+
+  // ROOT
+  if(fOutFormat.find("root")!=string::npos){
+    TFile *fpsd;
+    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWPSD-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<".root";
+    fpsd=new TFile((ss.str()).c_str(),"RECREATE");
+    ss.str(""); ss.clear();
+    fpsd->cd();
+    GPSD->Write();
+    fpsd->Close();
+  }
+
+  // Graphix
+  vector <string> form;
+  if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
+  if(fOutFormat.find("png")!=string::npos) form.push_back("png");
+  if(fOutFormat.find("pdf")!=string::npos) form.push_back("pdf");
+  if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
+  if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
+  if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
+  if(form.size()){
+    for(int f=0; f<(int)form.size(); f++){
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWPSD-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<"."<<form[f];
+      GPlot->Print(ss.str().c_str());
+      ss.str(""); ss.clear();
+    }
+  }
+  
+  form.clear();
+  delete GPSD;
 
   return;
 }
@@ -1034,7 +1159,7 @@ void Omicron::SaveSG(void){
   oinjfile<<fixed<<oinj->GetQ()<<" ";
   oinjfile<<scientific<<oinj->GetAmplitude()<<" ";
   oinjfile<<fixed<<oinj->GetPhase()<<" ";
-  oinjfile<<fixed<<oinj->GetTrueSNR(spectrum[chanindex])<<" ";
+  oinjfile<<fixed<<oinj->GetTrueSNR(spectrum1[chanindex])<<" ";
   oinjfile<<fixed<<oinj->GetSigmat()<<" ";
   oinjfile<<fixed<<oinj->GetSigmaf()<<" ";
   oinjfile<<endl;

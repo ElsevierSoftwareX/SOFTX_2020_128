@@ -18,7 +18,8 @@ using namespace std;
 
 /**
  * Process data with the Omicron algorithm.
- * An introduction to Omicron is available: <a href="../../Friends/omicron.html">Omicron introduction</a>
+ * - An introduction to Omicron is available: <a href="../../Friends/omicron.html">Omicron introduction</a>
+ * - <a href="https://tds.ego-gw.it/ql/?c=10651">Omicron technical note</a>
  *
  * This class was designed to offer various methods to conduct an Omicron analysis.
  *
@@ -34,7 +35,7 @@ class Omicron {
   */
   /**
    * Constructor of the Omicron class.
-   * This constructor initializes all the components to run Omicron: data structures, data streams, tiling, maps, triggers, injections, monitoring, etc.
+   * This constructor initializes all the components to run Omicron: data structures, data streams, spectra, tiling, maps, triggers, injections, monitoring, etc.
    * An option file is required to define all the parameters to run Omicron. For more details about Omicron configuration, see <a href="../../Friends/omicron.html">this page</a>.
    *
    * After initialization, the Omicron methods should be called sequentially to perform the analysis. Here is a typical sequence:
@@ -46,7 +47,7 @@ class Omicron {
    * - LoadData() loads the data vector for this chunk and this channel from FFL file (in loop #1/2)
    * - Condition() conditions data vector (in loop #1/2)
    * - Project() projects data onto the tiles (in loop #1/2)
-   * - WriteOutput() writes output data productes to disk (in loop #1/2)
+   * - WriteOutput() writes output data products to disk (in loop #1/2)
    * @param aOptionFile path to the option file
    */
   Omicron(const string aOptionFile);
@@ -213,7 +214,7 @@ class Omicron {
    * Resets PSD buffer.
    * (for the current channel)
    */
-  inline void ResetPSDBuffer(void) { spectrum[chanindex]->Reset(); };
+  inline void ResetPSDBuffer(void) { spectrum1[chanindex]->Reset(); };
 
   /**
    * Prints a formatted message with a timer.
@@ -278,7 +279,9 @@ class Omicron {
   int nchannels;                ///< number of channels
   GwollumPlot *GPlot;           ///< Gwollum plots
   vector <string> outdir;       ///< output directories / channel
-  Spectrum **spectrum;          ///< spectrum structure / channel
+  Spectrum **spectrum1;         ///< 1st spectrum structure / channel
+  Spectrum **spectrum2;         ///< 2nd spectrum structure / channel
+  Spectrum *spectrumw;          ///< spectrum structure to test whitening
   ffl *FFL;                     ///< ffl
   ffl *FFL_inject;              ///< ffl for injection signals
   fft *offt;                    ///< FFT plan to FFT the input data
@@ -291,13 +294,14 @@ class Omicron {
   double *ChunkVect;            ///< chunk raw data (time domain)
     
   // CONDITIONING & WHITENING
-  bool Whiten(void);            ///< whiten data vector
+  bool Whiten(Spectrum *aSpec); ///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
  
   // OUTPUT
   string maindir;               ///< output main directory
   void SaveAPSD(const string aType);///< Save current PSD/ASD
+  void SaveWPSD(void);          ///< Save whitened PSD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters
   void SaveSpectral(void);      ///< Save current spectral plots

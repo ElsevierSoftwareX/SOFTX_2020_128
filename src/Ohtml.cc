@@ -3,6 +3,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "Omicron.h"
 
+const string Omicron::colorcode[17] = {"#1b02e6","#0220e6","#0257e6","#028ee6","#01c5e6","#01e6cf","#01e698","#01e660","#01e629","#10e601","#7fe601","#b6e601","#e6de00","#e6a600","#e66f00","#e63800","#e60000"};
+
 ////////////////////////////////////////////////////////////////////////////////////
 void Omicron::MakeHtml(void){
 ////////////////////////////////////////////////////////////////////////////////////
@@ -233,6 +235,10 @@ void Omicron::MakeHtml(void){
       // PSD
       if(fOutProducts.find("psd")!=string::npos)
 	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
+	
+      // PSD
+      if(fOutProducts.find("whitepsd")!=string::npos)
+	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONWPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">Whitened PSD</a></td>"<<endl;
 	
       // conditioned time-series
       if(fOutProducts.find("timeseries")!=string::npos)

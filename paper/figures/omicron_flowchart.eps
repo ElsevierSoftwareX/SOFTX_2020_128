@@ -1,7 +1,7 @@
 %!PS-Adobe-3.0 EPSF-3.0
 %%Title: omicron_flowchart.fig
 %%Creator: fig2dev Version 3.2 Patchlevel 5e
-%%CreationDate: Tue Feb 23 08:58:35 2016
+%%CreationDate: Mon Jul 25 12:43:57 2016
 %%BoundingBox: 0 0 444 719
 %Magnification: 1.0000
 %%EndComments
@@ -221,12 +221,6 @@ n 4050 7380 m
 7.500 slw
 n 3802 7735 m 4050 7915 l 4297 7735 l 3802 7735 l  cp gs 0.00 setgray ef gr  col0 s
 % Polyline
-n 2085 7920 m 1980 7920 1980 8535 105 arcto 4 {pop} repeat
-  1980 8640 6195 8640 105 arcto 4 {pop} repeat
-  6300 8640 6300 8025 105 arcto 4 {pop} repeat
-  6300 7920 2085 7920 105 arcto 4 {pop} repeat
- cp gs col0 s gr 
-% Polyline
 165.000 slw
 gs  clippath
 3802 8995 m 3802 9195 l 4297 9195 l 4297 8995 l 4297 8995 l 4050 9175 l 3802 8995 l cp
@@ -306,6 +300,12 @@ n 1275 1620 m 1170 1620 1170 2235 105 arcto 4 {pop} repeat
   5490 2340 5490 1725 105 arcto 4 {pop} repeat
   5490 1620 1275 1620 105 arcto 4 {pop} repeat
  cp gs col0 s gr 
+% Polyline
+n 2085 7920 m 1980 7920 1980 8535 105 arcto 4 {pop} repeat
+  1980 8640 6195 8640 105 arcto 4 {pop} repeat
+  6300 8640 6300 8025 105 arcto 4 {pop} repeat
+  6300 7920 2085 7920 105 arcto 4 {pop} repeat
+ cp gs col0 s gr 
 /Courier ff 222.25 scf sf
 2160 5685 m
 gs 1 -1 sc (Omicron::NewChannel\(\)) col0 sh gr
@@ -323,13 +323,13 @@ gs 1 -1 sc (>> Load data vector for this channel and this chunk) col0 sh gr
 gs 1 -1 sc (Omicron::Condition\(\)) col0 sh gr
 /Times-Roman ff 190.50 scf sf
 2160 8475 m
-gs 1 -1 sc (>> Condition data vector) col0 sh gr
+gs 1 -1 sc (>> Condition and whiten the data vector) col0 sh gr
 /Courier ff 222.25 scf sf
 2160 9450 m
 gs 1 -1 sc (Omicron::Project\(\)) col0 sh gr
 /Times-Roman ff 190.50 scf sf
 2160 9720 m
-gs 1 -1 sc (>> Whiten the data and project onto the tiles) col0 sh gr
+gs 1 -1 sc (>> Project the data onto the tiles) col0 sh gr
 /Courier ff 222.25 scf sf
 2160 10710 m
 gs 1 -1 sc (Omicron::WriteOutput\(\)) col0 sh gr

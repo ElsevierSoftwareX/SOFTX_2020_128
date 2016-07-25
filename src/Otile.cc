@@ -420,6 +420,7 @@ bool Otile::DrawMapTiling(const int aQindex){
     return false;
   }
   qplanes[aQindex]->FillMap("display");
+  qplanes[aQindex]->GetZaxis()->SetRangeUser(0,100);
   Draw(qplanes[aQindex],"COL");
   /*
   qplanes[aQindex]->GetXaxis()->SetRangeUser(-0.1,0.1);
@@ -427,6 +428,7 @@ bool Otile::DrawMapTiling(const int aQindex){
   for(int f=0; f<qplanes[aQindex]->GetNBands(); f++){
     lf = new TLine(-0.1,qplanes[aQindex]->GetBandStart(f),0.1,qplanes[aQindex]->GetBandStart(f));
     lf->SetLineStyle(3);
+    lf->SetLineColor(2);
     Draw(lf,"same");
   }
   */

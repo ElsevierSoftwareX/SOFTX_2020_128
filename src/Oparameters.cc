@@ -175,8 +175,6 @@ void Omicron::ReadOptions(void){
   else if(fOutProducts.find("mapphase")!=string::npos) tile->SetMapFill("phase");
   else tile->SetMapFill("snr");
   QRange.clear(); FRange.clear();
-  for(int c=0; c<nchannels; c++)
-    status_OK*=triggers[c]->SetHighPassFrequency(tile->GetFrequencyMin()*0.0);
   //*****************************
   
   //***** Tile selection *****
@@ -192,12 +190,21 @@ void Omicron::ReadOptions(void){
   //***** set spectrum *****
   double psdlength;
   if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)) psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
-  spectrum = new Spectrum* [nchannels];
-  for(int c=0; c<nchannels; c++){
-    if(tile->GetFrequencyMin()>1.0) // resolution = 0.5 Hz above 1 Hz
-      spectrum[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
-    else // increase the resolution not to extrapolate the PSD.
-      spectrum[c] = new Spectrum(2*(int)ceil((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+  spectrum1 = new Spectrum* [nchannels];
+  spectrum2 = new Spectrum* [nchannels];
+  if(tile->GetFrequencyMin()>1.0){ // resolution = 0.5 Hz above 1 Hz
+    for(int c=0; c<nchannels; c++){
+      spectrum1[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+      spectrum2[c] = new Spectrum(triggers[0]->GetWorkingFrequency(),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+    }
+    spectrumw = new Spectrum(triggers[0]->GetWorkingFrequency(),tile->GetTimeRange()-tile->GetOverlapDuration(),triggers[0]->GetWorkingFrequency(),0);
+  }
+  else{ // increase the resolution not to extrapolate the PSD.
+    for(int c=0; c<nchannels; c++){
+      spectrum1[c] = new Spectrum(2*NextPowerOfTwo((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+      spectrum2[c] = new Spectrum(2*NextPowerOfTwo((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),psdlength,triggers[0]->GetWorkingFrequency(),fVerbosity);
+    }
+    spectrumw = new Spectrum(2*NextPowerOfTwo((double)triggers[0]->GetWorkingFrequency()/tile->GetFrequencyMin()),tile->GetTimeRange()-tile->GetOverlapDuration(),triggers[0]->GetWorkingFrequency(),0);
   }
   //*****************************
 

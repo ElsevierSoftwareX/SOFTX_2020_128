@@ -7,20 +7,20 @@ In this appendix, we give an example of a parameter file compatible with Omicron
 DATA FFL                        /home/florent/Data/frames/hoft-data.ffl
 
 // list of channels to process
-DATA CHANNELS                   H1:LDAS-STRAIN
-DATA CHANNELS                   L1:LDAS-STRAIN
+DATA CHANNELS                   H1:DCS-CALIB_STRAIN_C02
+DATA CHANNELS                   L1:DCS-CALIB_STRAIN_C02
 
-// working sampling frequency [Hz]
-DATA SAMPLEFREQUENCY            1024
+// working sampling frequency (after downsampling) [Hz]
+DATA SAMPLEFREQUENCY            2048
 
 // timing definition (chunk duration T_c and overlap duration T_o [s])
 PARAMETER TIMING                64      4
 
 // Q range
-PARAMETER QRANGE                4       100
+PARAMETER QRANGE                3.31662       100
 
 // Frequency range [Hz]
-PARAMETER FREQUENCYRANGE        40      512
+PARAMETER FREQUENCYRANGE        20      500
 
 // Maximal fractional energy loss due to mismatch \mu_{max}
 PARAMETER MISMATCHMAX           0.2
@@ -31,6 +31,9 @@ PARAMETER SNRTHRESHOLD          5
 // PSD buffer length T_{PSD}[s]
 PARAMETER PSDLENGTH             300
 
+// time windows used for mapping [s]
+PARAMETER WINDOWS		1 4 16
+
 // path to output directory
 OUTPUT DIRECTORY                ./output
 
@@ -38,11 +41,11 @@ OUTPUT DIRECTORY                ./output
 OUTPUT FORMAT                   png root
 
 // list of output data products
-OUTPUT PRODUCTS                 html triggers asd
+OUTPUT PRODUCTS                 html mapsnr triggers asd
 
 // verbisity level
 OUTPUT VERBOSITY                1
 
 // html report graphical style
-OUTPUT STYLE                    FIRE
+OUTPUT STYLE                    STANDARD
 \end{verbatim}
