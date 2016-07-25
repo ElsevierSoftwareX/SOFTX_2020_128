@@ -794,7 +794,7 @@ void Omicron::SaveAPSD(const string aType){
   if(!aType.compare("ASD")) GAPSD1 = spectrum1[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   else                      GAPSD1 = spectrum1[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD1==NULL) return;
-  /*
+
   // extract A/PSD 2
   TGraph *GAPSD2;
   if(!aType.compare("ASD")) GAPSD2 = spectrum2[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
@@ -804,7 +804,7 @@ void Omicron::SaveAPSD(const string aType){
   // combine the 2 apsd (geometrically)
   for(int i=0; i<GAPSD1->GetN(); i++) GAPSD1->GetY()[i] *= (GAPSD2->GetY()[i]/2.0);
   delete GAPSD2;
-  */
+
   // extract sub-segment A/PSD 1
   TGraph **G1;
   G1 = new TGraph* [spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1)];
@@ -817,7 +817,7 @@ void Omicron::SaveAPSD(const string aType){
     for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++) G1[spectrum1[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum1[chanindex]->GetSubPSD(1,i);
   }
 
-  /*
+
   // extract sub-segment A/PSD 2
   TGraph **G2;
   G2 = new TGraph* [spectrum2[chanindex]->GetNSubSegmentsMax(0)+spectrum2[chanindex]->GetNSubSegmentsMax(1)];
@@ -837,7 +837,7 @@ void Omicron::SaveAPSD(const string aType){
     delete G2[i];
   }
   delete G2;
-  */
+
   
   // cosmetics
   GPlot->SetLogx(1);
@@ -866,7 +866,7 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD1->GetYaxis()->SetLabelSize(0.045);
   GAPSD1->GetXaxis()->SetTitleSize(0.045);
   GAPSD1->GetYaxis()->SetTitleSize(0.045);
-  //GAPSD1->GetYaxis()->SetRangeUser(1e-10,1e-6);
+  GAPSD1->GetYaxis()->SetRangeUser(GAPSD1->GetMinimum()/10.0,GAPSD1->GetMinimum()*10.0);
   
   // set new name
   stringstream ss;

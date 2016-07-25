@@ -68,14 +68,13 @@ The user options must also include the maximum fractional energy loss due mismat
 
 A $Q$ plane object is implemented as a C++ class inheriting from the 2-D histogram class of ROOT (\texttt{TH2D}). The number of $Q$ planes, $N_Q$, is equal to the next integer verifying condition~\ref{eq:tiledistanceq}. The $Q$ planes, indexed by $q$, are given a $Q$ value obtained from Eq.~\ref{eq:q}.
 
-A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_{ql})$ linear bins, $N_\tau(Q_q,\phi_{ql})$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Indeed, in Sec.~\ref{sec:algorithm:discrete}, we explained that working with power-of-two vector sizes is computationally more efficient. The tile time and frequency, $(\tau_{qlm}, \phi_{ql})$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. It also useful to give the histogram bin width in both the time and frequency dimensions:
+A $Q$ plane histogram is then vertically binned into logarithmically-spaced frequency rows. The number of frequency rows, $N_\phi(Q_q)$, is equal to the next integer verifying condition~\ref{eq:tiledistancephi}. For each frequency row $(q,l)$, the horizontal time axis is divided into $N_\tau(Q_q,\phi_{ql})$ linear bins, $N_\tau(Q_q,\phi_{ql})$ being the next power of two verifying the condition~\ref{eq:tiledistancetau}. Indeed, in Sec.~\ref{sec:algorithm:discrete}, we explained that working with power-of-two vector sizes is computationally more efficient when performing Fourier transforms. The tile time and frequency, $(\tau_{qlm}, \phi_{ql})$, is given by the histogram bin center obtained from~Eq.\ref{eq:tau} and~\ref{eq:phi}. It also useful to give the histogram bin width in both the time and frequency dimensions:
 \begin{align}
   \Delta\tau_{ql} &= T_c / N_\tau(Q_q, \phi_{ql}), \label{eq:dtau} \\
   \Delta\phi_{ql} &= 4\phi_{ql}\sqrt{\frac{\mu_{max}}{3(2+Q_q^2)}}.\label{eq:dphi}
 \end{align}
 
-
-A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,098,688 tiles over a chunk of $T_c=64$~s and between $\phi_{min}=40.0$~Hz and $\phi_{max}=489.2$~Hz. For the plane with the lowest-$Q$ value, the time resolution varies between 0.98~ms and 7.81~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz. For the highest-$Q$ plane, the time resolution varies between 7.81~ms and 125.00~ms and the frequency resolution spans from 8.9~Hz to 54.5~Hz.
+A realistic example of a tiling structure is represented in Fig.~\ref{fig:tiling}, using the parameters listed in Appx~\ref{appx:parameters}. With this setting, 5 $Q$ planes are generated, representing a total of 2,742,016 tiles over a chunk of $T_c=64$~s and between $\phi_{min}=20$~Hz and $\phi_{max}=500$~Hz. For the plane with the lowest-$Q$ value, the time resolution varies between 0.49~ms and 15.63~ms and the frequency resolution spans from 4.5~Hz to 91.1~Hz. For the highest-$Q$ plane, the time resolution varies between 7.81~ms and 250.00~ms and the frequency resolution spans from 0.3~Hz to 7.2~Hz.
 \begin{figure}
   \center
   \epsfig{width=7.5cm, file=./figures/q0.eps} \epsfig{width=7.5cm, file=./figures/q1.eps} \\
@@ -116,13 +115,13 @@ where $M_{ql}=2\lfloor \delta f(\phi_{ql},Q_q) T_c \rfloor + 1$ is the window si
 \subsection{The data access} \label{sec:algorithm:data}
 The input data time series is read using the FrameL~\cite{FrameL} library, developed to perform read/write file operations using the Frame format\footnote{The frame format is a data format specifically developed for interferometric gravitational-wave detectors.}. The data must be provided through a Frame File List (FFL) file which consists in an ASCII file with the file extension ``.ffl''. This file must contain a list of frame files described over five columns: the path to the frame file, the GPS information for the file start, the file duration in seconds, the GPS time of the first event and the GPS time of the last event\footnote{A FFL file can be obtained using the FrameL program \texttt{FrDump.exe}: \texttt{FrDump.exe -i /path/to/frame/files/*.gwf -d 0 $>$ fflfile.ffl}}. The GWOLLUM class, \texttt{ffl}, is designed to offer an improved C++ interface to access frame data. For example, the \texttt{ffl} class provides compatibility with the specific LIGO lal-cache file format.
 
-The \texttt{ffl} class is used by Omicron to load data by time chunks. The chunk is an important charactistic time scale which is user-defined in the parameter file. It defines the time sequence adopted to analyze the data. The chunk duration, $T_c$, directly determines the size of Omicron data containers: $N_c=f_wT_c$.
+The data is loaded by time chunks. The chunk is an important charactistic time scale which is user-defined in the parameter file. It defines the time sequence adopted to analyze the data. The chunk duration, $T_c$, directly determines the size of Omicron data containers: $N_c=f_wT_c$.
 
-Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration, $T_o$, is also defined in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk, the overlap is adjusted to fit the current segment size. The overlapping structure is introduced to manage edge artifacts due to the forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
+Fig.~\ref{fig:segmentation} presents how the input data is segmented and analyzed. The input time segments, provided by the Omicron command line, are subdivided into chunks. The size of the chunks is fixed and is defined in the user parameter file. Chunks overlap by a fixed amount of time. The overlap duration, $T_o$, is also set in the user parameter file. The segment size does not generally matches the chunk and overlap structure. As a result, for the last chunk of a segment, the overlap is adjusted to match the current segment end. The overlapping structure is introduced to manage edge artifacts due to the forward and backward filtering of the data (see Sec.~\ref{sec:algorithm:conditioning}). Some data is irremediably lost in this process: segments shorter than the chunk duration cannot be analyzed and the first and last edges of a segment (half the overlap) are not saved.
 \begin{figure}
   \center
   \epsfig{width=15cm, file=./figures/segmentation.eps}
-  \caption{Data segmentation. The input segments are analyzed sequentially, chunk by chunk. The chunks, represented by the red lines, have a fixed size and are defined in the user parameter file. They overlap by a fixed amount of time, also defined in the parameter file. The overlap for the last chunk of a segment is modified to adjust the segment size. Only the central part of the chunk, represented by the black lines, is meaningful. Only Omicron triggers in this central region are saved.}
+  \caption{Data segmentation. The input segments are analyzed sequentially, chunk by chunk. The chunks, represented by the red lines, have a fixed size and are defined in the user parameter file. Two consecutive chunks overlap by a fixed amount of time, also defined in the parameter file. The overlap for the last chunk of a segment is modified to adjust the segment size. Only the central part of the chunk, represented by the black lines, is meaningful. Only Omicron triggers in this central region are saved.}
   \label{fig:segmentation}
 \end{figure}
 
@@ -134,6 +133,8 @@ The chunk and overlap structure must verify some conditions:
 \end{enumerate}
 
 Chunks and channels are internally looped over using the \texttt{Omicron::NewChunk()} and \texttt{Omicron::NewChannel()} functions. For a given chunk and a given channel, a data vector is filled with the raw time series, using the \texttt{Omicron::LoadData()} function. The native sampling frequency for the channel data stream, $f_s$, is directly determined by the size of the vector which is loaded. This is checked for every chunk. This way, a change of the channel native sampling frequency is automatically accounted for when looping over the chunks.
+
+Omicron offers the possibility to inject simulated signals on top of the channel data time series. Such injections are perfomed by the \texttt{Omicron::LoadData()} function, just after the data vector is loaded. Injected signals are parameterized in various ways which will be described in Sec.~\ref{sec:algorithm:injections}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -343,6 +344,14 @@ One of the output products of Omicron is a list of tiles with a SNR, $\hat{\rho}
 Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}. The TTree class is optimized to reduce disk space and enhance access speed. The trigger TTree is saved in a ROOT file for every data chunk. Besides the triggers, the list of processed time segments\footnote{List of chunks excluding the overlaps.} are saved as well as the Omicron process metadata.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  MAPPING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The mapping} \label{sec:algorithm:mapping}
 
 As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2-dimensional histograms (see Fig.~\ref{fig:tiling}), where bins are used to represent the time-frequency tiles. These histograms can be filled by the tile parameters such as the SNR, the amplitude or the phase. Hence, time-frequency planes can be graphically displayed; this is called mapping. Omicron can produce maps and save them in an output file with many formats.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  SIGNAL INJECTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The injection of simulated signals} \label{sec:algorithm:injections}
