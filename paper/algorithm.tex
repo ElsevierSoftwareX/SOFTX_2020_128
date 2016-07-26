@@ -141,19 +141,9 @@ Omicron offers the possibility to inject simulated signals on top of the channel
 %%%%%%%%%%  DATA CONDITIONING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data conditioning} \label{sec:algorithm:conditioning}
-The chunk data vector is transformed to optimize the performance of the subsequent processing. It is downsampled to a lower working frequency, $f_w$, to maximize the processing speed and lower the memory usage. It is then high-pass filtered to reduce the signal dynamic range. The filtering C++ code is inspired from the routines developed in the LSC Algorithm Library Suite~\cite{LALSUITE}.
+The chunk data vector is transformed to optimize the performance of the subsequent processing. First, the signal DC component is set to 0. This is required to limit edge artifacts when filtering the data. The signal is then downsampled to a lower working frequency, $f_w$, to maximize the processing speed and lower the memory usage. The filtering C++ code is inspired from the routines developed in the LSC Algorithm Library Suite~\cite{LALSUITE}. To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $N_c=f_w \times T_c$.
 
-To avoid aliasing, a 20$^{\mathrm{th}}$-order Butterworth low-pass filter with an attenuation factor of 0.1 is applied using a cutoff frequency set at the targeted Nyquist frequency, $f_w/2$. The filter is applied in the time domain first forwards and then backwards in order to cancel the phase delay introduced by a single pass. The disadvantage of the Butterworth filter is that, since it is an IIR filter, it is not possible to determine the exact length of corrupted data at the start and end of the output time series. The chunk overlap duration (see Sec.~\ref{sec:algorithm:data}) must be chosen with care to reject these filtering artifacts. Finally, the time-series is decimated to the desired working sampling frequency. The resulting working data vector size is now reduced to $N_c=f_w \times T_c$.
-
-The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration must be long enough to remove the filtering artifacts. The filter frequency cutoff is determined by the lower end of the search frequency range, $\phi_{min}$, defined by the user in the parameter file.
-
-The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omicron is run using the parameter file given in Appx.~\ref{appx:parameters}. The input data is originally sampled at 16384~Hz, the spectrum of which is represented in black in the upper plot. First, it is downsampled at a working frequency of 1024~Hz. The resulting spectrum is represented in blue and ends at the Nyquist frequency of 512~Hz. After the high-pass filter, frequencies below 40~Hz are attenuated as shown by the red spectrum. The ratio of spectra of the different filtering steps are plotted in the middle and at the bottom of Fig.~\ref{fig:conditioning}.
-\begin{figure}
-  \center
-  \epsfig{width=10cm, file=./figures/conditioning.eps}
-  \caption{The upper plot displays the noise data spectra measured at different steps of the conditioning process. The black curve presents the spectrum of the raw data between 1~Hz and the Nyquist frequency of 8192~Hz. The raw data are downsampled to a working frequency $f_w=1024$~Hz. The resulting spectrum is represented in blue. The downsampled data is then high-pass filtered ($f>40$~Hz) and the measured spectrum is represented in red. The ratio between the downsampled and the raw spectrum is plotted in the middle. The lower plot shows the ratio between the high-passed and the downsampled spectra.}
-  \label{fig:conditioning}
-\end{figure}
+Optionally, it is possible to high-pass filter the data to reduce the signal dynamic range or, simply, to remove some low-frequency content. The working vector is high-pass filtered using a 12$^{\mathrm{th}}$-order Butterworth filter. This is done with zero phase distortion by first forward filtering and then reverse filtering the working vector. Once again, the chunk overlap duration must be long enough to remove the filtering artifacts. The filter frequency cutoff must be defined by the user in the parameter file.
 
 The final step of the conditioning process consist of applying a Tukey window to the time-series, offering a smooth transition to 0 at both chunk ends. The expression of the Tukey window implemented in \texttt{Omicron} is:
 \begin{equation}
@@ -172,7 +162,15 @@ Fig.~\ref{fig:tukey} presents examples of Tukey windows using several overlap du
   \label{fig:tukey}
 \end{figure}
 
-The data conditioning is performed using the \texttt{Condition()} function of the \texttt{Omicron} class. Before leaving this function, the data power spectrum density is updated using the newly conditioned data vector. This is described in the next section. 
+The conditioning of the data is illustrated in Fig.~\ref{fig:conditioning}. Omicron is run using the parameter file given in Appx.~\ref{appx:parameters}. The input data is originally sampled at 16384~Hz, the spectrum of which is represented in black in the upper plot. First, it is downsampled at a working frequency of 2048~Hz. The resulting spectrum is represented in blue and ends at the Nyquist frequency of 1024~Hz. After the high-pass filter, frequencies below 20~Hz are attenuated as shown by the red spectrum. The ratio of spectra of the different filtering steps are plotted in the middle and at the bottom of Fig.~\ref{fig:conditioning}.
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/conditioning.eps}
+  \caption{The upper plot displays the noise data spectra measured at different steps of the conditioning process. The black curve presents the spectrum of the raw data between 1~Hz and the Nyquist frequency of 8192~Hz. The raw data are downsampled to a working frequency $f_w=2048$~Hz. The resulting spectrum is represented in blue. The downsampled data is then high-pass filtered ($f>20$~Hz) and the measured spectrum is represented in red. The ratio between the downsampled and the raw spectrum is plotted in the middle. The lower plot shows the ratio between the high-passed and the downsampled spectra.}
+  \label{fig:conditioning}
+\end{figure}
+
+The data conditioning is performed using the \texttt{Condition()} function of the \texttt{Omicron} class.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -198,25 +196,50 @@ To work with independent random quantities, the sub-segments are separated into 
   \label{fig:psdseg}
 \end{figure}
 
-For Omicron, the time scale to estimate the PSD is decoupled from the chunk structure; $T_\mathrm{PSD}$ can be set independently from the $T_c$ parameter, using the option file. When a new data chunk is loaded, the data vector, excluding half the overlap on both chunk edges, is used to compute new periodograms as described above. These periodograms are saved in a circular buffer of duration $T_\mathrm{PSD}$. For each chunk, the PSD is then estimated using the data available in the buffer. If the buffer is longer than one chunk, \textit{i.e.} $T_\mathrm{PSD} > T_c-T_o$, the PSD is not optimally estimated for the first chunks as the circular buffer is not full. Using $T_\mathrm{PSD} \le T_c-T_o$ is equivalent to a situation where $T_\mathrm{PSD} = T_c-T_o$, meaning that the chunk is self-whitened. The PSD circular buffer is flushed whenever a new time segment starts (the time segments are described in Sec.~\ref{sec:algorithm:data}). 
+For Omicron, the time scale to estimate the PSD is decoupled from the chunk structure; $T_\mathrm{PSD}$ can be set independently from the $T_c$ parameter, using the option file. When a new data chunk is loaded, the data vector, excluding half the overlap on both chunk edges, is used to compute new periodograms as described above. These periodograms are saved in a circular buffer of duration $T_\mathrm{PSD}$. For each chunk, the PSD is then estimated using the data available in the buffer. If the buffer is longer than one chunk, \textit{i.e.} $T_\mathrm{PSD} > T_c-T_o$, the PSD is not optimally estimated for the first chunks as the circular buffer is not full. Using $T_\mathrm{PSD} \le T_c-T_o$ is equivalent to a situation where $T_\mathrm{PSD} = T_c-T_o$, meaning that the chunk is self-whitened. The PSD circular buffer is flushed whenever a new analysis time segment starts (the time segments are described in Sec.~\ref{sec:algorithm:data}). 
 
-The PSD frequency resolution must be compatible with the Omicron tiling structure described in Sec.~\ref{sec:algorithm:tiling} and be high enough to resolve all the $Q$ plane frequency rows. The PSD resolution is set by the hard-coded parameter $T_\mathrm{spec}$. If the search frequency range, $[\phi_{min}; \phi_{max}]$, is above 1~Hz, $T_\mathrm{spec}=2$~s. The PSD frequency resolution is then fixed at $1/T_\mathrm{spec}=0.5$~Hz. If the search frequency range goes below 1~Hz, $T_\mathrm{spec}=\lceil4/\phi_{min}\rceil$.
+The PSD frequency resolution must be compatible with the Omicron tiling structure described in Sec.~\ref{sec:algorithm:tiling} and be high enough to resolve all the $Q$ plane frequency rows. The PSD resolution is set by the hard-coded parameter $T_\mathrm{spec}$. If the search frequency range, $[\phi_{min}; \phi_{max}]$, is above 1~Hz, $T_\mathrm{spec}=2$~s. The PSD frequency resolution is then fixed at $1/T_\mathrm{spec}=0.5$~Hz. If the search frequency range goes below 1~Hz, $T_\mathrm{spec}$ is adjusted such that the number of points in the spectrum is the next power of two above $2f_w/\phi_{min}$.
 
 Before projecting the data onto the tiling structure, the data chunk, $x$, is Fourier-transformed and whitened as presented in Eq.~\ref{eq:whitening}. However, the noise PSD, $S_n$, and the data vector, $\tilde{x}$, do not have the same frequency resolution; by construction, the PSD resolution is lower than the data resolution.  To re-weight the data sample $\tilde{x}[k]$, a linear interpolation is used to estimate the PSD value at the frequency $k/T_c$.
-\begin{figure}
-  \center
-  \epsfig{width=10cm, file=./figures/white_1.eps} \\
-  \epsfig{width=10cm, file=./figures/white_2.eps}
-  \caption{Power spectral density of a data chunk before (top) and after (bottom) applying whitening procedure.}
-  \label{fig:white}
-\end{figure}
 
 Finally, as suggested in Sec.~\ref{sec:algorithm:discrete}, to optimize the processing, real-to-complex Fourier transforms are performed to compute both the periodograms, $P_s$, and the frequency-domain chunk data vector, $\tilde{x}$. The whitened frequency-domain vector elements are simply given by
 \begin{equation}
-  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S_n[k]/2}}, \qquad 0 \le k \le \frac{N_c}{2}.
+  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S_n(k/T_c)/2}}, \qquad 0 \le k \le \frac{N_c}{2},
+  \label{eq:white_simple}
 \end{equation}
+where $S_n(k/T_c)$ is the PSD value intrapolated at the frequency $k/T_c$.
 
-Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is estimated using 300 s of data and is used to whiten one data chunk of 64 s. The plots in Fig.\ref{fig:white} show the PSD of the chunk before and after whitening. As expected, the PSD of the whitened data is flat and equal to 2. We note that, powerful spectral lines tend to be over-whitened. This effect is due to the low PSD resolution and the linear interpolation which is performed to match the chunk frequency resolution: on both sides of a narrow line, the PSD is over-estimated.
+Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is estimated using 300 s of data and is used to whiten one data chunk of 64 s. The plots in Fig.\ref{fig:white} show the PSD of the chunk before and after whitening. As expected, the PSD of the whitened data is flat and equal to 2. We note that, powerful spectral lines tend to be over-whitened. This effect is due to the low PSD frequency resolution and the linear interpolation which is performed to match the chunk frequency resolution: on both sides of a narrow line, the PSD is over-estimated.
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/white1.eps} \\
+  \epsfig{width=10cm, file=./figures/white2.eps}
+  \caption{Power spectral density of a data chunk before (top) and after (bottom) applying the whitening procedure.}
+  \label{fig:white}
+\end{figure}
+
+
+The number of points in the PSD is kept small to guarantee an optimized processing: fast Fourier transforms and low memory usage. However, a low frequency resolution can sometimes be an issue for the FFTW algorithm: the frequency resolution is not high enough to account for large variations in the spectrum (especially at low frequencies). For this reason, the noise PSD is estimated into 2 steps. A first PSD estimate is computed as descibed above: $S_{n,1}$. It is used to perform a first whitening as prescribed by Eq.~\ref{eq:white_simple}. We obtain a whitened data vector $\tilde{x}_1^{white}$. A Fourier transform is applied to switch back to the time domain: $x_1^{white}$. Then, a second whitening procedure is applied: the data vector $x_1^{white}$ is used to compute a second PSD, $S_{n,2}$, using the method presented above. The data vector is whitened a second time using the second PSD estimate $S_{n,2}$. Instead of Eq.~\ref{eq:white_simple}, the double whitening procedure implemented in Omicron is equivalent to:
+\begin{equation}
+  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{\frac{S_{n,1}(k/T_c)}{2}\frac{S_{n,2}(k/T_c)}{2}}}, \qquad 0 \le k \le \frac{N_c}{2}.
+  \label{eq:white_double}
+\end{equation}
+When comparing Eq.~\ref{eq:white_simple} and Eq.~\ref{eq:white_double}, it is clear that the final noise PSD is given by
+\begin{equation}
+  S_n = \frac{S_{n,1}S_{n,2}}{2}.
+\end{equation}
+Fig.~\ref{fig:doublewhite} illustrates why the double whitening procedure is mandatory to obtain a correct PSD estimate. In this example, we used a signal with a large dynamic range at low frequency. The plot at the top of Fig.~\ref{fig:doublewhite} shows the two PSDs, $S_{n,1}$ (blue curve) and $S_{n,2}$ (green curve), used to compute the final PSD $S_n$ (red curve). The first estimate, $S_{n,1}$, is correct above $f\sim 70$~Hz. Below this value it presents large deviations from the true PSD. The FFT algorithm is not able to manage such a large dynamic range with a low frequency resolution. The second PSD, $S_{n,2}$, is used to correct this bias and to obtain a correct PSD estimate $S_n$. As expected it is flat and equal to 2 for $f>70$~Hz and it deviates from 2 below 70~Hz. To check that the double whitening procedure provides a correct PSD estimate, we compute a single PSD with a higher frequency resolution. The resulting PSD is plotted at the bottom of Fig.~\ref{fig:doublewhite}, in black. It is well matched by the low-resolution PSD estimated with the double-whitening method.
+\begin{figure}
+  \center
+  \epsfig{width=10cm, file=./figures/psd_double.eps} \\
+  \epsfig{width=10cm, file=./figures/psd_hdld.eps}
+  \caption{Double whitening procedure. The top plot presents the two steps leading to the final PSD estimate. The first PSD estimate, $S_{n,1}$, is represented by the blue curve. The frequency resolution is too low to resolve the large dynamic range at low frequency. Therefore the first estimate is biased. The data are whitened using this first estimate, reducing the dynamic range. Then the PSD is estimated a second time, $S_{n,2}$, and is represented by the green curve. It is used to correct the first estimate. The final PSD estimate is given by $S_n=S_{n,1}S_{n,2}/2$ and is represented in red. The bottom panel compares this final PSD estimate (in red) with what is obtained with a single estimate using a high frequency resolution.}
+  \label{fig:doublewhite}
+\end{figure}
+
+
+
+
 
 
 
