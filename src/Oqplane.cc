@@ -286,7 +286,7 @@ double Oqplane::GetMeanEnergy(const int aBandIndex, const double aPadding){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SetPower(Spectrum *aSpec){
+bool Oqplane::SetPower(Spectrum *aSpec1, Spectrum *aSpec2){
 ////////////////////////////////////////////////////////////////////////////////////
 
   //double sumofweight;
@@ -307,7 +307,7 @@ bool Oqplane::SetPower(Spectrum *aSpec){
     for(; i<end; i++){
       freq=GetBandFrequency(f)+ (double)i / GetTimeRange();
       win = Wb * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf) * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf);
-      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+      sum += win*win /2.0 /sqrt(aSpec1->GetPower(freq)*aSpec2->GetPower(freq)/4.0) * dfreq;
     }
 
     // f < phi
@@ -315,7 +315,7 @@ bool Oqplane::SetPower(Spectrum *aSpec){
     for(; i<end; i++){
       freq=GetBandFrequency(f)-(double)(end-i) / GetTimeRange();
       win = Wb * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf) * (1.0-(freq-GetBandFrequency(f))*(freq-GetBandFrequency(f))/deltaf/deltaf);
-      sum += win*win /2.0 /sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+      sum += win*win /2.0 /sqrt(aSpec1->GetPower(freq)*aSpec2->GetPower(freq)/4.0) * dfreq;
     }
         
     bandNoiseAmplitude[f]=1.0/sum;

@@ -126,7 +126,7 @@ class Omicron {
 
   /**
    * Conditions a data vector.
-   * Before projecting the data onto the tiles, the data is conditioned with this function. The input data chunk is first resampled, highpassed, Tukey-windowed Fourier-transformed and whitened. The input data vector is used to update the estimate of the noise power density (PSD).
+   * Before projecting the data onto the tiles, the data is conditioned and whitened with this function. The input data chunk is first removed its DC component, then resampled, optionally highpassed, Tukey-windowed, Fourier-transformed and whitened twice. In this process, the conditioned data vector is used to update the estimate of the noise power density (PSD).
    *
    * IMPORTANT: The input vector size MUST MATCH the chunk size loaded with NewChunk(). NO check is performed against that!
    *
@@ -135,13 +135,13 @@ class Omicron {
    * -  0 = OK
    * -  1 = the input vector is pointing to NULL
    * -  2 = the input vector size is 0
-   * -  3 = the input vector appears to be flat
+   * -  3 = the input vector is flat
    * -  4 = the native sampling frequency cannot be updated
-   * -  5 = the vector transformation failed (resampling+highpassing)
-   * -  6 = the spectrum could not be updated
-   * -  7 = the tiling power could not be computed
-   * -  8 = the chunk data could not be FFTed
-   * -  9 = the chunk data could not be whitened
+   * -  5 = the vector transformation failed (DC removal+resampling+highpassing)
+   * -  6 = the chunk data could not be FFTed (forward)
+   * -  7 = the spectrum (1) could not be updated
+   * -  8 = the spectrum (2) could not be updated
+   * -  9 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */
@@ -294,7 +294,7 @@ class Omicron {
   double *ChunkVect;            ///< chunk raw data (time domain)
     
   // CONDITIONING & WHITENING
-  bool Whiten(Spectrum *aSpec); ///< whiten data vector
+  void Whiten(Spectrum *aSpec); ///< whiten data vector
   double* GetTukeyWindow(const int aSize, const int aFractionSize); ///< create tukey window
   double *TukeyWindow;          ///< tukey window
  

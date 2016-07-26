@@ -542,50 +542,53 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
   for(int i=0; i<offt->GetSize_t(); i++) ChunkVect[i] *= TukeyWindow[i];
 
+  // fft-forward the chunk data
+  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
+  if(!offt->Forward(ChunkVect)) return 6;
+
   // update first spectrum (if enough data)
   if(fVerbosity>1) cout<<"\t- update spectrum 1..."<<endl;
   int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
   int dsize = (tile->GetTimeRange()-tile->GetCurrentOverlapDuration())*triggers[chanindex]->GetWorkingFrequency(); // size of 'sane' data
-  if(dsize>=spectrum1[chanindex]->GetSpectrumSize()){
-    if(!spectrum1[chanindex]->AddData(dsize, ChunkVect, dstart)) return 6;
-  }
-
-  // fft-forward the chunk data
-  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
-  if(!offt->Forward(ChunkVect)) return 7;
-  // note: the FFT normalization is performed in Whiten()
-
+  if(!spectrum1[chanindex]->AddData(dsize, ChunkVect, dstart)) return 7;
+    
   // 1st whitening
-  if(fVerbosity>1) cout<<"\t- whiten chunk (first)"<<endl;
-  if(!Whiten(spectrum1[chanindex])) return 8;
+  if(fVerbosity>1) cout<<"\t- whiten chunk (1)"<<endl;
+  Whiten(spectrum1[chanindex]);
 
   // back in the time domain
   if(fVerbosity>1) cout<<"\t- move the data back in the time domain..."<<endl;
   offt->Backward();
 
-  // apply FFT normalization
-  for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)*triggers[chanindex]->GetWorkingFrequency()/(double)offt->GetSize_t());
+  // apply FFT (forward and backward) normalization
+  for(int i=0; i<offt->GetSize_t(); i++) offt->SetRe_t(i, offt->GetRe_t(i)/(double)offt->GetSize_t());
 
   // update second spectrum
   if(fVerbosity>1) cout<<"\t- update spectrum 2..."<<endl;
   double *rvec = offt->GetRe_t();
-  if(!spectrum2[chanindex]->AddData(dsize, rvec, dstart)){ delete rvec; return 9; }
+  if(!spectrum2[chanindex]->AddData(dsize, rvec, dstart)){ delete rvec; return 8; }// should never happen if it worked for the 1st spectrum
   delete rvec;
   
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
-  offt->Forward();
-  // note: the FFT normalization is performed in Whiten()
+  offt->Forward();// This is mandatory because the frequency-domain vector was messed-up by the previous backward (r2c)
+
+  // apply FFT (forward) normalization
+  for(int i=0; i<offt->GetSize_f(); i++){
+    offt->SetRe_f(i, offt->GetRe_f(i)/(double)triggers[chanindex]->GetWorkingFrequency());
+    offt->SetIm_f(i, offt->GetIm_f(i)/(double)triggers[chanindex]->GetWorkingFrequency());
+  }
 
   // 2nd whitening
-  if(fVerbosity>1) cout<<"\t- whiten chunk (second)"<<endl;
-  if(!Whiten(spectrum2[chanindex])) return 10;
+  if(fVerbosity>1) cout<<"\t- whiten chunk (2)"<<endl;
+  Whiten(spectrum2[chanindex]);
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
-  if(!tile->SetPower(spectrum1[chanindex])) return 11;///////////////////// FIXME!!!
+  if(!tile->SetPower(spectrum1[chanindex],spectrum2[chanindex])) return 9;
 
   // save sg injection parameters
+  // must be done here because the spectra are needed
   if(fsginj) SaveSG();
 
   chan_cond_ctr[chanindex]++;
@@ -751,7 +754,7 @@ void Omicron::PrintStatusInfo(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Whiten(Spectrum *aSpec){
+void Omicron::Whiten(Spectrum *aSpec){
 ////////////////////////////////////////////////////////////////////////////////////
 
   int i=0; // frequency index
@@ -771,40 +774,39 @@ bool Omicron::Whiten(Spectrum *aSpec){
   // normalize data by the ASD
   double asdval;
   for(; i<offt->GetSize_f(); i++){
-    asdval=aSpec->GetPower((double)i/(double)tile->GetTimeRange())/2.0;
-    if(asdval<=0){
-      cerr<<"Omicron::Whiten: could not retrieve power for f="<<(double)i/(double)tile->GetTimeRange()<<" Hz (="<<asdval<<")"<<endl;
-      return false;
-    }
-    asdval=sqrt(asdval);
-    offt->SetRe_f(i,offt->GetRe_f(i) / asdval /triggers[chanindex]->GetWorkingFrequency());
-    offt->SetIm_f(i,offt->GetIm_f(i) / asdval /triggers[chanindex]->GetWorkingFrequency());
-    // /f_w is the FFT normalization, which was not performed in Condition()
+    asdval=sqrt(aSpec->GetPower((double)i/(double)tile->GetTimeRange())/2.0);
+    offt->SetRe_f(i,offt->GetRe_f(i) / asdval);
+    offt->SetIm_f(i,offt->GetIm_f(i) / asdval);
   }
 
-  return true;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 void Omicron::SaveAPSD(const string aType){
 ////////////////////////////////////////////////////////////////////////////////////
 
+  // normalization factor
+  double factor;
+  if(!aType.compare("ASD")) factor=sqrt(2.0);
+  else                      factor=2.0;
+  
   // extract A/PSD 1
   TGraph *GAPSD1;
   if(!aType.compare("ASD")) GAPSD1 = spectrum1[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   else                      GAPSD1 = spectrum1[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD1==NULL) return;
-
+ 
   // extract A/PSD 2
   TGraph *GAPSD2;
   if(!aType.compare("ASD")) GAPSD2 = spectrum2[chanindex]->GetASD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   else                     GAPSD2 = spectrum2[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
   if(GAPSD2==NULL) return;
   
-  // combine the 2 apsd (geometrically)
-  for(int i=0; i<GAPSD1->GetN(); i++) GAPSD1->GetY()[i] *= (GAPSD2->GetY()[i]/2.0);
+  // combine the 2 apsd
+  for(int i=0; i<GAPSD1->GetN(); i++) GAPSD1->GetY()[i] *= (GAPSD2->GetY()[i]/factor);
   delete GAPSD2;
-
+ 
   // extract sub-segment A/PSD 1
   TGraph **G1;
   G1 = new TGraph* [spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1)];
@@ -816,8 +818,7 @@ void Omicron::SaveAPSD(const string aType){
     for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0); i++) G1[i] = spectrum1[chanindex]->GetSubPSD(0,i);
     for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++) G1[spectrum1[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum1[chanindex]->GetSubPSD(1,i);
   }
-
-
+ 
   // extract sub-segment A/PSD 2
   TGraph **G2;
   G2 = new TGraph* [spectrum2[chanindex]->GetNSubSegmentsMax(0)+spectrum2[chanindex]->GetNSubSegmentsMax(1)];
@@ -830,22 +831,22 @@ void Omicron::SaveAPSD(const string aType){
     for(int i=0; i<spectrum2[chanindex]->GetNSubSegmentsMax(1); i++) G2[spectrum2[chanindex]->GetNSubSegmentsMax(0)+i] = spectrum2[chanindex]->GetSubPSD(1,i);
   }
   
-  // combine the 2 apsd (geometrically)
+  // combine the 2 apsd
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
     if(G1[i]==NULL) continue;
-    for(int j=0; j<G1[i]->GetN(); j++) G1[i]->GetY()[j] *= (G2[i]->GetY()[j]/2.0);
+    for(int j=0; j<G1[i]->GetN(); j++) G1[i]->GetY()[j] *= (G2[i]->GetY()[j]/factor);
     delete G2[i];
   }
   delete G2;
-
-  
+ 
   // cosmetics
   GPlot->SetLogx(1);
   GPlot->SetLogy(1);
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
   GPlot->Draw(GAPSD1,"AP");
-  for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
+  //for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
+  for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
     if(G1[i]!=NULL) GPlot->Draw(G1[i],"Lsame");
   }
   GAPSD1->GetHistogram()->SetXTitle("Frequency [Hz]");
@@ -866,7 +867,9 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD1->GetYaxis()->SetLabelSize(0.045);
   GAPSD1->GetXaxis()->SetTitleSize(0.045);
   GAPSD1->GetYaxis()->SetTitleSize(0.045);
-   
+  GAPSD1->GetYaxis()->SetRangeUser(GAPSD1->GetYaxis()->GetXmin()/100.0,GAPSD1->GetYaxis()->GetXmax()*2.0);
+
+  
   // set new name
   stringstream ss;
   ss<<aType;
@@ -1158,7 +1161,7 @@ void Omicron::SaveSG(void){
   oinjfile<<fixed<<oinj->GetQ()<<" ";
   oinjfile<<scientific<<oinj->GetAmplitude()<<" ";
   oinjfile<<fixed<<oinj->GetPhase()<<" ";
-  oinjfile<<fixed<<oinj->GetTrueSNR(spectrum1[chanindex])<<" ";
+  oinjfile<<fixed<<oinj->GetTrueSNR(spectrum1[chanindex], spectrum2[chanindex])<<" ";
   oinjfile<<fixed<<oinj->GetSigmat()<<" ";
   oinjfile<<fixed<<oinj->GetSigmaf()<<" ";
   oinjfile<<endl;

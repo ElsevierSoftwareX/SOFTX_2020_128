@@ -51,7 +51,7 @@ class Oqplane: public Omap {
   };
 
   // SETS
-  bool SetPower(Spectrum *aSpec);
+  bool SetPower(Spectrum *aSpec1, Spectrum *aSpec2);
   inline void SetSNRThr(const double aSNRThr){ SNRThr=aSNRThr; };
 
 

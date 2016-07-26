@@ -161,14 +161,14 @@ bool Otile::NewChunk(bool &aNewSegFlag){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SetPower(Spectrum *aSpec){
+bool Otile::SetPower(Spectrum *aSpec1, Spectrum *aSpec2){
 ////////////////////////////////////////////////////////////////////////////////////
-  if(!aSpec->GetStatus()){
+  if(!aSpec1->GetStatus()||!aSpec2->GetStatus()){
     cerr<<"Otile::SetPower: the Spectrum object is corrupted"<<endl;
     return false;
   }
   for(int p=0; p<nq; p++){
-    if(!qplanes[p]->SetPower(aSpec)){
+    if(!qplanes[p]->SetPower(aSpec1, aSpec2)){
       cerr<<"Otile::SetPower: cannot set power for plane #"<<p<<endl;
       return false;
     }

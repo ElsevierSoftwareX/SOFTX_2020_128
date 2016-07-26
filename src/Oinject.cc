@@ -49,17 +49,17 @@ void Oinject::MakeWaveform(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Oinject::GetTrueSNR(Spectrum *aSpec){
+double Oinject::GetTrueSNR(Spectrum *aSpec1, Spectrum *aSpec2){
 ////////////////////////////////////////////////////////////////////////////////////
 
   double freq, win, sum=0;
-  double dfreq=aSpec->GetSpectrumResolution();
+  double dfreq=aSpec1->GetSpectrumResolution();
 
   // only positive frequencies. No negative frequency contribution w=0.
-  for(int i=1; i<aSpec->GetSpectrumSize(); i++){
-    freq=aSpec->GetSpectrumFrequency(i);
+  for(int i=1; i<aSpec1->GetSpectrumSize(); i++){
+    freq=aSpec1->GetSpectrumFrequency(i);
     win = Wg * exp(-(freq-phi)*(freq-phi)/2.0/sigma_f/sigma_f);
-    sum += win*win/2.0 / sqrt(aSpec->GetPower(freq)/2.0) * dfreq;
+    sum += win*win/2.0 / sqrt(aSpec1->GetPower(freq)*aSpec2->GetPower(freq)/4.0) * dfreq;
   }
 
   return amp*sum;

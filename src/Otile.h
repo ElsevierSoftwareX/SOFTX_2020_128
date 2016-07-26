@@ -112,14 +112,16 @@ class Otile: public GwollumPlot {
 
   /**
    * Sets the data power spectrum.
-   * This function must be called to compute the amplitude in a given tile: amplitude = SNR * sqrt(power).
-   * The power of a tile is given by the input power spectrum weighted by the Cone window.
+   * This function must be called to compute the amplitude in a given tile: amplitude = SNR * (band noise amplitude).
+   * The noise power of a tile is given by the input noise power spectrum averaged across the bisquare window.
    * If this function is never called, the power is set to 0. 
+   * Two spectra must be given as a double whitening is into play.
    *
-   * The PSD must be given as a valid Spectrum structure, i.e, the PSD was previously computed.
-   * @param aSpec Spectrum structure where the PSD has been computed
+   * The PSDs must be given as valid Spectrum structures, i.e, the PSDs were previously computed.
+   * @param aSpec1 Spectrum structure where the PSD has been computed (1st)
+   * @param aSpec2 Spectrum structure where the PSD has been computed (2nd)
    */
-  bool SetPower(Spectrum *aSpec);
+  bool SetPower(Spectrum *aSpec1, Spectrum *aSpec2);
 
   /**
    * Projects a data vector onto the Q planes.

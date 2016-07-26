@@ -73,9 +73,10 @@ class Oinject{
 
   /**
    * Returns the true value of SNR.
-   * @param aSpec noise spectrum
+   * @param aSpec1 noise spectrum (1)
+   * @param aSpec2 noise spectrum (2)
    */
-  double GetTrueSNR(Spectrum *aSpec);
+  double GetTrueSNR(Spectrum *aSpec1, Spectrum *aSpec2);
 
   /**
    * Sets a new time range.
