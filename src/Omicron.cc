@@ -833,7 +833,7 @@ void Omicron::SaveAPSD(const string aType){
 
   // combine the 2 apsd
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
-    if(G1[i]==NULL) continue;
+    if(G1[i]==NULL||G2[i]==NULL) continue;
     for(int j=0; j<G1[i]->GetN(); j++) G1[i]->GetY()[j] *= (G2[i]->GetY()[j]/factor);
     delete G2[i];
   }

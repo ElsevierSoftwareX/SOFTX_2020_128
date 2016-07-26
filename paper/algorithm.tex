@@ -239,10 +239,6 @@ Fig.~\ref{fig:doublewhite} illustrates why the double whitening procedure is man
 
 
 
-
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  DATA PROJECTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -309,11 +305,11 @@ The $Q$ tansform coefficients are computed by the \texttt{Omicron::Project()} fu
   \label{eq:qcoeff}
 \end{equation}
 
-To test the $Q$ transform implementation, we ran the Omicron algorithm over a pure Gaussian colored noise data set. As explained in Sec.~\ref{sec:method:snr}, after the whitening step, we expect an exponential distribution for the $Q$ transform energies $|X_n(m, l, q)|^2$ along a frequency row $(q,l)$. Figure~\ref{fig:noise_energy_gaus} presents the distribution of the energy coefficients obtained by Omicron for $Q=20$ and the frequency row centered on 108.1~Hz. As expected, the distribution mean value is 2.0 and it is well fitted by an exponential.
+To test the $Q$ transform implementation, we ran the Omicron algorithm over a pure Gaussian colored noise data set. As explained in Sec.~\ref{sec:method:snr}, after the whitening step, we expect an exponential distribution for the $Q$ transform energies $|X_n(m, l, q)|^2$ along a frequency row $(q,l)$. Figure~\ref{fig:noise_energy_gaus} presents the distribution of the energy coefficients obtained by Omicron for $Q=18.2$ and the frequency row centered on 111.9~Hz. As expected, the distribution mean value is 2.0, the standard deviation is 2.0 and it is well fitted by an exponential.
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/noise_energy_gaus.eps}
-  \caption{Distribution of energies, $|X|^2$, measured by Omicron when ran over Gaussian colored noise data (blue points).  Only tiles in the $Q$ plane with $Q=20$ and along the frequency row centered on 108.1~Hz are selected. The distribution is fitted by an exponential with a very good $\chi^2/ndf$ and the mean value is 2.0, as expected from a whitened signal (see Sec.~\ref{sec:method:snr}).}
+  \caption{Distribution of energies, $|X|^2$, measured by Omicron when ran over Gaussian colored noise data (blue points).  Only tiles in the $Q$ plane with $Q=18.2$ and along the frequency row centered on 111.9~Hz are selected. The distribution is fitted by an exponential with a very good $\chi^2/ndf$ and the mean value is 2.0, as expected from a whitened signal (see Sec.~\ref{sec:method:snr}).}
   \label{fig:noise_energy_gaus}
 \end{figure}
 
@@ -322,10 +318,10 @@ To test the $Q$ transform implementation, we ran the Omicron algorithm over a pu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\subsection{The signal-to-noise ratio} \label{sec:algorithm:snr}
 
-An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using the estimator in Eq.~\ref{eq:snrestimator}:
-\begin{equation}
-  \hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}.
-\end{equation}
+%An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using the estimator in Eq.~\ref{eq:snrestimator}:
+%\begin{equation}
+%  \hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}.
+%\end{equation}
 
 %For the denominator, the expectation value for the noise energy is evaluated using a set of tiles, $(i,l,q)$, $i\in\cal{T}$, representing the local stationary white noise. We consider all the tiles in the same $Q$ plane $q$ and along the same frequency row $l$. The time index $i$ can take any value over the chunk duration, excluding the edges overlapping the surrounding chunks: $i \in [f_wT_o/2; N_\tau(Q_q,\phi_l)-f_wT_o/2[$. Across the chunk frequency row, the data may contain outliers which should not be considered as they contradict the stationary noise hypothesis. To exclude these tiles we use the box-plot prescription from Tukey~\cite{tukey:1977}, illustrated in Fig.~\ref{fig:boxplot}. The $Q$ transform energies, $|X|^2$, are distributed into quartiles. Outliers are rejected if they stand above a threshold given by $|X|^2_{75} + 2\Delta |X|^2$, where $|X|^2_{75}$ is the third quartile and $\Delta |X|^2$ is the interquartile range.
 %\begin{figure}
@@ -373,6 +369,15 @@ Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}.
 \subsection{The mapping} \label{sec:algorithm:mapping}
 
 As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2-dimensional histograms (see Fig.~\ref{fig:tiling}), where bins are used to represent the time-frequency tiles. These histograms can be filled by the tile parameters such as the SNR, the amplitude or the phase. Hence, time-frequency planes can be graphically displayed; this is called mapping. Omicron can produce maps and save them in an output file with many formats.
+
+\begin{figure}
+  \center
+  \epsfig{width=7.5cm, file=./figures/gw150914_q0.eps} \epsfig{width=7.5cm, file=./figures/gw150914_q1.eps} \\
+  \epsfig{width=7.5cm, file=./figures/gw150914_q2.eps} \epsfig{width=7.5cm, file=./figures/gw150914_q3.eps} \\
+  \epsfig{width=7.5cm, file=./figures/gw150914_q4.eps} \epsfig{width=7.5cm, file=./figures/gw150914_full.eps}
+  \caption{maps}
+  \label{fig:gw150914_mapsnr}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  SIGNAL INJECTIONS
