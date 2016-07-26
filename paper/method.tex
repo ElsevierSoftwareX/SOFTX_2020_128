@@ -137,7 +137,7 @@ As we will see in Sec.~\ref{sec:method:snr}, whitening the noise before applying
   \tilde{x}^{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S_n(|f|)/2}},
   \label{eq:whitening}
 \end{equation}
-where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random noise process is equally distributed over the frequencies and the one-sided PSD of $x^{white}$ is flat and equal to 2.
+where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random noise process is equally distributed over the frequencies and the one-sided PSD of $x^{white}$ is flat and equal to 2. In Sec.~\ref{sec:algorithm:whitening}, the Omicron implementation of the whitening procedure is described. In particular, we will see that a double whitening method is used to correct for dynamic range issues when performing Fourier transforms.
 
 The noise one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$ (Welch method):
 \begin{equation}
