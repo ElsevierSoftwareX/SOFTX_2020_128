@@ -301,6 +301,7 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   void SaveAPSD(const string aType);///< Save current PSD/ASD
+  void SavePSDVariance(void);   ///< Save PSD variance
   void SaveWPSD(void);          ///< Save whitened PSD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters

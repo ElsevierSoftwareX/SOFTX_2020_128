@@ -631,6 +631,12 @@ bool Omicron::WriteOutput(void){
     SaveAPSD("PSD");
   }
   
+  //*** PSD variance
+  if(fOutProducts.find("psdvariance")!=string::npos){
+    if(fVerbosity>1) cout<<"\t- write PSD variance..."<<endl;
+    SavePSDVariance();
+  }
+  
   //*** CONDITIONNED TS
   if(fOutProducts.find("timeseries")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write conditionned time-series..."<<endl;
@@ -914,6 +920,89 @@ void Omicron::SaveAPSD(const string aType){
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++)
     if(G1[i]!=NULL) delete G1[i];
   delete G1;
+
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Omicron::SavePSDVariance(void){
+////////////////////////////////////////////////////////////////////////////////////
+
+  // extract PSD variance
+  TGraph *GPSDv1, *GPSDv2, *GPSD1, *GPSD2;
+  GPSDv1 = spectrum1[chanindex]->GetPSDVariance(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(GPSDv1==NULL) return;
+  GPSDv2 = spectrum2[chanindex]->GetPSDVariance(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  if(GPSDv2==NULL){ delete GPSDv1; return; }
+  GPSD1 = spectrum1[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+  GPSD2 = spectrum2[chanindex]->GetPSD(tile->GetFrequencyMin(),tile->GetFrequencyMax());
+
+  // combine variances
+  for(int i=0; i<GPSDv1->GetN(); i++){
+    GPSDv1->GetY()[i] = GPSDv1->GetY()[i]*GPSDv2->GetY()[i] + GPSDv1->GetY()[i]*GPSD2->GetY()[i]*GPSD2->GetY()[i] + GPSDv2->GetY()[i]*GPSD1->GetY()[i]*GPSD1->GetY()[i];
+    GPSDv1->GetY()[i]/=4.0;
+    GPSDv1->GetY()[i]=GPSD1->GetY()[i]+sqrt(GPSDv1->GetY()[i]);
+  }
+  delete GPSDv2;
+  delete GPSD1;
+  delete GPSD2;
+
+  // cosmetics
+  GPlot->SetLogx(1);
+  GPlot->SetLogy(1);
+  GPlot->SetGridx(1);
+  GPlot->SetGridy(1);
+  GPlot->Draw(GPSDv1,"APL");
+  GPlot->RedrawAxis();
+  GPlot->RedrawAxis("g");
+  GPSDv1->SetLineWidth(1);
+  GPSDv1->GetXaxis()->SetTitleOffset(1.1);
+  GPSDv1->GetXaxis()->SetLabelSize(0.045);
+  GPSDv1->GetYaxis()->SetLabelSize(0.045);
+  GPSDv1->GetXaxis()->SetTitleSize(0.045);
+  GPSDv1->GetYaxis()->SetTitleSize(0.045);
+  GPSDv1->GetHistogram()->SetXTitle("Frequency [Hz]");
+  GPSDv1->GetHistogram()->SetYTitle("Power^{2} [Amp^{4}/Hz^{2}]");
+  GPSDv1->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density (variance)").c_str());
+  
+
+  // set new name
+  stringstream ss;
+  ss<<"PSDV_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
+  GPSDv1->SetName(ss.str().c_str());
+  ss.str(""); ss.clear();
+
+  // ROOT
+  if(fOutFormat.find("root")!=string::npos){
+    TFile *fpsdv;
+    ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONPSDV-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<".root";
+    fpsdv=new TFile((ss.str()).c_str(),"RECREATE");
+    ss.str(""); ss.clear();
+    fpsdv->cd();
+    GPSDv1->Write();
+    fpsdv->Close();
+  }
+
+  // Graphix
+  vector <string> form;
+  if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
+  if(fOutFormat.find("png")!=string::npos) form.push_back("png");
+  if(fOutFormat.find("pdf")!=string::npos) form.push_back("pdf");
+  if(fOutFormat.find("ps")!=string::npos)  form.push_back("ps");
+  if(fOutFormat.find("xml")!=string::npos) form.push_back("xml");
+  if(fOutFormat.find("eps")!=string::npos) form.push_back("eps"); 
+  if(fOutFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
+  if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
+  if(form.size()){
+    for(int f=0; f<(int)form.size(); f++){
+      ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONPSDV-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<"."<<form[f];
+      GPlot->Print(ss.str().c_str());
+      ss.str(""); ss.clear();
+    }
+  }
+  
+  form.clear();
+  delete GPSDv1;
 
   return;
 }

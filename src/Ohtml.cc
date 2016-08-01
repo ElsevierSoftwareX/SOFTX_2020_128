@@ -236,7 +236,11 @@ void Omicron::MakeHtml(void){
       if(fOutProducts.find("psd")!=string::npos)
 	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">PSD</a></td>"<<endl;
 	
-      // PSD
+      // PSD variance
+      if(fOutProducts.find("psdvariance")!=string::npos)
+	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONPSDV-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">PSD variance</a></td>"<<endl;
+	
+      // whitened PSD
       if(fOutProducts.find("whitepsd")!=string::npos)
 	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONWPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">Whitened PSD</a></td>"<<endl;
 	
