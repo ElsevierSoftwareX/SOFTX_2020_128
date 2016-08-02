@@ -322,16 +322,14 @@ An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using 
 \begin{equation}
   \hat{\rho}_{qlm} = \sqrt{ |X^{wh}(m,l,q)|^2-\langle |X^{wh}_n(m,l,q)|^2 \rangle}.
 \end{equation}
-In a case of an ideal whitening, $\langle |X^{wh}_n(m,l,q)|^2 \rangle = 2$ and the SNR estimate $\hat{\rho}_{qlm}$ can be trivially computed. However, we know that the whitening procedure described in Sec.~\ref{sec:algorithm:whitening} presents limitations: narrow spectral lines are not sufficiently resolved, the data is assumed to be stationary over a time segment used to estimate the PSD ($T_\mathrm{PSD}$), the data presents many non-Gaussian features\dots As a consequence, the mean value $\langle |X^{wh}_n(m,l,q)|^2 \rangle$ is estimated every time.
+In a case of an ideal whitening, $\langle |X^{wh}_n(m,l,q)|^2 \rangle = 2$ and the SNR estimate $\hat{\rho}_{qlm}$ can be trivially derived. However, we know that the whitening procedure described in Sec.~\ref{sec:algorithm:whitening} presents limitations: narrow spectral lines are not sufficiently resolved, the data is assumed to be stationary over a time segment used to estimate the PSD ($T_\mathrm{PSD}$), the data presents many non-Gaussian features\dots As a consequence, the mean value $\langle |X^{wh}_n(m,l,q)|^2 \rangle$ is estimated every time.
 
-For a given time chunk, the squared magnitude of the $Q$ transform coefficients are averaged over a frequency row $(q,l)$: $\langle |X^{wh}(m,l,q)|^2 \rangle_m$. To have the noise estimate we are interested about, tiles on both edges of the time chunk ($T_o/2$) are not considered because they may be suffer from filtering artifacts (see Sec.~\ref{sec:algorithm:conditioning}). Moreover, tiles with $|X^{wh}(m,l,q)|^2 > E_{th}$ are excluded; the distribution of tile energies below the threshold value $E_{th}$ is believed to be dominated by noise events (refer to Fig.~\ref{fig:noise_energy_gaus} to gauge this value). As a consequence, the mean value of the resulting distribution must be corrected by a factor accounting for the fact that the distribution is truncated. Asuming an exponential distribution,
-\begin{equation}
-  \int_0^{E_{th}}\frac{1}{2}e^{|X|^2/2}d|X|^2 = 1-e^{-E_{th}/2}.
-\end{equation}
-The unbiased expectation value for noise is then given by:
-\begin{equation}
-   \langle |X^{wh}_n(m,l,q)|^2 \rangle = \langle |X^{wh}(m,l,q)|^2 \rangle_{m,|X|^2<E_{th}} \times \left( 1-e^{-E_{th}/2} \right)^{-1}.
-\end{equation}
+For a given time chunk, the squared magnitude of the $Q$ transform coefficients are averaged over a frequency row $(q,l)$: $\langle |X^{wh}(m,l,q)|^2 \rangle_m$. To have an estimate only for noise, tiles on both edges of the time chunk ($T_o/2$) are not considered because they may suffer from filtering artifacts (see Sec.~\ref{sec:algorithm:conditioning}). Moreover, tiles with $|X^{wh}(m,l,q)|^2 > E_{th}$ are excluded to reject outliers. The threshold value $E_{th}$ is chosen such that the distribution of tile energies below the threshold is dominated by noise events (refer to Fig.~\ref{fig:noise_energy_gaus} to gauge this value). As a consequence, the mean value of the resulting distribution must be corrected by a factor accounting for the fact that the distribution is truncated. Asuming an exponential distribution, the truncated expectation value is
+\begin{align}
+  \langle |X|^2 \rangle_{|X|^2<E_{th}} &= \int_0^{E_{th}}\frac{|X|^2}{\langle |X|^2\rangle}e^{-|X|^2/\langle |X|^2\rangle}d|X|^2 \\
+  &= \langle |X^2|\rangle - e^{\frac{|X|^2}{\langle |X^2|\rangle}} \left(E_{th}+ \langle |X^2|\rangle \right)
+\end{align}
+
 
 
 %For the denominator, the expectation value for the noise energy is evaluated using a set of tiles, $(i,l,q)$, $i\in\cal{T}$, representing the local stationary white noise. We consider all the tiles in the same $Q$ plane $q$ and along the same frequency row $l$. The time index $i$ can take any value over the chunk duration, excluding the edges overlapping the surrounding chunks: $i \in [f_wT_o/2; N_\tau(Q_q,\phi_l)-f_wT_o/2[$. Across the chunk frequency row, the data may contain outliers which should not be considered as they contradict the stationary noise hypothesis. To exclude these tiles we use the box-plot prescription from Tukey~\cite{tukey:1977}, illustrated in Fig.~\ref{fig:boxplot}. The $Q$ transform energies, $|X|^2$, are distributed into quartiles. Outliers are rejected if they stand above a threshold given by $|X|^2_{75} + 2\Delta |X|^2$, where $|X|^2_{75}$ is the third quartile and $\Delta |X|^2$ is the interquartile range.
