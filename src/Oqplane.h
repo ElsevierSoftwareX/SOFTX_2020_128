@@ -72,7 +72,8 @@ class Oqplane: public Omap {
   double **bandWindow;              ///< band bisquare windows
   double *bandNoiseAmplitude;       ///< band noise power
   fft **bandFFT;                    ///< band ffts
-  //double *bandMeanEnergy;           ///< band mean energy
+  double *bandMeanEnergy;           ///< band mean energy
+  double *bandVarEnergy;            ///< band energy variance
   
   ClassDef(Oqplane,0)  
 };

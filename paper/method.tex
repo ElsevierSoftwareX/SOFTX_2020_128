@@ -134,10 +134,10 @@ Each frequency row is finally sub-divided into $N_\tau(Q_q,\phi_{ql})$ linearly-
 
 As we will see in Sec.~\ref{sec:method:snr}, whitening the noise before applying the $Q$ transform is useful for a subsequent statistical interpretation of the $Q$ transform coefficients. To achieve this, a simple method consists of re-weighting the frequency-domain data by the inverse noise amplitude spectral density:
 \begin{equation}
-  \tilde{x}^{white}(f) = \frac{\tilde{x}(f)}{\sqrt{S_n(|f|)/2}},
+  \tilde{x}^{wh}(f) = \frac{\tilde{x}(f)}{\sqrt{S_n(|f|)/2}},
   \label{eq:whitening}
 \end{equation}
-where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random noise process is equally distributed over the frequencies and the one-sided PSD of $x^{white}$ is flat and equal to 2. In Sec.~\ref{sec:algorithm:whitening}, the Omicron implementation of the whitening procedure is described. In particular, we will see that a double whitening method is used to correct for dynamic range issues when performing Fourier transforms.
+where $S_n(f)$ is the one-sided ($f \ge 0$) noise power spectrum density (PSD). After this transformation, the power of a random noise process is equally distributed over the frequencies and the one-sided PSD of $x^{wh}$ is flat and equal to 2. In Sec.~\ref{sec:algorithm:whitening}, the Omicron implementation of the whitening procedure is described. In particular, we will see that a double whitening method is used to correct for dynamic range issues when performing Fourier transforms.
 
 The noise one-sided PSD is usually estimated by averaging multiple one-sided periodograms computed over a finite duration $T$ (Welch method):
 \begin{equation}
@@ -197,13 +197,13 @@ As previously announced, this result is exactly what is obtained in the context 
 
 One must recall that the $Q$ transform is performed after whitening the time series as described in Sec.~\ref{sec:method:whitening}. The above calculation must therefore be modified. In particular, Eq.~\ref{eq:qtransform_signal} and Eq.~\ref{eq:qtransform_noise} become:
 \begin{align}
-  |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| &= B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df}, \\
-  \langle |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle &= 2.
+  |X^{wh}_b(\tau_{qlm}, \phi_{ql}, Q_q)| &= B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df}, \\
+  \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle &= 2.
   \label{eq:qtransform_whitened}
 \end{align}
 The SNR is then given by
 \begin{equation}
-  \rho_{qlm} = |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| = B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df},
+  \rho_{qlm} = |X^{wh}_b(\tau_{qlm}, \phi_{ql}, Q_q)| = B \int_{-\infty}^{+\infty}{\frac{|\tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)|^2}{2\sqrt{S_n(|f|)/2}}df},
   \label{eq:snr_white}
 \end{equation}
 and the special case of Eq.~\ref{eq:snrmatch} remains true.
@@ -212,10 +212,11 @@ and the special case of Eq.~\ref{eq:snrmatch} remains true.
 
 For obvious reasons, the burst signal cannot be disentangled from noise; only $x$ is measured. As a result, the SNR of Eq.~\ref{eq:snrdef} cannot be exactly computed. Instead, it is estimated using the $Q$ transform coefficient of $x$:
 \begin{equation}
-  \hat{\rho}_{qlm}^2 =  |X^{white}(\tau_{qlm}, \phi_{ql}, Q_q)|^2-2 . \label{eq:snrestimator}
+  \hat{\rho}_{qlm}^2 =  |X^{wh}(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle . \label{eq:snrestimator}
 \end{equation}
-%To estimate the denominator, we rely, once more, on the noise stationarity hypothesis. The expectation value for noise can be evaluated using tiles at different times where we know that no burst signal is present, i.e. $x(t)=n(t)$. We note $\cal{T}$ such a representative set of tiles such as $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = \langle |X_n(\phi_{ql}, Q_q)|^2 \rangle = \langle |X(\tau_{qli}, \phi_{ql}, Q_q)|^2 \rangle_{i\in \cal{T}}$. In Sec.~\ref{sec:algorithm:snr}, we will describe how the set $\cal{T}$ can be constructed.
-The squared magnitude of the $Q$ transform coefficient of $x=b+n$ for tile $(q,l,m)$ can be expanded as
+As mentioned above, the $Q$ transform expectation value for a white noise is 2. However we prefer to keep a general expression because, as we will see in Sec.~\ref{sec:algorithm:snr}, the whitening procedure is not perfect. As a result, the noise expectation value $\langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle$ must be estimated.
+
+Now, let's estimate how correct our SNR estimator is. The squared magnitude of the $Q$ transform coefficient of $x=b+n$ for tile $(q,l,m)$ can be expanded as
 \begin{equation}
   |X(\tau_{qlm}, \phi_{ql}, Q_q)|^2 = |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 + 2|X_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X_b(\tau_{qlm}, \phi_{ql}, Q_q)|\cos{\theta_{bn}},
 \end{equation}
@@ -223,10 +224,35 @@ where $\theta_{bn}$ is the phase between the burst and the noise signals. Using 
 \begin{equation}
   \hat{\rho}_{qlm}^2  =
   \rho_{qlm}^2
-  + |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 -2
-  + 2|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X^{white}_b(\tau_{qlm}, \phi_{ql}, Q_q)| \cos{\theta_{bn}}.
+  + |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle
+  + 2|X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X^{wh}_b(\tau_{qlm}, \phi_{ql}, Q_q)| \cos{\theta_{bn}}.
+  \label{eq:snrbias}
 \end{equation}
-From this expression, we see that our SNR estimate can differ from the true value because of two causes: the random fluctuations of white noise around the mean value of 2 and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. Both distributions are known. In~\cite{Chatterji:2004}, it is shown that the distribution of $|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ is an exponential distribution with mean $\langle |X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = 2$. The standard deviation of $|X^{white}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ from 2 is therefore 2. In addition, assuming that the signal and the noise are independent, the distribution of the phase $\theta_{bn}$ is uniform over all angles. One additional source of uncertainty result from the assumption made until now: the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$).
+From this expression, we see that our SNR estimate can differ from the true value because of two causes: the random fluctuations of white noise around the mean value and the arbitrary phase, $\theta_{bn}$, between the burst and the noise signals. For both cases, distributions are known. In~\cite{Chatterji:2004}, it is shown that the distribution of $|X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ is exponential with mean $\langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle = 2$. The standard deviation of $|X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2$ from 2 is therefore 2. In addition, assuming that the signal and the noise are independent, the distribution of the phase $\theta_{bn}$ is uniform over all angles. In Fig.~\ref{fig:snrestimator}, 10 million events were generated with a fixed true SNR value and the estimated SNR $\hat{\rho}$ was computed. The resulting distributions show how well the SNR is estimated. Tab.~\ref{tab:snrestimator} reports the bias as well as the uncertainty associated to our estimate of SNR. The SNR is systematically under-estimated by $\sim 4\%$ for events with a SNR of 3 and the standard deviation of the estimate is of about 30\%, i.e. $2<\hat{\rho}<4$. The SNR is better estimated for higher SNR; the difference becomes negligible for SNR$>10$.
+\begin{figure}
+  \center
+  \epsfig{width=12cm, file=./figures/snrestimator.eps}
+  \caption{Ten million events were generated at a fixed SNR, $\rho$, ranging from 3 to 100. The SNR is estimated using the Eq.~\ref{eq:snrbias}. $|X^{wh}_n|^2$ is drawn from an exponential distribution with a mean value of 2. $\theta_{bn}$ is drawn from a uniform distribution between $-\pi$ and $\pi$. This plot shows how the estimator $\hat{\rho}$ deviates from the true value $\rho$.}
+  \label{fig:snrestimator}
+\end{figure}
+\begin{table}
+  \begin{center}
+    \begin{tabular}{ m{2cm} m{2cm} m{2cm} } 
+      $\rho$ & Mean bias    & Std dev.      \\ \hline
+      3      & -4.03\% & $\pm 33.89\%$ \\
+      5      & -2.16\% & $\pm 20.73\%$ \\
+      8      & -0.81\% & $\pm 12.65\%$ \\
+      10     & -0.51\% & $\pm 10.08\%$ \\
+      20     & -0.12\% & $\pm 5.01\%$  \\
+      50     & -0.02\% & $\pm 2.00\%$  \\
+      100    & -0.00\% & $\pm 1.00\%$  \\ \hline
+    \end{tabular}
+  \end{center}
+  \label{tab:snrestimator}
+  \caption{Bias and uncertainty associated to the signal-to-noise estimator $\hat{\rho}$. Ten million events were generated at a fixed SNR, $\rho$, ranging from 3 to 100. The SNR is estimated using the Eq.~\ref{eq:snrbias}. $|X^{wh}_n|^2$ is drawn from an exponential distribution with a mean value of 2. $\theta_{bn}$ is drawn from a uniform distribution between $-\pi$ and $\pi$. We report the mean bias and the standard deviation associated to the distribution of $(\hat{\rho} - \rho)/\rho$.}
+  \end{table}
+
+One additional source of uncertainty result from the assumption made until now: the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

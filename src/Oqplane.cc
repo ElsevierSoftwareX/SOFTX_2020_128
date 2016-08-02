@@ -48,7 +48,8 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   titlestream<<"qplane_"<<setprecision(5)<<fixed<<Q;
   SetName(titlestream.str().c_str());
   SetTitle(titlestream.str().c_str());
-
+  titlestream.str(""); titlestream.clear();
+  
   // set binning
   Omap::SetBins(Q,FrequencyMin,FrequencyMax,TimeRange,MismatchStep);
     
@@ -58,9 +59,10 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // band variables
   bandNoiseAmplitude = new double  [GetNBands()];
   bandFFT            = new fft*    [GetNBands()];
-  //bandMeanEnergy     = new double  [GetNBands()];
   bandWindow         = new double* [GetNBands()];
   bandWindowSize     = new int     [GetNBands()];
+  bandMeanEnergy     = new double  [GetNBands()];
+  bandVarEnergy      = new double  [GetNBands()];
 
   double windowargument;
   double winnormalization;
@@ -73,11 +75,14 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     
     // no power
     bandNoiseAmplitude[f]=0.0;
-    //bandMeanEnergy[f]=1.0;
             
     // band fft
     ifftnormalization = 1.0 / (double)TimeRange;
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE", "c2c");
+
+    // band energies
+    bandMeanEnergy[f] = 0.0;
+    bandVarEnergy[f]  = 0.0;
 
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
@@ -109,9 +114,10 @@ Oqplane::~Oqplane(void){
     delete bandWindow[f];
   }
   delete bandWindowSize;
+  delete bandMeanEnergy;
+  delete bandVarEnergy;
   delete bandFFT;
   delete bandNoiseAmplitude;
-  //delete bandMeanEnergy;
   delete bandWindow;
 }
 
@@ -203,7 +209,7 @@ bool Oqplane::ProjectData(fft *aDataFft, const double aPadding){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  int k, Pql, Nt, end;
+  int k, Pql, Nt, end, tstart, tend, nt;
    
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
@@ -237,14 +243,25 @@ bool Oqplane::ProjectData(fft *aDataFft, const double aPadding){
 
     // from now on, the final Q coefficients are stored in the time vector of bandFFT[f]
 
-    /*
-    // get mean energy
-    bandMeanEnergy[f]=GetMeanEnergy(f, aPadding);
-    if(bandMeanEnergy[f]<=0.0){
-      cerr<<"Oqplane::ProjectData: cannot normalize energies"<<endl;
-      return false;
+    // energy mean
+    nt=0;
+    bandMeanEnergy[f]=0.0;
+    bandVarEnergy[f]=0.0;
+    tstart=GetTimeTileIndex(f, GetTimeMin()+aPadding);
+    tend=GetTimeTileIndex(f, GetTimeMax()-aPadding);
+    for(int t=tstart; t<tend; t++){
+      if(bandFFT[f]->GetNorm2_t(t)>10) continue;
+      bandMeanEnergy[f]+=bandFFT[f]->GetNorm2_t(t);
+      bandVarEnergy[f]+=bandFFT[f]->GetNorm2_t(t)*bandFFT[f]->GetNorm2_t(t);
+      nt++;
     }
-    */
+    if(nt){
+      bandMeanEnergy[f]/=(double)nt;
+      bandVarEnergy[f]/=(double)nt;
+      bandVarEnergy[f]-=bandMeanEnergy[f]*bandMeanEnergy[f];
+    }
+    //cout<<nt<<" "<<bandMeanEnergy[f]<<" "<<bandVarEnergy[f]<<endl;
+    // FIXME: need correction factor
   }
  
   return true;

@@ -186,7 +186,7 @@ A time-domain data vector $d$ of duration $T_\mathrm{PSD}$ and sampled at the Om
   &= \frac{2}{T_\mathrm{spec}f_w^2}\left|\sum_{j=0}^{f_wT_\mathrm{spec}-1}{d_s[j]w_H[j]e^{-2i\pi jk/(f_wT_{spec})}}\right|^2.
 \end{align}
 
-To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the traditional Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, for Gaussian noise, the resulting median value must be corrected by a bias factor, $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$, to recover an estimate using a mean value: $S_n^e[k]=\mathrm{median}(P_0[k], P_2[k],...)/\alpha(N^e)$ and $S_n^o[k]=\mathrm{median}(P_1[k], P_3[k],...)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S_n[k]=(N^eS_n^e[k]+N^oS_n^o[k])/(N^e+N^o)$. This procedure to estimate the PSD is illustrated in Fig.~\ref{fig:psdseg}.
+To work with independent random quantities, the sub-segments are separated into two sets of non-overlapping segments: $N^e$ sub-segments with even indexes and $N^o$ sub-segments with odd indexes. Instead of using a mean, as prescribed with the traditional Welch method, we use a median which offers a more robust estimator for the power spectrum. However, as explained in \cite{Allen:2005fk}, for Gaussian noise, the resulting median value must be corrected by a bias factor, $\alpha(N)=\sum_{n=0}^{N-1}{(-1)^{n+1}/n}$, to recover an estimate using a mean value: $S_n^e[k]=\mathrm{median}(P_0[k], P_2[k],\dots)/\alpha(N^e)$ and $S_n^o[k]=\mathrm{median}(P_1[k], P_3[k],\dots)/\alpha(N^o)$. The final PSD is obtained by taking the mean of even and odd PSDs: $S_n[k]=(N^eS_n^e[k]+N^oS_n^o[k])/(N^e+N^o)$. This procedure to estimate the PSD is illustrated in Fig.~\ref{fig:psdseg}.
 \begin{figure}
   \center
   \epsfig{width=15cm, file=./figures/psdseg.eps} \\
@@ -204,7 +204,7 @@ Before projecting the data onto the tiling structure, the data chunk, $x$, is Fo
 
 Finally, as suggested in Sec.~\ref{sec:algorithm:discrete}, to optimize the processing, real-to-complex Fourier transforms are performed to compute both the periodograms, $P_s$, and the frequency-domain chunk data vector, $\tilde{x}$. The whitened frequency-domain vector elements are simply given by
 \begin{equation}
-  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{S_n(k/T_c)/2}}, \qquad 0 \le k \le \frac{N_c}{2},
+  \tilde{x}^{wh}[k] = \frac{\tilde{x}[k]}{\sqrt{S_n(k/T_c)/2}}, \qquad 0 \le k \le \frac{N_c}{2},
   \label{eq:white_simple}
 \end{equation}
 where $S_n(k/T_c)$ is the PSD value intrapolated at the frequency $k/T_c$.
@@ -219,9 +219,9 @@ Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is es
 \end{figure}
 
 
-The number of points in the PSD is kept small to guarantee an optimized processing: fast Fourier transforms and low memory usage. However, a low frequency resolution can sometimes be an issue for the FFTW algorithm: the frequency resolution is not high enough to account for large variations in the spectrum (especially at low frequencies). For this reason, the noise PSD is estimated into 2 steps. A first PSD estimate is computed as descibed above: $S_{n,1}$. It is used to perform a first whitening as prescribed by Eq.~\ref{eq:white_simple}. We obtain a whitened data vector $\tilde{x}_1^{white}$. A Fourier transform is applied to switch back to the time domain: $x_1^{white}$. Then, a second whitening procedure is applied: the data vector $x_1^{white}$ is used to compute a second PSD, $S_{n,2}$, using the method presented above. The data vector is whitened a second time using the second PSD estimate $S_{n,2}$. Instead of Eq.~\ref{eq:white_simple}, the double whitening procedure implemented in Omicron is equivalent to:
+The number of points in the PSD is kept small to guarantee an optimized processing: fast Fourier transforms and low memory usage. However, a low frequency resolution can sometimes be an issue for the FFTW algorithm: the frequency resolution is not high enough to account for large variations in the spectrum (especially at low frequencies). For this reason, the noise PSD is estimated into 2 steps. A first PSD estimate is computed as descibed above: $S_{n,1}$. It is used to perform a first whitening as prescribed by Eq.~\ref{eq:white_simple}. We obtain a whitened data vector $\tilde{x}_1^{wh}$. A Fourier transform is applied to switch back to the time domain: $x_1^{wh}$. Then, a second whitening procedure is applied: the data vector $x_1^{wh}$ is used to compute a second PSD, $S_{n,2}$, using the method presented above. The data vector is whitened a second time using the second PSD estimate $S_{n,2}$. Instead of Eq.~\ref{eq:white_simple}, the double whitening procedure implemented in Omicron is equivalent to:
 \begin{equation}
-  \tilde{x}^{white}[k] = \frac{\tilde{x}[k]}{\sqrt{\frac{S_{n,1}(k/T_c)}{2}\frac{S_{n,2}(k/T_c)}{2}}}, \qquad 0 \le k \le \frac{N_c}{2}.
+  \tilde{x}^{wh}[k] = \frac{\tilde{x}[k]}{\sqrt{\frac{S_{n,1}(k/T_c)}{2}\frac{S_{n,2}(k/T_c)}{2}}}, \qquad 0 \le k \le \frac{N_c}{2}.
   \label{eq:white_double}
 \end{equation}
 When comparing Eq.~\ref{eq:white_simple} and Eq.~\ref{eq:white_double}, it is clear that the final noise PSD is given by
@@ -244,7 +244,7 @@ Fig.~\ref{fig:doublewhite} illustrates why the double whitening procedure is man
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The data projection} \label{sec:algorithm:projection}
 
-The whitened frequency-domain chunk data vector $\tilde{x}$ (in this section, for brevity, we drop the $white$ superscript) is applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
+The whitened frequency-domain chunk data vector $\tilde{x}$ (in this section, for brevity, we drop the $wh$ superscript) is applied the $Q$ transform of Eq.~\ref{eq:qtransform2} for each tile $(m, l, q)$. In a discrete framework, Eq.~\ref{eq:qtransform2} writes
 \begin{equation}
   X(j,l,q)=\frac{f_w}{N_c}\sum_{k=0}^{N_c-1}{\tilde{x}[k+p_{ql}]\tilde{w}_{ql}^*[k]\mathrm{e}^{+2i\pi jk/N_c}},
   \label{eq:dqtransform1}
@@ -316,12 +316,23 @@ To test the $Q$ transform implementation, we ran the Omicron algorithm over a pu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  SNR
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\subsection{The signal-to-noise ratio} \label{sec:algorithm:snr}
+\subsection{The signal-to-noise ratio estimate} \label{sec:algorithm:snr}
 
-%An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using the estimator in Eq.~\ref{eq:snrestimator}:
-%\begin{equation}
-%  \hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}.
-%\end{equation}
+An amplitude SNR value is assigned to each tile $(m,l,q)$. It is computed using the estimator in Eq.~\ref{eq:snrestimator}:
+\begin{equation}
+  \hat{\rho}_{qlm} = \sqrt{ |X^{wh}(m,l,q)|^2-\langle |X^{wh}_n(m,l,q)|^2 \rangle}.
+\end{equation}
+In a case of an ideal whitening, $\langle |X^{wh}_n(m,l,q)|^2 \rangle = 2$ and the SNR estimate $\hat{\rho}_{qlm}$ can be trivially computed. However, we know that the whitening procedure described in Sec.~\ref{sec:algorithm:whitening} presents limitations: narrow spectral lines are not sufficiently resolved, the data is assumed to be stationary over a time segment used to estimate the PSD ($T_\mathrm{PSD}$), the data presents many non-Gaussian features\dots As a consequence, the mean value $\langle |X^{wh}_n(m,l,q)|^2 \rangle$ is estimated every time.
+
+For a given time chunk, the squared magnitude of the $Q$ transform coefficients are averaged over a frequency row $(q,l)$: $\langle |X^{wh}(m,l,q)|^2 \rangle_m$. To have the noise estimate we are interested about, tiles on both edges of the time chunk ($T_o/2$) are not considered because they may be suffer from filtering artifacts (see Sec.~\ref{sec:algorithm:conditioning}). Moreover, tiles with $|X^{wh}(m,l,q)|^2 > E_{th}$ are excluded; the distribution of tile energies below the threshold value $E_{th}$ is believed to be dominated by noise events (refer to Fig.~\ref{fig:noise_energy_gaus} to gauge this value). As a consequence, the mean value of the resulting distribution must be corrected by a factor accounting for the fact that the distribution is truncated. Asuming an exponential distribution,
+\begin{equation}
+  \int_0^{E_{th}}\frac{1}{2}e^{|X|^2/2}d|X|^2 = 1-e^{-E_{th}/2}.
+\end{equation}
+The unbiased expectation value for noise is then given by:
+\begin{equation}
+   \langle |X^{wh}_n(m,l,q)|^2 \rangle = \langle |X^{wh}(m,l,q)|^2 \rangle_{m,|X|^2<E_{th}} \times \left( 1-e^{-E_{th}/2} \right)^{-1}.
+\end{equation}
+
 
 %For the denominator, the expectation value for the noise energy is evaluated using a set of tiles, $(i,l,q)$, $i\in\cal{T}$, representing the local stationary white noise. We consider all the tiles in the same $Q$ plane $q$ and along the same frequency row $l$. The time index $i$ can take any value over the chunk duration, excluding the edges overlapping the surrounding chunks: $i \in [f_wT_o/2; N_\tau(Q_q,\phi_l)-f_wT_o/2[$. Across the chunk frequency row, the data may contain outliers which should not be considered as they contradict the stationary noise hypothesis. To exclude these tiles we use the box-plot prescription from Tukey~\cite{tukey:1977}, illustrated in Fig.~\ref{fig:boxplot}. The $Q$ transform energies, $|X|^2$, are distributed into quartiles. Outliers are rejected if they stand above a threshold given by $|X|^2_{75} + 2\Delta |X|^2$, where $|X|^2_{75}$ is the third quartile and $\Delta |X|^2$ is the interquartile range.
 %\begin{figure}
@@ -352,7 +363,7 @@ One of the output products of Omicron is a list of tiles with a SNR, $\hat{\rho}
   \item the tile central time, $\tau_{qlm}$ defined by Eq.~\ref{eq:tau},
   \item the tile central frequency, $\phi_{ql}$ defined by Eq.~\ref{eq:phi},
   \item the $Q$ plane $Q$ value, $Q_{q}$ defined by Eq.~\ref{eq:q},
-  \item an amplitude SNR estimated by Eq.~\ref{eq:snrestimator}: $\hat{\rho}_{qlm} = \sqrt{ |X^{white}(m,l,q)|^2-2}$,
+  \item an amplitude SNR estimated by Eq.~\ref{eq:snrestimator}: $\hat{\rho}_{qlm} = \sqrt{ |X^{wh}(m,l,q)|^2-2}$,
   \item an amplitude estimated by Eq.~\ref{eq:amplitude}
   \item a phase value, \bluenote{TBD}
   \item a starting time, $\tau_{qlm} - \Delta \tau_{ql}/2$, using Eq.~\ref{eq:dtau},
