@@ -139,10 +139,13 @@ class Otile: public GwollumPlot {
    *
    * A time selection is performed if specific output segments were previously set with SetSegments(): triggers starting outside the output segment list are not saved.
    *
+   * Triggers are saved one Q plane at a time. After each Q plane, the number of triggers in the MakeTriggers structure is checked. If it exceeds a given maximal rate, defined in argument, false is returned and the next Q planes are not searched for. The MakeTriggers object is then corrupted and must be reset by the user.
+   *
    * See also SetSNRThr() and SetSegments().
    * @param aTriggers MakeTriggers object
+   * @param aRateMax maximum trigger rate [Hz]
    */
-  bool SaveTriggers(MakeTriggers *aTriggers);
+  bool SaveTriggers(MakeTriggers *aTriggers, const double aRateMax = 100.0);
 
   /**
    * Saves the maps for each Q-planes in output files.

@@ -172,11 +172,11 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
     // fill triggers
     for(int t=tstart; t<tend; t++){
 
-      // compute tile snr
-      snr2=bandFFT[f]->GetNorm2_t(t)-2.0;
+      // get tile snr
+      snr2=GetTileSNR2(t,f);
 
       // apply SNR threshold
-      if(snr2<SNRThr2||snr2<0.0) continue;
+      if(snr2<SNRThr2) continue;
 
       // time select
       if(!aSeg->IsInsideSegment(GetTileTime(t,f)+aT0)) continue;

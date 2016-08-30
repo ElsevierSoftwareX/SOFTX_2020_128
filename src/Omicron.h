@@ -155,6 +155,8 @@ class Omicron {
   
   /**
    * Extract triggers above threshold.
+   * Triggers are saved one Q plane at a time. After each Q plane, the number of triggers is checked. If it exceeds a given maximal rate, defined in the user parameter file, false is returned and the next Q planes are not searched for (see also Otile::SaveTriggers()). All triggers are reset.
+   * @param aRateMax maximum trigger rate [Hz]
    */
   bool ExtractTriggers(void);
 
@@ -257,6 +259,7 @@ class Omicron {
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
   string fftplan;               ///< fft plan
+  double fratemax;              ///< maximum trigger rate /chunk
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   int fsginj;                   ///< perform SG injections

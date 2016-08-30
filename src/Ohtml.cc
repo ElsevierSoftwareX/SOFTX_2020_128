@@ -207,8 +207,10 @@ void Omicron::MakeHtml(void){
       report<<"    <td>"<<chunkcenter[s]<<":</td>"<<endl;
 
       // triggers
-      if(fOutProducts.find("triggers")!=string::npos)
-	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<chunktfile[s]<<"\">Triggers</a></td>"<<endl;
+      if(fOutProducts.find("triggers")!=string::npos){
+	if(chunktfile[s].compare("none")) report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<chunktfile[s]<<"\">Triggers</a></td>"<<endl;
+	else report<<"    <td>Triggers</td>"<<endl;
+      }
       
       // maps
       if(fOutProducts.find("map")!=string::npos){

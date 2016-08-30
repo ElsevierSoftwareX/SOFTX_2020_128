@@ -191,7 +191,7 @@ bool Otile::ProjectData(fft *aDataFft){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers){
+bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aRateMax){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
@@ -208,10 +208,17 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
   }
   seg->Intersect(SeqOutSegments);// apply user-defined output selection
   if(!seg->GetLiveTime()) {delete seg; return true; } // nothing to do
+
+  int ntmax = (int)(aRateMax*seg->GetLiveTime());
     
   // save triggers for each Q plane
-  for(int p=0; p<nq; p++)
+  for(int p=0; p<nq; p++){
     if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
+    if(aTriggers->GetNtrig()>ntmax){
+      cerr<<"Otile::SaveTriggers: the maximum trigger rate ("<<aRateMax<<" Hz) is exceeded for chunk centered on "<<SeqT0<<"..."<<endl;
+      delete seg; return false;
+    }
+  }
   
   // save trigger segments
   if(aTriggers->GetNsegments()&&seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments

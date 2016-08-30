@@ -79,6 +79,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_CLUSTERING");      fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FFTPLAN");         fOptionType.push_back("s");
+  fOptionName.push_back("omicron_PARAMETER_TRIGGERRATEMAX");  fOptionType.push_back("d");
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
@@ -128,11 +129,12 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[26],fClusterAlgo);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],triggers[c]->GetClusterizeDt());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fftplan);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fratemax);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[34],GPlot->GetCurrentStyle());
   }
   
   // default output directory: main dir
@@ -672,7 +674,10 @@ bool Omicron::WriteOutput(void){
   //*** TRIGGERS
   if(fOutProducts.find("triggers")!=string::npos){
     if(fVerbosity>1) cout<<"\t- write triggers "<<endl;
-    if(!ExtractTriggers()) return false; // extract triggers
+    if(!ExtractTriggers()){// extract triggers
+      chunktfile.push_back("none");
+      return false;
+    }
     chunktfile.push_back(GetFileName(WriteTriggers())); // write triggers to disk
   }
 
@@ -691,8 +696,11 @@ bool Omicron::ExtractTriggers(void){
     cerr<<"Omicron::ExtractTriggers: the Omicron object is corrupted"<<endl;
     return false;
   }
-
-  if(!tile->SaveTriggers(triggers[chanindex])) return false;
+  
+  if(!tile->SaveTriggers(triggers[chanindex],fratemax)){
+    triggers[chanindex]->Reset();
+    return false;
+  }
 
   return true;
 }
