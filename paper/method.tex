@@ -212,9 +212,13 @@ and the special case of Eq.~\ref{eq:snrmatch} remains true.
 
 For obvious reasons, the burst signal cannot be disentangled from noise; only $x$ is measured. As a result, the SNR of Eq.~\ref{eq:snrdef} cannot be exactly computed. Instead, it is estimated using the $Q$ transform coefficient of $x$:
 \begin{equation}
-  \hat{\rho}_{qlm}^2 =  |X^{wh}(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle . \label{eq:snrestimator}
+  \hat{\rho}_{qlm}^2 =  |X^{wh}(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle .
 \end{equation}
-As mentioned above, the $Q$ transform expectation value for a white noise is 2. However we prefer to keep a general expression because, as we will see in Sec.~\ref{sec:algorithm:snr}, the whitening procedure is not perfect. As a result, the noise expectation value $\langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle$ must be estimated.
+As mentioned above, the $Q$ transform expectation value for a white noise is 2. Therefore the SNR estimator takes the simple form
+%However we prefer to keep a general expression because, as we will see in Sec.~\ref{sec:algorithm:snr}, the whitening procedure is not perfect. As a result, the noise expectation value $\langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle$ must be estimated.
+\begin{equation}
+  \hat{\rho}_{qlm}^2 =  |X^{wh}(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - 2 . \label{eq:snrestimator}
+\end{equation}
 
 Now, let's estimate how correct our SNR estimator is. The squared magnitude of the $Q$ transform coefficient of $x=b+n$ for tile $(q,l,m)$ can be expanded as
 \begin{equation}
@@ -224,7 +228,8 @@ where $\theta_{bn}$ is the phase between the burst and the noise signals. Using 
 \begin{equation}
   \hat{\rho}_{qlm}^2  =
   \rho_{qlm}^2
-  + |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle
+%  + |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - \langle |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle
+  + |X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 - 2
   + 2|X^{wh}_n(\tau_{qlm}, \phi_{ql}, Q_q)|\ |X^{wh}_b(\tau_{qlm}, \phi_{ql}, Q_q)| \cos{\theta_{bn}}.
   \label{eq:snrbias}
 \end{equation}
@@ -265,4 +270,4 @@ The SNR expression in Eq.~\ref{eq:snr_white} suggests that it is possible to est
 \end{equation}
 By construction, this estimate of the amplitude differ from the true amplitude value for the same reasons listed in the previous section. Moreover, this amplitude only reflects how a given signal projects on a sinusoidal Gaussian waveform.
 
- \bluenote{What about the phase?}
+ \bluenote{Say something about the phase}
