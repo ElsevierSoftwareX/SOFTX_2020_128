@@ -139,8 +139,8 @@ class Omicron {
    * -  4 = the native sampling frequency cannot be updated
    * -  5 = the vector transformation failed (DC removal+resampling+highpassing)
    * -  6 = the chunk data could not be FFTed (forward)
-   * -  7 = the spectrum (1) could not be updated
-   * -  8 = the spectrum (2) could not be updated
+   * -  7 = the spectrum (1) is not available
+   * -  8 = the spectrum (2) is not available
    * -  9 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
@@ -304,7 +304,6 @@ class Omicron {
   // OUTPUT
   string maindir;               ///< output main directory
   void SaveAPSD(const string aType);///< Save current PSD/ASD
-  void SavePSDVariance(void);   ///< Save PSD variance
   void SaveWPSD(void);          ///< Save whitened PSD
   void SaveTS(const bool aWhite=false); ///< Save current chunk time series
   void SaveSG(void);            ///< Save current sg injection parameters
