@@ -135,13 +135,12 @@ class Omicron {
    * -  0 = OK
    * -  1 = the input vector is pointing to NULL
    * -  2 = the input vector size is 0
-   * -  3 = the input vector is flat
-   * -  4 = the native sampling frequency cannot be updated
-   * -  5 = the vector transformation failed (DC removal+resampling+highpassing)
-   * -  6 = the chunk data could not be FFTed (forward)
-   * -  7 = the spectrum (1) is not available
-   * -  8 = the spectrum (2) is not available
-   * -  9 = the tiling power could not be computed
+   * -  3 = the native sampling frequency cannot be updated
+   * -  4 = the vector transformation failed (DC removal+resampling+highpassing)
+   * -  5 = the chunk data could not be FFTed (forward)
+   * -  6 = the spectrum (1) is not available
+   * -  7 = the spectrum (2) is not available
+   * -  8 = the tiling power could not be computed
    * @param aInVectSize input vector size
    * @param aInVect input data vector (time domain)
    */

@@ -531,23 +531,21 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     cerr<<"Omicron::Condition: input vector is empty ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
     return 2;
   }
-  if(aInVect[0]==aInVect[aInVectSize-1]&&IsFlat(aInVectSize,aInVect)){
+  if(aInVect[0]==aInVect[aInVectSize-1]&&IsFlat(aInVectSize,aInVect))
     cerr<<"Omicron::Condition: input vector is flat ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return 3;
-  }
-    
+  
   if(fVerbosity) cout<<"Omicron::Condition: condition data vector..."<<endl;
 
   // test native sampling (and update if necessary)
   int nativesampling = aInVectSize/(tile->GetTimeRange());
   if(!triggers[chanindex]->SetNativeFrequency(nativesampling)){
     cerr<<"Omicron::Condition: incompatible native/working frequency ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return 4;
+    return 3;
   }
 
   // transform data vector
   if(fVerbosity>1) cout<<"\t- transform data vector..."<<endl;
-  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, offt->GetSize_t(), ChunkVect)) return 5;
+  if(!triggers[chanindex]->Transform(aInVectSize, aInVect, offt->GetSize_t(), ChunkVect)) return 4;
 
   // apply Tukey Window
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
@@ -555,7 +553,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // fft-forward the chunk data
   if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
-  if(!offt->Forward(ChunkVect)) return 6;
+  if(!offt->Forward(ChunkVect)) return 5;
 
   // update first spectrum (if enough data)
   if(fVerbosity>1) cout<<"\t- update spectrum 1..."<<endl;
@@ -565,7 +563,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
      cerr<<"Omicron::Condition: warning: this chunk is not used for PSD(1) estimation ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
   if(spectrum1[chanindex]->IsBufferEmpty()){
     cerr<<"Omicron::Condition: No PSD is available ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return 7;
+    return 6;
   }
     
   // 1st whitening
@@ -586,7 +584,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
     cerr<<"Omicron::Condition: warning: this chunk is not used for PSD(2) estimation ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
   if(spectrum2[chanindex]->IsBufferEmpty()){// should never happen if it worked for the 1st spectrum
     delete rvec;
-    return 8;
+    return 7;
   }
   delete rvec;
   
@@ -606,7 +604,7 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 
   // compute tiling power
   if(fVerbosity>1) cout<<"\t- compute tiling power..."<<endl;
-  if(!tile->SetPower(spectrum1[chanindex],spectrum2[chanindex])) return 9;
+  if(!tile->SetPower(spectrum1[chanindex],spectrum2[chanindex])) return 8;
 
   // save sg injection parameters
   // must be done here because the spectra are needed
@@ -812,6 +810,10 @@ void Omicron::Whiten(Spectrum *aSpec){
   double asdval;
   for(; i<offt->GetSize_f(); i++){
     asdval=sqrt(aSpec->GetPower((double)i/(double)tile->GetTimeRange())/2.0);
+    if(!asdval){
+      offt->SetRe_f(i,0.0);
+      offt->SetIm_f(i,0.0);
+    }
     offt->SetRe_f(i,offt->GetRe_f(i) / asdval);
     offt->SetIm_f(i,offt->GetIm_f(i) / asdval);
   }
