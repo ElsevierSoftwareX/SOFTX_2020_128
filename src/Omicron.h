@@ -149,9 +149,9 @@ class Omicron {
   
   /**
    * Projects whitened data onto the tiles and fills output structures.
-   * The data are projected onto the tiling structure.
+   * The data are projected onto the tiling structure. The number of tiles above threshold is returned. -1 is returned if this function fails.
    */
-  bool Project(void);
+  int Project(void);
   
   /**
    * Extract triggers above threshold.
@@ -273,6 +273,7 @@ class Omicron {
   int *chan_cond_ctr;           ///< number of Condition() calls /channel
   int *chan_proj_ctr;           ///< number of Project() calls /channel
   int *chan_write_ctr;          ///< number of WriteOutput() calls /channel
+  int *trig_ctr;                ///< number of tiles above snr thr /channel
   double *chan_mapsnrmax;       ///< channel SNR max in maps (only for html)
   vector <int> chunkcenter;     ///< save chunk centers (only for html)
   vector <string> chunktfile;   ///< save chunk file (only for html)

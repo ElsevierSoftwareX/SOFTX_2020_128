@@ -161,6 +161,7 @@ Omicron::Omicron(const string aOptionFile){
   chan_proj_ctr  = new int       [nchannels];
   chan_write_ctr = new int       [nchannels];
   chan_mapsnrmax = new double    [nchannels];
+  trig_ctr       = new int       [nchannels];
   for(int c=0; c<nchannels; c++){
     outSegments[c]    = new Segments();
     chan_ctr[c]       = 0;
@@ -169,6 +170,7 @@ Omicron::Omicron(const string aOptionFile){
     chan_proj_ctr[c]  = 0;
     chan_write_ctr[c] = 0;
     chan_mapsnrmax[c] = 0.0;
+    trig_ctr[c]       = 0;
   }
 }
 
@@ -184,6 +186,7 @@ Omicron::~Omicron(void){
   delete chan_proj_ctr;
   delete chan_write_ctr;
   delete chan_mapsnrmax;
+  delete trig_ctr;
   for(int c=0; c<nchannels; c++){
     delete outSegments[c];
     delete triggers[c];
@@ -343,9 +346,10 @@ bool Omicron::NewChunk(void){
   // new segment --> reset PSD buffer
   if(newseg)
     for(int c=0; c<nchannels; c++){ spectrum1[c]->Reset(); spectrum2[c]->Reset(); }  
+
   // generate SG parameters
   if(fsginj) oinj->MakeWaveform();
-    
+
   chunk_ctr++;// one more chunk
   return true;
 }
@@ -407,8 +411,13 @@ bool Omicron::NewChannel(void){
     return false; 
   }
 
+  // new channel
   if(fVerbosity>1) cout<<"\t- channel "<<triggers[chanindex]->GetName()<<" is loaded"<<endl;
   chan_ctr[chanindex]++;
+
+  // reset number of tiles above threshold
+  trig_ctr[chanindex]=0;
+  
   return true;
 }
 
@@ -608,18 +617,18 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::Project(void){
+int Omicron::Project(void){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::Project: the Omicron object is corrupted"<<endl;
-    return false;
+    return -1;
   }
 
   if(fVerbosity) cout<<"Omicron::Project: project data onto the tiles..."<<endl;
-  if(!tile->ProjectData(offt)) return false;
-
+  trig_ctr[chanindex]+=tile->ProjectData(offt);
+  
   chan_proj_ctr[chanindex]++;
-  return true;
+  return trig_ctr[chanindex];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -700,8 +709,18 @@ bool Omicron::ExtractTriggers(void){
     cerr<<"Omicron::ExtractTriggers: the Omicron object is corrupted"<<endl;
     return false;
   }
-  
-  if(!tile->SaveTriggers(triggers[chanindex],fratemax)){
+
+  // trigger rate: evaluated over the chunk excluding nominal overlaps/2
+  double trate = trig_ctr[chanindex]/(tile->GetTimeRange()-tile->GetOverlapDuration());
+
+  // check against trigger rate limit
+  if(trate>fratemax){
+    cerr<<"Omicron::ExtractTriggers: the maximum trigger rate ("<<fratemax<<" Hz) is exceeded ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
+    return false;
+  }
+
+  // save tiles above SNR threshold in the trigger structure
+  if(!tile->SaveTriggers(triggers[chanindex])){
     triggers[chanindex]->Reset();
     return false;
   }

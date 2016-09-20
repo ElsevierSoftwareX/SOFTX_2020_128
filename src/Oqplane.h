@@ -36,7 +36,7 @@ class Oqplane: public Omap {
   virtual ~Oqplane(void);
 
   void PrintParameters(void);
-  bool ProjectData(fft *aDataFft, const double aPadding=0.0);
+  int ProjectData(fft *aDataFft, const double aPadding=0.0);
   void FillMap(const string aContentType="snr");
   bool SaveTriggers(MakeTriggers *aTriggers, const double aT0, Segments* aSeg);
 
@@ -72,9 +72,7 @@ class Oqplane: public Omap {
   double **bandWindow;              ///< band bisquare windows
   double *bandNoiseAmplitude;       ///< band noise power
   fft **bandFFT;                    ///< band ffts
-  double *bandMeanEnergy;           ///< band mean energy
-  double *bandVarEnergy;            ///< band energy variance
-  
+    
   ClassDef(Oqplane,0)  
 };
 

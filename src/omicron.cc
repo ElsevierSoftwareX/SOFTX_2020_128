@@ -193,7 +193,7 @@ int main (int argc, char* argv[]){
       delete dvector;// not needed anymore
 
       // project data
-      if(!O->Project()){
+      if(O->Project()<0){
 	if(strict){ delete O; return 5; }
 	else continue;
       }

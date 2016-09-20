@@ -177,21 +177,21 @@ bool Otile::SetPower(Spectrum *aSpec1, Spectrum *aSpec2){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::ProjectData(fft *aDataFft){
+int Otile::ProjectData(fft *aDataFft){
 ////////////////////////////////////////////////////////////////////////////////////
+
+  int nt=0;// number of tiles above threshold
+  
   // project onto q planes
   for(int p=0; p<nq; p++){
-    if(!qplanes[p]->ProjectData(aDataFft,(double)(SeqOverlap/2))){
-      cerr<<"Otile::ProjectData: cannot project data onto plane #"<<p<<endl;
-      return false;
-    }
+    nt+=qplanes[p]->ProjectData(aDataFft,(double)(SeqOverlap/2));
   }
 
-  return true;
+  return nt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aRateMax){
+bool Otile::SaveTriggers(MakeTriggers *aTriggers){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
@@ -209,15 +209,9 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aRateMax){
   seg->Intersect(SeqOutSegments);// apply user-defined output selection
   if(!seg->GetLiveTime()) {delete seg; return true; } // nothing to do
 
-  int ntmax = (int)(aRateMax*seg->GetLiveTime());
-    
   // save triggers for each Q plane
   for(int p=0; p<nq; p++){
     if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
-    if(aTriggers->GetNtrig()>ntmax){
-      cerr<<"Otile::SaveTriggers: the maximum trigger rate ("<<aRateMax<<" Hz) is exceeded for chunk centered on "<<SeqT0<<"..."<<endl;
-      delete seg; return false;
-    }
   }
   
   // save trigger segments
@@ -225,7 +219,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers, const double aRateMax){
     aTriggers->Append(seg);
   else
     for(int s=0; s<seg->GetNsegments(); s++) aTriggers->AddSegment(seg->GetStart(s),seg->GetEnd(s));
-
+  
   delete seg;
   return true;
 }

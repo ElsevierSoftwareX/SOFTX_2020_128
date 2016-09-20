@@ -61,9 +61,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   bandFFT            = new fft*    [GetNBands()];
   bandWindow         = new double* [GetNBands()];
   bandWindowSize     = new int     [GetNBands()];
-  bandMeanEnergy     = new double  [GetNBands()];
-  bandVarEnergy      = new double  [GetNBands()];
-
+  
   double windowargument;
   double winnormalization;
   double ifftnormalization;
@@ -79,10 +77,6 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     // band fft
     ifftnormalization = 1.0 / (double)TimeRange;
     bandFFT[f] = new fft(GetBandNtiles(f),"FFTW_ESTIMATE", "c2c");
-
-    // band energies
-    bandMeanEnergy[f] = 0.0;
-    bandVarEnergy[f]  = 0.0;
 
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
@@ -114,8 +108,6 @@ Oqplane::~Oqplane(void){
     delete bandWindow[f];
   }
   delete bandWindowSize;
-  delete bandMeanEnergy;
-  delete bandVarEnergy;
   delete bandFFT;
   delete bandNoiseAmplitude;
   delete bandWindow;
@@ -205,11 +197,13 @@ bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::ProjectData(fft *aDataFft, const double aPadding){
+int Oqplane::ProjectData(fft *aDataFft, const double aPadding){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // locals
-  int k, Pql, Nt, end, tstart, tend, nt;
+  int k, Pql, Nt, end, tstart, tend;
+  double snrthr2=SNRThr*SNRThr;
+  int nt=0; //number of tiles above threshold
    
   // loop over frequency bands
   for(int f=0; f<GetNBands(); f++){
@@ -243,28 +237,15 @@ bool Oqplane::ProjectData(fft *aDataFft, const double aPadding){
 
     // from now on, the final Q coefficients are stored in the time vector of bandFFT[f]
 
-    // energy mean
-    nt=0;
-    bandMeanEnergy[f]=0.0;
-    bandVarEnergy[f]=0.0;
+    // count tiles above threshold
     tstart=GetTimeTileIndex(f, GetTimeMin()+aPadding);
     tend=GetTimeTileIndex(f, GetTimeMax()-aPadding);
     for(int t=tstart; t<tend; t++){
-      if(bandFFT[f]->GetNorm2_t(t)>10) continue;
-      bandMeanEnergy[f]+=bandFFT[f]->GetNorm2_t(t);
-      bandVarEnergy[f]+=bandFFT[f]->GetNorm2_t(t)*bandFFT[f]->GetNorm2_t(t);
-      nt++;
+      if(GetTileSNR2(t,f)>=snrthr2) nt++;
     }
-    if(nt){
-      bandMeanEnergy[f]/=(double)nt;
-      bandVarEnergy[f]/=(double)nt;
-      bandVarEnergy[f]-=bandMeanEnergy[f]*bandMeanEnergy[f];
-    }
-    //cout<<nt<<" "<<bandMeanEnergy[f]<<" "<<bandVarEnergy[f]<<endl;
-    // FIXME: need correction factor
   }
  
-  return true;
+  return nt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -125,27 +125,26 @@ class Otile: public GwollumPlot {
 
   /**
    * Projects a data vector onto the Q planes.
-   * A complex data vector is projected onto all the Q-planes. The tiles are populated with the resulting SNR values.
+   * The complex data vector is projected onto all the Q-planes.
    * The data are provided through a fft object. The fft:Forward() must be done before calling this function.
+   * The number of tiles (excluding overlaps/2) above the SNR threshold is returned.
    *
    * IMPORTANT: the input data vector must the right size, i.e. SampleFrequency/2 as defined in the constructor. No check will be performed!
    * @param aFft fft structure containing the data to project
    */
-  bool ProjectData(fft *aDataFft);
+  int ProjectData(fft *aDataFft);
 
   /**
-   * Saves active tiles in a MakeTriggers structure.
-   * The triggers Segments are also saved following the GWOLLUM convention for triggers. If the Sequence algorithm is in use, the current timing is applied to the tiling.
+   * Saves tiles in a MakeTriggers structure.
+   * Tiles with a SNR value above the SNR threshold are saved in the input trigger structure.
+   * The corresponding triggers Segments are also saved following the GWOLLUM convention for triggers. If the Sequence algorithm is in use, the current timing is applied to the tiling.
    *
-   * A time selection is performed if specific output segments were previously set with SetSegments(): triggers starting outside the output segment list are not saved.
-   *
-   * Triggers are saved one Q plane at a time. After each Q plane, the number of triggers in the MakeTriggers structure is checked. If it exceeds a given maximal rate, defined in argument, false is returned and the next Q planes are not searched for. The MakeTriggers object is then corrupted and must be reset by the user.
+   * A time selection is performed if specific output segments were previously set with SetSegments(): triggers the time of which is outside the output segment list are not saved.
    *
    * See also SetSNRThr() and SetSegments().
    * @param aTriggers MakeTriggers object
-   * @param aRateMax maximum trigger rate [Hz]
    */
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aRateMax = 100.0);
+  bool SaveTriggers(MakeTriggers *aTriggers);
 
   /**
    * Saves the maps for each Q-planes in output files.
