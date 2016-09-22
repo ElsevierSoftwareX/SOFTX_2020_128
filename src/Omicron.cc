@@ -813,6 +813,7 @@ void Omicron::Whiten(Spectrum *aSpec){
     if(!asdval){
       offt->SetRe_f(i,0.0);
       offt->SetIm_f(i,0.0);
+      continue;
     }
     offt->SetRe_f(i,offt->GetRe_f(i) / asdval);
     offt->SetIm_f(i,offt->GetIm_f(i) / asdval);
