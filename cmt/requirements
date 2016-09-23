@@ -9,13 +9,13 @@ set OMICRON_PARAMETERS "$(OMICRONROOT)/parameters"
 set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
 
 set OMICRON_TRIGGERS        ""\
-    Florent		    "/home/florent/Analysis/Omicron/triggers"\
-    Cascina		    "/data/procdata/detchar/triggers/Omicron"\
-    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
-    LIGO		    "/home/detchar/Omicron/triggers"
+    Florent                 "/home/florent/Analysis/Omicron/triggers"\
+    Cascina                 "/data/procdata/detchar/triggers/Omicron"\
+    CCIN2P3                 "/sps/virgo/USERS/frobinet/Omicron/triggers"\
+    LIGO                    "/home/detchar/Omicron/triggers"
 set OMICRON_ONLINE_TRIGGERS ""\
-    Cascina		    "/data/procdata/detchar/omicron/online/triggers"\
-    LIGO		    "/home/detchar/Omicron/Prod/triggers"
+    Cascina                 "/data/procdata/detchar/omicron/online/triggers"\
+    LIGO                    "/home/detchar/Omicron/Prod/triggers"
 set OMICRON_TRIGGERS_BASE   "100000"
 
 #### for the environment
@@ -33,7 +33,7 @@ alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
 alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
-document rootcint OmicronDict Oplot.h Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
+document rootcling OmicronDict Oplot.h Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
 
 #### libraries generation
 macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lInject" 
@@ -47,5 +47,3 @@ application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
 application omiplot omiplot.cc
 alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
-
-
