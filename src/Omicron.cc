@@ -551,10 +551,6 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
   if(fVerbosity>1) cout<<"\t- apply Tukey window..."<<endl;
   for(int i=0; i<offt->GetSize_t(); i++) ChunkVect[i] *= TukeyWindow[i];
 
-  // fft-forward the chunk data
-  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
-  if(!offt->Forward(ChunkVect)) return 5;
-
   // update first spectrum (if enough data)
   if(fVerbosity>1) cout<<"\t- update spectrum 1..."<<endl;
   int dstart = (tile->GetCurrentOverlapDuration()-tile->GetOverlapDuration()/2)*triggers[chanindex]->GetWorkingFrequency(); // start of 'sane' data
@@ -563,9 +559,13 @@ int Omicron::Condition(const int aInVectSize, double *aInVect){
      cerr<<"Omicron::Condition: warning: this chunk is not used for PSD(1) estimation ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
   if(spectrum1[chanindex]->IsBufferEmpty()){
     cerr<<"Omicron::Condition: No PSD is available ("<<triggers[chanindex]->GetName()<<" "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<")"<<endl;
-    return 6;
+    return 5;
   }
-    
+
+  // fft-forward the chunk data
+  if(fVerbosity>1) cout<<"\t- move the data in the frequency domain..."<<endl;
+  if(!offt->Forward(ChunkVect)) return 6;
+
   // 1st whitening
   if(fVerbosity>1) cout<<"\t- whiten chunk (1)"<<endl;
   Whiten(spectrum1[chanindex]);
@@ -844,9 +844,8 @@ void Omicron::SaveAPSD(const string aType){
   if(GAPSD2==NULL) return;
   
   // combine the 2 apsd
-  for(int i=0; i<GAPSD1->GetN(); i++) GAPSD1->GetY()[i] *= (GAPSD2->GetY()[i]/factor);
-  delete GAPSD2;
- 
+  for(int i=0; i<GAPSD2->GetN(); i++) GAPSD2->GetY()[i] *= (GAPSD1->GetY()[i]/factor);
+   
   // extract sub-segment A/PSD 1
   TGraph **G1;
   G1 = new TGraph* [spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1)];
@@ -874,47 +873,49 @@ void Omicron::SaveAPSD(const string aType){
   // combine the 2 apsd
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
     if(G1[i]==NULL||G2[i]==NULL) continue;
-    for(int j=0; j<G1[i]->GetN(); j++) G1[i]->GetY()[j] *= (G2[i]->GetY()[j]/factor);
-    delete G2[i];
+    for(int j=0; j<G1[i]->GetN(); j++) G2[i]->GetY()[j] *= (G1[i]->GetY()[j]/factor);
+    delete G1[i];
   }
-  delete G2;
+  delete G1;
  
   // cosmetics
   GPlot->SetLogx(1);
   GPlot->SetLogy(1);
   GPlot->SetGridx(1);
   GPlot->SetGridy(1);
-  GPlot->Draw(GAPSD1,"AP");
+  GPlot->Draw(GAPSD2,"AP");
   //for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
-    if(G1[i]!=NULL) GPlot->Draw(G1[i],"Lsame");
+    if(G2[i]!=NULL) GPlot->Draw(G2[i],"Lsame");
   }
-  GAPSD1->GetHistogram()->SetXTitle("Frequency [Hz]");
+  GAPSD2->GetHistogram()->SetXTitle("Frequency [Hz]");
   if(aType.compare("ASD")){
-    GAPSD1->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
-    GAPSD1->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
+    GAPSD2->GetHistogram()->SetYTitle("Power [Amp^{2}/Hz]");
+    GAPSD2->SetTitle((triggers[chanindex]->GetName()+": Power spectrum density").c_str());
   }
   else{
-    GAPSD1->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
-    GAPSD1->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
+    GAPSD2->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
+    GAPSD2->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
   }
-  GPlot->Draw(GAPSD1,"PLsame");
+  GPlot->Draw(GAPSD2,"PLsame");
   GPlot->RedrawAxis();
   GPlot->RedrawAxis("g");
+  GAPSD2->SetLineWidth(1);
+  GAPSD2->GetXaxis()->SetTitleOffset(1.1);
+  GAPSD2->GetXaxis()->SetLabelSize(0.045);
+  GAPSD2->GetYaxis()->SetLabelSize(0.045);
+  GAPSD2->GetXaxis()->SetTitleSize(0.045);
+  GAPSD2->GetYaxis()->SetTitleSize(0.045);
+  GAPSD2->GetYaxis()->SetRangeUser(GAPSD2->GetYaxis()->GetXmin()/100.0,GAPSD2->GetYaxis()->GetXmax()*2.0);
   GAPSD1->SetLineWidth(1);
-  GAPSD1->GetXaxis()->SetTitleOffset(1.1);
-  GAPSD1->GetXaxis()->SetLabelSize(0.045);
-  GAPSD1->GetYaxis()->SetLabelSize(0.045);
-  GAPSD1->GetXaxis()->SetTitleSize(0.045);
-  GAPSD1->GetYaxis()->SetTitleSize(0.045);
-  GAPSD1->GetYaxis()->SetRangeUser(GAPSD1->GetYaxis()->GetXmin()/100.0,GAPSD1->GetYaxis()->GetXmax()*2.0);
+  GPlot->Draw(GAPSD1,"PLsame");
 
   
   // set new name
   stringstream ss;
   ss<<aType;
   ss<<"_"<<triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter();
-  GAPSD1->SetName(ss.str().c_str());
+  GAPSD2->SetName(ss.str().c_str());
   ss.str(""); ss.clear();
 
   // ROOT
@@ -924,9 +925,9 @@ void Omicron::SaveAPSD(const string aType){
     fpsd=new TFile((ss.str()).c_str(),"RECREATE");
     ss.str(""); ss.clear();
     fpsd->cd();
-    GAPSD1->Write();
+    GAPSD2->Write();
     for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
-      if(G1[i]!=NULL) G1[i]->Write();
+      if(G2[i]!=NULL) G2[i]->Write();
     }
     fpsd->Close();
   }
@@ -951,9 +952,10 @@ void Omicron::SaveAPSD(const string aType){
   
   form.clear();
   delete GAPSD1;
+  delete GAPSD2;
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++)
-    if(G1[i]!=NULL) delete G1[i];
-  delete G1;
+    if(G2[i]!=NULL) delete G2[i];
+  delete G2;
 
   return;
 }

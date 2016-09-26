@@ -269,7 +269,7 @@ void Omicron::ReadOptions(void){
 
   //***** trigger max *****
   if(!io->GetOpt("PARAMETER","TRIGGERRATEMAX", fratemax)){
-    cerr<<"Omicron::ReadOptions: No fftplan option (PARAMETER/TRIGGERRATEMAX)  --> set default: 5000 Hz"<<endl;
+    cerr<<"Omicron::ReadOptions: No trigger rate limit option (PARAMETER/TRIGGERRATEMAX)  --> set default: 5000 Hz"<<endl;
     fratemax=5000.0;
   }
   //*****************************
