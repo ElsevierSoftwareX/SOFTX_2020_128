@@ -217,11 +217,13 @@ bool Otile::SaveTriggers(TriggerBuffer *aTriggers){
     if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
   }
     
-  // save trigger segments
-  if(aTriggers->GetNsegments()&&seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
-    aTriggers->Append(seg);
-  else
-    for(int s=0; s<seg->GetNsegments(); s++) aTriggers->AddSegment(seg->GetStart(s),seg->GetEnd(s));
+  // save trigger segments (if no buffer)
+  if(!aTriggers->GetBufferSize()){
+    if(aTriggers->GetNsegments()&&seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
+      aTriggers->Append(seg);
+    else
+      for(int s=0; s<seg->GetNsegments(); s++) aTriggers->AddSegment(seg->GetStart(s),seg->GetEnd(s));
+  }
   
   delete seg;
   return true;

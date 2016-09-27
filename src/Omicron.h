@@ -228,7 +228,10 @@ class Omicron {
   inline void ResetTriggerBuffer(void){ return triggers[chanindex]->ResetBuffer(); };
 
   /**
-   * Reset the trigger buffer.
+   * Reset the trigger buffer after a given time.
+   * The time value must be aligned with the chunk starts: only chunks can be purged.
+   * @param aTime time after which triggers are removed
+
    */
   inline void ResetTriggerBufferAfter(const double aTime){ return triggers[chanindex]->ResetAfter(aTime); };
 
