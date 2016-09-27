@@ -144,7 +144,7 @@ class Otile: public GwollumPlot {
    * See also SetSNRThr() and SetSegments().
    * @param aTriggers MakeTriggers object
    */
-  bool SaveTriggers(MakeTriggers *aTriggers);
+  bool SaveTriggers(TriggerBuffer *aTriggers);
 
   /**
    * Saves the maps for each Q-planes in output files.

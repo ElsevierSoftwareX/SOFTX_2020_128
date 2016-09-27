@@ -143,7 +143,7 @@ void Oqplane::FillMap(const string aContentType){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Oqplane::SaveTriggers(MakeTriggers *aTriggers, // trigger structure
+bool Oqplane::SaveTriggers(TriggerBuffer *aTriggers, // trigger structure
 			   const double aT0,        // time for the center of the map
 			   Segments* aSeg           // segments to select the triggers
 			   ){

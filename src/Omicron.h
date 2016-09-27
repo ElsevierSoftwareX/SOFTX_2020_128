@@ -12,6 +12,7 @@
 #include "ffl.h"
 #include "TRandom.h"
 #include "TRandom3.h"
+#include "TriggerBuffer.h"
 
 using namespace std;
 
@@ -180,7 +181,6 @@ class Omicron {
    */
   void PrintStatusInfo(void);
   
-
   /**
    * Returns the segments associated to the trigger time coverage.
    * See Triggers::GetTriggerSegments().
@@ -211,6 +211,27 @@ class Omicron {
    */
   inline int GetSampleFrequency(void){return triggers[0]->GetWorkingFrequency();};
  
+  /**
+   * Returns the current number of triggers in memory for the current channel.
+   */
+  inline int GetNTriggers(void){ return triggers[chanindex]->GetNtriggers(); };
+
+  
+  /**
+   * Returns the buffer livetime for the current channel.
+   */
+  inline double GetTriggerBufferLiveTime(void){ return triggers[chanindex]->GetBufferLiveTime(); };
+
+  /**
+   * Reset the trigger buffer.
+   */
+  inline void ResetTriggerBuffer(void){ return triggers[chanindex]->ResetBuffer(); };
+
+  /**
+   * Reset the trigger buffer.
+   */
+  inline void ResetTriggerBufferAfter(const double aTime){ return triggers[chanindex]->ResetAfter(aTime); };
+
   /**
    * Resets PSD buffer.
    * (for the current channel)
@@ -289,7 +310,7 @@ class Omicron {
   ffl *FFL_inject;              ///< ffl for injection signals
   fft *offt;                    ///< FFT plan to FFT the input data
   Otile *tile;                  ///< tiling structure
-  MakeTriggers **triggers;      ///< output triggers / channel
+  TriggerBuffer **triggers;     ///< output triggers / channel
   Oinject *oinj;                ///< software sg injections
   InjEct **inject;              ///< software injections (in frame data) / channel
 

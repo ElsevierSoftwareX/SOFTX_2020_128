@@ -4,7 +4,7 @@
 #ifndef __Oqplane__
 #define __Oqplane__
 
-#include "MakeTriggers.h"
+#include "TriggerBuffer.h"
 #include "Spectrum.h"
 #include "Omap.h"
 
@@ -38,7 +38,7 @@ class Oqplane: public Omap {
   void PrintParameters(void);
   int ProjectData(fft *aDataFft, const double aPadding=0.0);
   void FillMap(const string aContentType="snr");
-  bool SaveTriggers(MakeTriggers *aTriggers, const double aT0, Segments* aSeg);
+  bool SaveTriggers(TriggerBuffer *aTriggers, const double aT0, Segments* aSeg);
 
   // GETS
   inline double GetQ(void){ return Q; };

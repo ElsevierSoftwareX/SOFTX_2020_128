@@ -78,6 +78,14 @@ void Omicron::ReadOptions(void){
   else
     FFL=NULL;
   //*****************************
+
+  
+  //***** Trigger buffer *****
+  int bufsize;
+  if(!io->GetOpt("PARAMETER","TRIGGERBUFFERSIZE", bufsize)){
+    cerr<<"Omicron::ReadOptions: No trigger buffer (PARAMETER/TRIGGERBUFFERSIZE)"<<endl;
+    bufsize=0;
+  }
   
   //***** List of channels/streams  *****
   vector <string> channels; nchannels=0;
@@ -87,9 +95,9 @@ void Omicron::ReadOptions(void){
     status_OK=false;
   }
   nchannels = (int)channels.size();
-  triggers = new MakeTriggers* [nchannels];
+  triggers = new TriggerBuffer* [nchannels];
   for(int c=0; c<nchannels; c++){
-    triggers[c] = new MakeTriggers(channels[c],fVerbosity);
+    triggers[c] = new TriggerBuffer(bufsize,channels[c],fVerbosity);
     triggers[c]->SetDCRemoval(true);
   }
   channels.clear();

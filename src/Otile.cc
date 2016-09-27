@@ -191,7 +191,7 @@ int Otile::ProjectData(fft *aDataFft){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Otile::SaveTriggers(MakeTriggers *aTriggers){
+bool Otile::SaveTriggers(TriggerBuffer *aTriggers){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!aTriggers->Segments::GetStatus()){
     cerr<<"Otile::SaveTriggers: the trigger Segments object is corrupted"<<endl;
@@ -209,11 +209,14 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
   seg->Intersect(SeqOutSegments);// apply user-defined output selection
   if(!seg->GetLiveTime()) {delete seg; return true; } // nothing to do
 
+  // if buffer, segments must be provided first
+  if(aTriggers->GetBufferSize()) aTriggers->SetBufferSegments(seg);
+  
   // save triggers for each Q plane
   for(int p=0; p<nq; p++){
     if(!qplanes[p]->SaveTriggers(aTriggers,(double)SeqT0, seg)){ delete seg; return false; }
   }
-  
+    
   // save trigger segments
   if(aTriggers->GetNsegments()&&seg->GetStart(0)>=aTriggers->GetStart(aTriggers->GetNsegments()-1))// after last segments
     aTriggers->Append(seg);
@@ -223,6 +226,7 @@ bool Otile::SaveTriggers(MakeTriggers *aTriggers){
   delete seg;
   return true;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 double Otile::SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const bool aThumb){

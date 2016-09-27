@@ -80,6 +80,7 @@ Omicron::Omicron(const string aOptionFile){
   fOptionName.push_back("omicron_PARAMETER_CLUSTERDT");       fOptionType.push_back("d");
   fOptionName.push_back("omicron_PARAMETER_FFTPLAN");         fOptionType.push_back("s");
   fOptionName.push_back("omicron_PARAMETER_TRIGGERRATEMAX");  fOptionType.push_back("d");
+  fOptionName.push_back("omicron_PARAMETER_TRIGGERBUFFERSIZE"); fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");          fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");          fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");             fOptionType.push_back("s");
@@ -130,13 +131,14 @@ Omicron::Omicron(const string aOptionFile){
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[27],triggers[c]->GetClusterizeDt());
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[28],fftplan);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[29],fratemax);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],fMaindir);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fVerbosity);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[34],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[30],triggers[c]->GetBufferSize());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fMaindir);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fVerbosity);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],fOutFormat);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[34],fOutProducts);
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[35],GPlot->GetCurrentStyle());
   }
-  
+
   // default output directory: main dir
   maindir=fMaindir;
   for(int c=0; c<nchannels; c++){
@@ -339,7 +341,7 @@ bool Omicron::NewChunk(void){
     if(newseg) cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded (start a new segment)"<<endl;
     else cout<<"\t- chunk "<<tile->GetChunkTimeStart()<<"-"<<tile->GetChunkTimeEnd()<<" is loaded"<<endl;
   }
-  
+
   // save info for html report
   if(fOutProducts.find("html")!=string::npos) chunkcenter.push_back(tile->GetChunkTimeCenter());
 
@@ -717,12 +719,13 @@ bool Omicron::ExtractTriggers(void){
     return false;
   }
 
-  // save tiles above SNR threshold in the trigger structure
+  // save tiles above SNR threshold
   if(!tile->SaveTriggers(triggers[chanindex])){
-    triggers[chanindex]->Reset();
+    if(triggers[chanindex]->GetBufferSize()) triggers[chanindex]->ResetBuffer(); // reset buffer
+    else triggers[chanindex]->Reset(); // reset TTrees
     return false;
   }
-
+  
   return true;
 }
 
@@ -733,6 +736,9 @@ string Omicron::WriteTriggers(const bool aLVDirConvention){
     cerr<<"Omicron::WriteTriggers: the Omicron object is corrupted"<<endl;
     return "none";
   }
+
+  // flush buffer if any
+  if(triggers[chanindex]->GetBufferSize()) triggers[chanindex]->FlushBuffer();
 
   // sort triggers
   if(!triggers[chanindex]->SortTriggers()){
@@ -755,37 +761,6 @@ string Omicron::WriteTriggers(const bool aLVDirConvention){
   
   // write triggers to disk
   return triggers[chanindex]->Write(outdir[chanindex],fOutFormat);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////
-void Omicron::PrintStatusInfo(void){
-////////////////////////////////////////////////////////////////////////////////////
-  if(!status_OK) return;
-  if(!inSegments->GetNsegments()) return;
-  
-  cout<<"\n************* Omicron status info *************"<<endl;
-  cout<<"requested start         = "<<(int)inSegments->GetStart(0)<<endl;
-  cout<<"requested end           = "<<(int)inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
-  cout<<"requested livetime      = "<<(int)inSegments->GetLiveTime()<<"s"<<endl;
-  cout<<"number of loaded chunks = "<<chunk_ctr<<endl;
-
-  for(int c=0; c<nchannels; c++){
-    cout<<"\n*** "<<triggers[c]->GetName()<<endl;
-    cout<<"number of calls                = "<<chan_ctr[c]<<endl;
-    cout<<"number of data calls           = "<<chan_data_ctr[c]<<endl;
-    cout<<"number of conditioning calls   = "<<chan_cond_ctr[c]<<endl;
-    cout<<"number of projection calls     = "<<chan_proj_ctr[c]<<endl;
-    cout<<"number of write calls          = "<<chan_write_ctr[c]<<endl;
-    if(outSegments[c]->GetNsegments()){
-      cout<<"start_out           = "<<(int)outSegments[c]->GetStart(0)<<endl;
-      cout<<"end_out             = "<<(int)outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
-      cout<<"trigger livetime    = "<<(int)outSegments[c]->GetLiveTime()<<"s ("<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100<<"%)"<<endl;
-    }
-  }
-  cout<<"***********************************************\n"<<endl;
-
-  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

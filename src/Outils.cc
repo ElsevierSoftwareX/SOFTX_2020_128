@@ -37,6 +37,36 @@ void Omicron::PrintMessage(const string aMessage){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+void Omicron::PrintStatusInfo(void){
+////////////////////////////////////////////////////////////////////////////////////
+  if(!status_OK) return;
+  if(!inSegments->GetNsegments()) return;
+  
+  cout<<"\n************* Omicron status info *************"<<endl;
+  cout<<"requested start         = "<<(int)inSegments->GetStart(0)<<endl;
+  cout<<"requested end           = "<<(int)inSegments->GetEnd(inSegments->GetNsegments()-1)<<endl;
+  cout<<"requested livetime      = "<<(int)inSegments->GetLiveTime()<<"s"<<endl;
+  cout<<"number of loaded chunks = "<<chunk_ctr<<endl;
+
+  for(int c=0; c<nchannels; c++){
+    cout<<"\n*** "<<triggers[c]->GetName()<<endl;
+    cout<<"number of calls                = "<<chan_ctr[c]<<endl;
+    cout<<"number of data calls           = "<<chan_data_ctr[c]<<endl;
+    cout<<"number of conditioning calls   = "<<chan_cond_ctr[c]<<endl;
+    cout<<"number of projection calls     = "<<chan_proj_ctr[c]<<endl;
+    cout<<"number of write calls          = "<<chan_write_ctr[c]<<endl;
+    if(outSegments[c]->GetNsegments()){
+      cout<<"start_out           = "<<(int)outSegments[c]->GetStart(0)<<endl;
+      cout<<"end_out             = "<<(int)outSegments[c]->GetEnd(outSegments[c]->GetNsegments()-1)<<endl;
+      cout<<"trigger livetime    = "<<(int)outSegments[c]->GetLiveTime()<<"s ("<<outSegments[c]->GetLiveTime()/inSegments->GetLiveTime()*100<<"%)"<<endl;
+    }
+  }
+  cout<<"***********************************************\n"<<endl;
+
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 double* Omicron::GetTukeyWindow(const int aSize, const int aFractionSize){
 ////////////////////////////////////////////////////////////////////////////////////
 
