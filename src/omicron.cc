@@ -31,7 +31,7 @@ void printhelp(void){
     cerr<<endl;
     cerr<<endl;
     cerr<<"-----------------------------------------------------------------------------------"<<endl;
-    cerr<<"Optionally, the output triggers can be time-selected unsing a list of segments"<<endl;
+    cerr<<"Optionally, the output triggers can be time-selected using a list of segments"<<endl;
     cerr<<"This option is activated by adding extra arguments to the command line:"<<endl;
     cerr<<endl;
     cerr<<"OPTION1: omicron [some input timing] [option file] [GPS start time] [GPS stop time]"<<endl; 
