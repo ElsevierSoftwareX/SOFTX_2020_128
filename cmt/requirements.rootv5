@@ -5,17 +5,14 @@ use GWOLLUM v2r2
 #### LOCALS
 
 set OMICRON_HTML       "$(OMICRONROOT)/html"
-set OMICRON_PARAMETERS "$(OMICRONROOT)/parameters"
 set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
 
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
-    Cascina		    "/data/procdata/detchar/triggers/Omicron"\
+    Cascina		    "/data/omicron"\
     CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
-    LIGO		    "/home/detchar/Omicron/triggers"
-set OMICRON_ONLINE_TRIGGERS ""\
-    Cascina		    "/data/procdata/detchar/omicron/online/triggers"\
-    LIGO		    "/home/detchar/Omicron/Prod/triggers"
+    LIGO		    "/home/detchar/triggers"
+
 set OMICRON_TRIGGERS_BASE   "100000"
 
 #### for the environment
@@ -30,7 +27,6 @@ alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
 alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
 alias GetTriggerFileList   "$(OMICRONROOT)/scripts/GetTriggerFileList.sh"
 alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
-alias GetOmicronOptions    "$(OMICRONROOT)/scripts/GetOmicronOptions.sh"
 
 #### dictionaries generation
 document rootcint OmicronDict Oplot.h Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
