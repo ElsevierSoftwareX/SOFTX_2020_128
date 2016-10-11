@@ -625,10 +625,8 @@ int Omicron::Project(void){
   }
 
   if(fVerbosity) cout<<"Omicron::Project: project data onto the tiles..."<<endl;
-  trig_ctr[chanindex]+=tile->ProjectData(offt);
-  
   chan_proj_ctr[chanindex]++;
-  return trig_ctr[chanindex];
+  return tile->ProjectData(offt);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
