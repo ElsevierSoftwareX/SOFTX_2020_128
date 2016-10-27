@@ -62,12 +62,11 @@ int main (int argc, char* argv[]){
   }
 
   //********* default parameters ************************************
-
   // centralized trigger files
   if(!tfile_pat.compare("")){
-    if(chname.compare("")) tfile_pat=GetOmicronFilePattern(chname,gps_start,gps_end);// get centralized trigger files
+    if(chname.compare("")&&gps_start>0&&gps_end>0) tfile_pat=GetOmicronFilePattern(chname,gps_start,gps_end);// get centralized trigger files
     else{
-      cerr<<"Triggers must be specified, either with a channel name or a file pattern"<<endl;
+      cerr<<"Triggers must be specified, either with a channel name and a time range or a file pattern"<<endl;
       cerr<<"Type omicron-plot.exe for help"<<endl;
       return 1;
     }
