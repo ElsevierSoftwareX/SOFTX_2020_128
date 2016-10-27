@@ -394,7 +394,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     // set vertical range
     if(vrange[0]<vrange[1]) fullmap->GetZaxis()->SetRangeUser(vrange[0],vrange[1]);
     else fullmap->GetZaxis()->UnZoom();
-    
+        
     // save plot
     for(int f=0; f<(int)form.size(); f++){
       tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];

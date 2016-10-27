@@ -25,15 +25,16 @@ include_dirs " $(OMICRONROOT)/src"
 #### alias scripts
 alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
 alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
-alias GetTriggerFileList   "$(OMICRONROOT)/scripts/GetTriggerFileList.sh"
-alias GetOmicronPlots      "$(OMICRONROOT)/scripts/GetOmicronPlots.sh"
 
 #### dictionaries generation
-document rootcint OmicronDict Oplot.h Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
+document rootcint OmicronDict Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
 
 #### libraries generation
 macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lInject" 
-library Omicron -no_prototypes -no_static Oplot.cc Omap.cc Oqplane.cc Otile.cc Oinject.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+library Omicron -no_prototypes -no_static Omap.cc Oqplane.cc Otile.cc Oinject.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
+
+macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTriggers" 
+library OmicronUtils -no_prototypes -no_static OmicronUtils.cc
 
 #### Applications generation
 macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
@@ -41,7 +42,11 @@ macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
 
 application omicron omicron.cc
 alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
-application omiplot omiplot.cc
-alias omiplot             "$(OMICRONROOT)/$(Omicron_tag)/omiplot.exe"
+
+application omicron-listfile omicron-listfile.cc
+alias omicron-listfile    "$(OMICRONROOT)/$(Omicron_tag)/omicron-listfile.exe"
+
+application omicron-plot omicron-plot.cc
+alias omicron-plot    "$(OMICRONROOT)/$(Omicron_tag)/omicron-plot.exe"
 
 
