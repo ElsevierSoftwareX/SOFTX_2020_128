@@ -72,6 +72,12 @@ int main (int argc, char* argv[]){
     }
   }
   //*****************************************************************
+
+  // check file pattern
+  if(!tfile_pat.compare("")){
+    cerr<<"No trigger files"<<endl;
+    return 2;
+  }
   
   // snr thresholds
   sarg=SplitString(snrthrs,';');
@@ -82,7 +88,7 @@ int main (int argc, char* argv[]){
 
   // triggers
   TriggerPlot *TP = new TriggerPlot((int)snrthr.size(),tfile_pat,"",style);
-  if(!TP->GetStatus()) return 2;
+  if(!TP->GetStatus()||!TP->GetSegments()->GetLiveTime()) return 2;
 
   // use trigger time range
   if(gps_start<0) gps_start=TP->GetTimeMin();
@@ -91,12 +97,23 @@ int main (int argc, char* argv[]){
   // clusterize
   if(usecluster) TP->Clusterize(1);
 
+  // legend header
+  TP->AddLegendHeader("SNR thresholds");
+
+  // SNR max
+  double snrmax;
+  if(TP->GetCollectionSelection(0)->GetSNRMax()<50.0)         snrmax=50.0;
+  else if(TP->GetCollectionSelection(0)->GetSNRMax()<100.0)   snrmax=100.0;
+  else if(TP->GetCollectionSelection(0)->GetSNRMax()<1000.0)  snrmax=1000.0;
+  else if(TP->GetCollectionSelection(0)->GetSNRMax()<10000.0) snrmax=10000.0;
+  else snrmax=100000.0;
+
   // Apply plot selections
-  for(int s=0; s<(int)sarg.size(); s++){
+  for(int s=0; s<(int)snrthr.size(); s++){
 
     // snr thresholds
-    TP->GetCollectionSelection(s)->SetSNRRange(snrthr[s],10000);
-    tmpstream<<"SNR > "<<fixed<<setprecision(2)<<snrthr[s];
+    TP->GetCollectionSelection(s)->SetSNRRange(snrthr[s],snrmax);
+    tmpstream<<"\\ge "<<fixed<<setprecision(2)<<snrthr[s];
     TP->SetCollectionLegend(s,tmpstream.str());
     tmpstream.str(""); tmpstream.clear();
 
@@ -112,8 +129,11 @@ int main (int argc, char* argv[]){
     // time format CHECKME: must be user-defined
     TP->SetDateFormat(true);
 
+    // set collection marker
+    TP->SetCollectionMarker(s,20, (double)(s+1)/(double)(snrthr.size()));
+		       
     // set collection color
-    TP->SetCollectionColor(s,TP->GetColorPalette((int)((double)s/(double)snrthr.size()*(double)TP->GetNumberOfColors())));
+    TP->SetCollectionColor(s,TP->GetColorPalette((int)((double)(s+1)/(double)(snrthr.size())*(double)(TP->GetNumberOfColors()))-2));
       
   }
 
@@ -121,22 +141,27 @@ int main (int argc, char* argv[]){
   TP->MakeCollections();
 
   TP->PrintPlot("snr");
+  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
   TP->Print("./snr.png");
 
   TP->PrintCollectionPlot("rate");
+  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
   TP->Print("./rate.png");
 
   TP->PrintCollectionPlot("freqtime");
+  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
   TP->Print("./freqtime.png");
 
   TP->PrintCollectionPlot("snrtime");
+  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
   TP->Print("./snrtime.png");
 
   TP->PrintCollectionPlot("snrfreq");
+  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
   TP->Print("./snrfreq.png");
 
