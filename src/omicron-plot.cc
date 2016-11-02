@@ -21,6 +21,7 @@ void PrintUsage(void){
   cerr<<"                 use-date=[date flag] \\"<<endl;
   cerr<<"                 outdir=[output directory] \\"<<endl;
   cerr<<"                 outformat=[output file format] \\"<<endl;
+  cerr<<"                 file-prefix=[file prefix] \\"<<endl;
   cerr<<"                 style=[style]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
@@ -33,6 +34,7 @@ void PrintUsage(void){
   cerr<<"[date tag]                1 = use date, 0 = use GPS time. By default, use-date=1"<<endl;
   cerr<<"[output directory]        output directory. By default, outdir=."<<endl;
   cerr<<"[output file format]      output file format. By default, outformat=png"<<endl;
+  cerr<<"[file prefix]             file name prefx. By default, outformat=plot"<<endl;
   cerr<<"[style]                   GWOLLUM-supported style. By default, style=GWOLLUM"<<endl;
   cerr<<endl;
   return;
@@ -56,8 +58,9 @@ int main (int argc, char* argv[]){
   bool usecluster=true; // use cluster
   double cluster_dt=0.1; // cluster time window
   bool usedate=true; // use date
-  string outdir=".";
-  string outformat="png";
+  string outdir="."; // output directory
+  string outformat="png"; // file format
+  string fileprefix="plot"; // file name prefix
 
   // loop over arguments
   vector <string> sarg;
@@ -75,6 +78,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("use-date"))       usedate=!!(atoi(sarg[1].c_str()));
     if(!sarg[0].compare("outdir"))         outdir=(string)sarg[1];
     if(!sarg[0].compare("outformat"))      outformat=(string)sarg[1];
+    if(!sarg[0].compare("file-prefix"))    fileprefix=(string)sarg[1];
   }
 
   // centralized trigger files
@@ -145,7 +149,7 @@ int main (int argc, char* argv[]){
     // use clusters
     if(usecluster) TP->SetCollectionUseClusters(s,1);
 
-    // time format CHECKME: must be user-defined
+    // time format
     TP->SetDateFormat(usedate);
 
     // set collection marker
@@ -161,121 +165,26 @@ int main (int argc, char* argv[]){
 
   TP->PrintPlot("snr");
   TP->DrawLegend();
-  TP->Print(outdir+"/snr."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
   TP->DrawLegend();
-  TP->Print(outdir+"/rate."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/freqtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/snrtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_snrtime."+outformat);
 
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
-  TP->Print(outdir+"/snrfreq."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_snrfreq."+outformat);
 
   delete TP;
 
-  /*
-  // outdir
-  string outdir = (string)argv[1];
-  system(("mkdir -p "+outdir).c_str());
-
-  // input files
-  string infiles = (string)argv[2];
-   
-  // timing
-  int start = atoi(argv[3]);
-  int stop = atoi(argv[4]);
-  string sstart = (string)argv[3];
-  string sstop = (string)argv[4];
-
-  // file name
-  string filename = "";
-  if(argc>5) filename=(string)argv[5];
- 
-  // input segments
-  ReadTriggerMetaData *insegments = new ReadTriggerMetaData(infiles,"",0);
-  if(!insegments->GetNFiles()){
-    cerr<<"No trigger files for this time segment"<<endl;
-    delete insegments;
-    return 1;
-  }
-  
-  // select files of interest
-  string trigfiles = insegments->GetTriggerFiles(start,stop);
-  if(!trigfiles.compare("none")){
-    cerr<<"No trigger files for this time segment"<<endl;
-    delete insegments;
-    return 1;
-  }
-  delete insegments;
-  
-  // input triggers
-  Oplot *triggers;
-  if(trigfiles.size()<10000) triggers = new Oplot(trigfiles,"",1);
-  else triggers = new Oplot(infiles,"",1);
-  trigfiles.clear();
-
-  triggers->SetTimeRange(start,stop);
-  triggers->MakeCollections();
-
-  cout<<"omiplot: print SNR plot"<<endl;
-  triggers->PrintPlot("snr");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snr.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snr_"+sstart+"_"+sstop+".gif");
-
-  cout<<"omiplot: print rate plot"<<endl;
-  triggers->PrintCollectionPlot("rate");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_rate.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_rate_"+sstart+"_"+sstop+".gif");
-
-  cout<<"omiplot: print frequency plot"<<endl;
-  triggers->PrintCollectionPlot("frequency");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_frequency.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_frequency_"+sstart+"_"+sstop+".gif");
-
-  cout<<"omiplot: print frequency vs. time plot"<<endl;
-  triggers->PrintCollectionPlot("freqtime");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_freqtime.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_freqtime_"+sstart+"_"+sstop+".gif");
- 
-  cout<<"omiplot: print SNR vs. time plot"<<endl;
-  triggers->PrintCollectionPlot("snrtime");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snrtime.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snrtime_"+sstart+"_"+sstop+".gif");
-
-  cout<<"omiplot: print SNR vs. frequency plot"<<endl;
-  triggers->PrintCollectionPlot("snrfreq");
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_snrfreq.gif");
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_snrfreq_"+sstart+"_"+sstop+".gif");
-   
-  cout<<"omiplot: print plot panel"<<endl;
-  triggers->PrintCollectionPanel();
-  triggers->DrawLegend();
-  if(filename.compare("")) triggers->Print(outdir+"/"+filename+"_panel.gif",2);
-  else triggers->Print(outdir+"/"+triggers->GetStreamName()+"_panel_"+sstart+"_"+sstop+".gif",2);
- 
-  cout<<"omiplot: print loudest event map"<<endl;
-  string fn;
-  if(filename.compare("")) fn=outdir+"/"+filename+"_loudest.gif";
-  else fn=outdir+"/"+triggers->GetStreamName()+"_loudest_"+sstart+"_"+sstop+".gif";
-  triggers->PrintLoudestEventMap(fn);
- 
-  // cleaning
-  delete triggers;
-  */  
   return 0;
 }
 
