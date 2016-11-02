@@ -17,14 +17,22 @@ void PrintUsage(void){
   cerr<<"                 gps-end=[GPS end] \\"<<endl;
   cerr<<"                 snr-thresholds=[list of SNR thresholds] \\"<<endl;
   cerr<<"                 use-cluster=[cluster flag] \\"<<endl;
-  cerr<<"                 style=[style] \\"<<endl;
+  cerr<<"                 cluster-dt=[cluster time window] \\"<<endl;
+  cerr<<"                 use-date=[date flag] \\"<<endl;
+  cerr<<"                 outdir=[output directory] \\"<<endl;
+  cerr<<"                 outformat=[output file format] \\"<<endl;
+  cerr<<"                 style=[style]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
   cerr<<"[GPS start]               starting GPS time (integer only)"<<endl;
   cerr<<"[GPS end]                 stopping GPS time (integer only)"<<endl;
-  cerr<<"[list of SNR thresholds]  list of SNR thresholds. By default, snr-thresholds=5;8;10;20"<<endl;
+  cerr<<"[list of SNR thresholds]  list of SNR thresholds. By default, snr-thresholds=\"5;8;10;20\""<<endl;
   cerr<<"[cluster tag]             1 = use clusters, 0 = use triggers. By default, use-cluster=1"<<endl;
+  cerr<<"[cluster time window]     cluster time window [s]. By default, cluster-dt=0.1"<<endl;
+  cerr<<"[date tag]                1 = use date, 0 = use GPS time. By default, use-date=1"<<endl;
+  cerr<<"[output directory]        output directory. By default, outdir=."<<endl;
+  cerr<<"[output file format]      output file format. By default, outformat=png"<<endl;
   cerr<<"[style]                   GWOLLUM-supported style. By default, style=GWOLLUM"<<endl;
   cerr<<endl;
   return;
@@ -46,7 +54,11 @@ int main (int argc, char* argv[]){
   int gps_end=-1;  // GPS end
   string style="GWOLLUM"; // style
   bool usecluster=true; // use cluster
-  
+  double cluster_dt=0.1; // cluster time window
+  bool usedate=true; // use date
+  string outdir=".";
+  string outformat="png";
+
   // loop over arguments
   vector <string> sarg;
   for(int a=1; a<argc; a++){
@@ -59,9 +71,12 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("snr-thresholds")) snrthrs=(string)sarg[1];
     if(!sarg[0].compare("style"))          style=(string)sarg[1];
     if(!sarg[0].compare("use-cluster"))    usecluster=!!(atoi(sarg[1].c_str()));
+    if(!sarg[0].compare("cluster-dt"))     cluster_dt=atof(sarg[1].c_str());
+    if(!sarg[0].compare("use-date"))       usedate=!!(atoi(sarg[1].c_str()));
+    if(!sarg[0].compare("outdir"))         outdir=(string)sarg[1];
+    if(!sarg[0].compare("outformat"))      outformat=(string)sarg[1];
   }
 
-  //********* default parameters ************************************
   // centralized trigger files
   if(!tfile_pat.compare("")){
     if(chname.compare("")&&gps_start>0&&gps_end>0) tfile_pat=GetOmicronFilePattern(chname,gps_start,gps_end);// get centralized trigger files
@@ -71,7 +86,6 @@ int main (int argc, char* argv[]){
       return 1;
     }
   }
-  //*****************************************************************
 
   // check file pattern
   if(!tfile_pat.compare("")){
@@ -95,10 +109,8 @@ int main (int argc, char* argv[]){
   if(gps_end<0)   gps_end=TP->GetTimeMax();
 
   // clusterize
+  TP->SetClusterizeDt(cluster_dt);
   if(usecluster) TP->Clusterize(1);
-
-  // legend header
-  TP->AddLegendHeader("SNR thresholds");
 
   // SNR max
   double snrmax;
@@ -108,12 +120,19 @@ int main (int argc, char* argv[]){
   else if(TP->GetCollectionSelection(0)->GetSNRMax()<10000.0) snrmax=10000.0;
   else snrmax=100000.0;
 
+  // time binning
+  int ntbins;
+  if(gps_end-gps_start<=3600)        ntbins = (gps_end-gps_start)/60+1;
+  else if(gps_end-gps_start<=100000) ntbins = (gps_end-gps_start)/600+1;
+  else                               ntbins = (gps_end-gps_start)/3600+1;
+
+
   // Apply plot selections
   for(int s=0; s<(int)snrthr.size(); s++){
 
     // snr thresholds
     TP->GetCollectionSelection(s)->SetSNRRange(snrthr[s],snrmax);
-    tmpstream<<"\\ge "<<fixed<<setprecision(2)<<snrthr[s];
+    tmpstream<<"SNR \\ge "<<fixed<<setprecision(1)<<snrthr[s];
     TP->SetCollectionLegend(s,tmpstream.str());
     tmpstream.str(""); tmpstream.clear();
 
@@ -121,16 +140,16 @@ int main (int argc, char* argv[]){
     TP->GetCollectionSelection(s)->SetTimeRange(gps_start, gps_end);
 
     // time resolution (FIXME)
-    TP->GetCollectionSelection(s)->SetTimeResolution(100);
+    TP->GetCollectionSelection(s)->SetTimeResolution(ntbins);
 
     // use clusters
     if(usecluster) TP->SetCollectionUseClusters(s,1);
 
     // time format CHECKME: must be user-defined
-    TP->SetDateFormat(true);
+    TP->SetDateFormat(usedate);
 
     // set collection marker
-    TP->SetCollectionMarker(s,20, (double)(s+1)/(double)(snrthr.size()));
+    TP->SetCollectionMarker(s,20, TMath::Max(0.3,(double)(s+1)/(double)(snrthr.size())));
 		       
     // set collection color
     TP->SetCollectionColor(s,TP->GetColorPalette((int)((double)(s+1)/(double)(snrthr.size())*(double)(TP->GetNumberOfColors()))-2));
@@ -141,29 +160,24 @@ int main (int argc, char* argv[]){
   TP->MakeCollections();
 
   TP->PrintPlot("snr");
-  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
-  TP->Print("./snr.png");
+  TP->Print(outdir+"/snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
-  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
-  TP->Print("./rate.png");
+  TP->Print(outdir+"/rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
-  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
-  TP->Print("./freqtime.png");
+  TP->Print(outdir+"/freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
-  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
-  TP->Print("./snrtime.png");
+  TP->Print(outdir+"/snrtime."+outformat);
 
   TP->PrintCollectionPlot("snrfreq");
-  TP->AddLegendHeader("SNR thresholds");
   TP->DrawLegend();
-  TP->Print("./snrfreq.png");
+  TP->Print(outdir+"/snrfreq."+outformat);
 
   delete TP;
 
