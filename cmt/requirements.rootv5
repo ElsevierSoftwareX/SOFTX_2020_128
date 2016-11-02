@@ -37,7 +37,7 @@ macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTriggers"
 library OmicronUtils -no_prototypes -no_static OmicronUtils.cc
 
 #### Applications generation
-macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron"
+macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron -lOmicronUtils"
 macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
 
 application omicron omicron.cc
