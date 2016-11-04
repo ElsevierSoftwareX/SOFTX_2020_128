@@ -102,7 +102,6 @@ int main (int argc, char* argv[]){
   vector <double> snrthr;
   for(int s=0; s<(int)sarg.size(); s++) snrthr.push_back(atof(sarg[s].c_str()));
 
-  stringstream tmpstream;
 
   // triggers
   TriggerPlot *TP = new TriggerPlot((int)snrthr.size(),tfile_pat,"",style);
@@ -130,6 +129,7 @@ int main (int argc, char* argv[]){
   else if(gps_end-gps_start<=100000) ntbins = (gps_end-gps_start)/600+1;
   else                               ntbins = (gps_end-gps_start)/3600+1;
 
+  stringstream tmpstream;
 
   // Apply plot selections
   for(int s=0; s<(int)snrthr.size(); s++){
@@ -163,25 +163,30 @@ int main (int argc, char* argv[]){
   // make collections
   TP->MakeCollections();
 
+  // make output name
+  tmpstream<<TP->GetNamePrefix()<<"-"<<TP->GetNameSuffix()<<"-"<<gps_start<<"-"<<gps_end-gps_start;
+
   TP->PrintPlot("snr");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_snr."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_rate."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_freqtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_snrtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snrtime."+outformat);
 
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_snrfreq."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snrfreq."+outformat);
+
+  tmpstream.str(""); tmpstream.clear();
 
   delete TP;
 
