@@ -22,6 +22,7 @@ void PrintUsage(void){
   cerr<<"                 outdir=[output directory] \\"<<endl;
   cerr<<"                 outformat=[output file format] \\"<<endl;
   cerr<<"                 file-prefix=[file prefix] \\"<<endl;
+  cerr<<"                 file-name=[file name] \\"<<endl;
   cerr<<"                 style=[style]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
@@ -34,7 +35,8 @@ void PrintUsage(void){
   cerr<<"[date tag]                1 = use date, 0 = use GPS time. By default, use-date=1"<<endl;
   cerr<<"[output directory]        output directory. By default, outdir=."<<endl;
   cerr<<"[output file format]      output file format. By default, outformat=png"<<endl;
-  cerr<<"[file prefix]             file name prefx. By default, outformat=plot"<<endl;
+  cerr<<"[file prefix]             file name prefix. By default, file-prefix=plot"<<endl;
+  cerr<<"[file name]               file name. By default, file-name=default"<<endl;
   cerr<<"[style]                   GWOLLUM-supported style. By default, style=GWOLLUM"<<endl;
   cerr<<endl;
   return;
@@ -61,6 +63,7 @@ int main (int argc, char* argv[]){
   string outdir="."; // output directory
   string outformat="png"; // file format
   string fileprefix="plot"; // file name prefix
+  string filename="default"; // file name
 
   // loop over arguments
   vector <string> sarg;
@@ -79,6 +82,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("outdir"))         outdir=(string)sarg[1];
     if(!sarg[0].compare("outformat"))      outformat=(string)sarg[1];
     if(!sarg[0].compare("file-prefix"))    fileprefix=(string)sarg[1];
+    if(!sarg[0].compare("file-name"))      filename=(string)sarg[1];
   }
 
   // centralized trigger files
@@ -165,26 +169,28 @@ int main (int argc, char* argv[]){
 
   // make output name
   tmpstream<<TP->GetNamePrefix()<<"-"<<TP->GetNameSuffix()<<"-"<<gps_start<<"-"<<gps_end-gps_start;
+  if(!filename.compare("default")) filename=tmpstream.str();
+  
 
   TP->PrintPlot("snr");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snr."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_rate."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_freqtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snrtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
 
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+tmpstream.str()+"_snrfreq."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
 
   tmpstream.str(""); tmpstream.clear();
 
