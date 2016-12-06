@@ -66,7 +66,7 @@ class Oinject{
    */  
   inline double GetWaveform(const int aIndex, const int aSamplingFrequency){
     return
-      amp*
+      amp* // signal amplitude
       Wg/sigma_t/sqrt2pi*exp(-(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency-tau)/2.0/sigma_t/sigma_t)* // Gaussian window
       TMath::Cos(2.0*TMath::Pi()*phi*(-duration/2.0+(double)aIndex/(double)aSamplingFrequency)+phase);// sine
   };

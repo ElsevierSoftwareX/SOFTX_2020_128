@@ -69,7 +69,8 @@ class Oqplane: public Omap {
     
   // FREQUENCY BANDS
   int *bandWindowSize;              ///< band bisquare window size
-  double **bandWindow;              ///< band bisquare windows
+  double **bandWindow_r;            ///< band bisquare windows (real)
+  double **bandWindow_i;            ///< band bisquare windows (imaginary)
   double *bandNoiseAmplitude;       ///< band noise power
   fft **bandFFT;                    ///< band ffts
     

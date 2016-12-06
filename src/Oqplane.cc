@@ -59,7 +59,8 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   // band variables
   bandNoiseAmplitude = new double  [GetNBands()];
   bandFFT            = new fft*    [GetNBands()];
-  bandWindow         = new double* [GetNBands()];
+  bandWindow_r       = new double* [GetNBands()];
+  bandWindow_i       = new double* [GetNBands()];
   bandWindowSize     = new int     [GetNBands()];
   
   double windowargument;
@@ -81,20 +82,23 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
     // Prepare window stuff
     delta_f=GetBandFrequency(f)/QPrime;// from eq. 5.18
     bandWindowSize[f] = 2 * (int)floor(delta_f*(double)TimeRange) + 1;
-    bandWindow[f]     = new double [bandWindowSize[f]];
+    bandWindow_r[f]   = new double [bandWindowSize[f]];
+    bandWindow_i[f]   = new double [bandWindowSize[f]];
     winnormalization  = sqrt(315.0*QPrime/128.0/GetBandFrequency(f));// eq. 5.26 Localized bursts only!!!
 
     // bisquare window
     end=(bandWindowSize[f]+1)/2;
     for(k=0; k<end; k++){
       windowargument=2.0*(double)k/(double)(bandWindowSize[f] - 1);
-      bandWindow[f][k] = winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument);// bisquare window (1-x^2)^2
+      bandWindow_r[f][k] = winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument)*TMath::Cos(TMath::Pi()*(double)k/(double)GetBandNtiles(f));// bisquare window (1-x^2)^2 and phase shift
+      bandWindow_i[f][k] = winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument)*TMath::Sin(TMath::Pi()*(double)k/(double)GetBandNtiles(f));// bisquare window (1-x^2)^2 and phase shift
     }
     // do not save 0s in the center
     end=bandWindowSize[f];
     for(; k<end; k++){
       windowargument=2.0*(double)(k-end)/(double)(bandWindowSize[f] - 1);
-      bandWindow[f][k] = winnormalization*ifftnormalization*(1-windowargument*windowargument)*(1-windowargument*windowargument);// bisquare window (1-x^2)^2
+      bandWindow_r[f][k] = -winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument)*TMath::Cos(TMath::Pi()*(double)(k-bandWindowSize[f]+GetBandNtiles(f))/(double)GetBandNtiles(f));// bisquare window (1-x^2)^2 and phase shift
+      bandWindow_i[f][k] = -winnormalization*ifftnormalization*(1.0-windowargument*windowargument)*(1.0-windowargument*windowargument)*TMath::Sin(TMath::Pi()*(double)(k-bandWindowSize[f]+GetBandNtiles(f))/(double)GetBandNtiles(f));// bisquare window (1-x^2)^2 and phase shift
     }
   }
   
@@ -105,12 +109,14 @@ Oqplane::~Oqplane(void){
 ////////////////////////////////////////////////////////////////////////////////////
   for(int f=0; f<GetNBands(); f++){
     delete bandFFT[f];
-    delete bandWindow[f];
+    delete bandWindow_r[f];
+    delete bandWindow_i[f];
   }
   delete bandWindowSize;
   delete bandFFT;
   delete bandNoiseAmplitude;
-  delete bandWindow;
+  delete bandWindow_r;
+  delete bandWindow_i;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -217,8 +223,8 @@ int Oqplane::ProjectData(fft *aDataFft, const double aPadding){
     // populate \tilde{v}
     end=(bandWindowSize[f]+1)/2;
     for(k=0; k<end; k++){
-      bandFFT[f]->SetRe_f(k,bandWindow[f][k]*aDataFft->GetRe_f(k+Pql));
-      bandFFT[f]->SetIm_f(k,bandWindow[f][k]*aDataFft->GetIm_f(k+Pql));
+      bandFFT[f]->SetRe_f(k,bandWindow_r[f][k]*aDataFft->GetRe_f(k+Pql) - bandWindow_i[f][k]*aDataFft->GetIm_f(k+Pql));
+      bandFFT[f]->SetIm_f(k,bandWindow_i[f][k]*aDataFft->GetRe_f(k+Pql) + bandWindow_r[f][k]*aDataFft->GetIm_f(k+Pql));
     }
     end=Nt-(bandWindowSize[f]-1)/2;
     for(; k<end; k++){
@@ -227,8 +233,9 @@ int Oqplane::ProjectData(fft *aDataFft, const double aPadding){
     }
     end=Nt;
     for(; k<end; k++){
-      bandFFT[f]->SetRe_f(k,bandWindow[f][k-Nt+bandWindowSize[f]]*aDataFft->GetRe_f(abs(Nt-k-Pql)));
-      bandFFT[f]->SetIm_f(k,bandWindow[f][k-Nt+bandWindowSize[f]]*aDataFft->GetIm_f(abs(Nt-k-Pql)));
+      bandFFT[f]->SetRe_f(k,bandWindow_r[f][k-Nt+bandWindowSize[f]]*(aDataFft->GetRe_f(abs(Nt-k-Pql))) - bandWindow_i[f][k-Nt+bandWindowSize[f]]*(aDataFft->GetIm_f(abs(Nt-k-Pql))));
+      bandFFT[f]->SetIm_f(k,bandWindow_r[f][k-Nt+bandWindowSize[f]]*(aDataFft->GetIm_f(abs(Nt-k-Pql))) + bandWindow_i[f][k-Nt+bandWindowSize[f]]*(aDataFft->GetRe_f(abs(Nt-k-Pql))));
+ 
     }
 
     // fft-backward
