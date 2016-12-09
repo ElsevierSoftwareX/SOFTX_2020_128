@@ -299,7 +299,7 @@ When the \texttt{Omicron} object is initialized, $N_Q\times N_{\phi}$ Fourier tr
 \end{equation}
 The indexes used in Eq.~\ref{eq:v2} are all consistent with vector sizes. The out-of-range issue described at the beginning of this section no longer exists.
 
-To optimize the processing, the phase shift of $\pi$ is computed only a single time, when the window is constructed (see Sec.~\ref{sec:algorithm:window}). The window expression given in Eq.~\ref{eq:dbisquare2} is modified such as
+To optimize the processing, the phase shift of $\pi$ is computed a single time, when the window is constructed (see Sec.~\ref{sec:algorithm:window}). The window expression given in Eq.~\ref{eq:dbisquare2} is modified such as
 \begin{equation}
   \tilde{w}_{ql}^*[k] =
   \begin{cases}
@@ -314,11 +314,11 @@ The $Q$ tansform coefficients are computed by the \texttt{Omicron::Project()} fu
   \label{eq:qcoeff}
 \end{equation}
 
-To test the $Q$ transform implementation, we ran the Omicron algorithm over a pure Gaussian colored noise data set. As explained in Sec.~\ref{sec:method:snr}, after the whitening step, we expect an exponential distribution for the $Q$ transform energies $|X_n(m, l, q)|^2$ along a frequency row $(q,l)$. Figure~\ref{fig:noise_energy_gaus} presents the distribution of the energy coefficients obtained by Omicron for $Q=18.2$ and the frequency row centered on 111.9~Hz. As expected, the distribution mean value is 2.0, the standard deviation is 2.0 and it is well fitted by an exponential.
+To test the $Q$ transform implementation, we ran the Omicron algorithm over a pure white noise data set. As explained in Sec.~\ref{sec:method:snr}, we expect an exponential distribution for the $Q$ transform energies $|X|^2$. Figure~\ref{fig:noise_energy_gaus} presents the distribution of the energy coefficients obtained by Omicron. As expected, the distribution mean value is 2.0, the standard deviation is 2.0 and it is well fitted by an exponential.
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/noise_energy_gaus.eps}
-  \caption{Distribution of energies, $|X|^2$, measured by Omicron when ran over Gaussian colored noise data (blue points).  Only tiles in the $Q$ plane with $Q=18.2$ and along the frequency row centered on 111.9~Hz are selected. The distribution is fitted by an exponential with a very good $\chi^2/ndf$ and the mean value is 2.0, as expected from a whitened signal (see Sec.~\ref{sec:method:snr}).}
+  \caption{Distribution of energies, $|X|^2$, measured by Omicron when ran over white noise data (blue points). The distribution is fitted by an exponential with a good $\chi^2/ndf$ and the mean value is 2.0, as expected from a white signal (see Sec.~\ref{sec:method:snr}).}
   \label{fig:noise_energy_gaus}
 \end{figure}
 
@@ -363,45 +363,46 @@ To test the $Q$ transform implementation, we ran the Omicron algorithm over a pu
 %%%%%%%%%%  TRIGGERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The triggers} \label{sec:algorithm:triggering}
-One of the output products of Omicron is a list of tiles with a SNR, $\hat{\rho}_{qlm}$ above a threshold, $\rho_{min}$, defined in the user parameter file: a tile with $\hat{\rho}_{qlm} > \rho_{min}$ is called a trigger. A trigger, associated to tile $(q,l,m)$, is described by a set of 10 parameters:
+One of the output products of Omicron is a list of tiles the SNR of which is above a threshold, $\rho_{min}$, defined in the user parameter file: a tile with $\hat{\rho}_{qlm} > \rho_{min}$ is called a trigger. A trigger, associated to tile $(q,l,m)$, is described by a set of 10 parameters:
 \begin{enumerate}
   \item the tile central time, $\tau_{qlm}$ defined by Eq.~\ref{eq:tau},
   \item the tile central frequency, $\phi_{ql}$ defined by Eq.~\ref{eq:phi},
   \item the $Q$ plane $Q$ value, $Q_{q}$ defined by Eq.~\ref{eq:q},
-  \item an amplitude SNR estimated by Eq.~\ref{eq:snrestimator}: $\hat{\rho}_{qlm} = \sqrt{ |X^{wh}(m,l,q)|^2-2}$,
-  \item an amplitude estimated by Eq.~\ref{eq:amplitude}
+  \item an amplitude SNR estimated using Eq.~\ref{eq:snrestimator}: $\hat{\rho}_{qlm} = \sqrt{ |X^{wh}(m,l,q)|^2-2}$,
+  \item an amplitude estimated using Eq.~\ref{eq:amplitude}
   \item a phase value, \bluenote{TBD}
-  \item a starting time, $\tau_{qlm} - \Delta \tau_{ql}/2$, using Eq.~\ref{eq:dtau},
-  \item an ending time, $\tau_{qlm} +\Delta \tau_{ql}/2$, using Eq.~\ref{eq:dtau},
+  \item a starting time, $\tau_{qlm} - \Delta \tau_{ql}/2$, given by Eq.~\ref{eq:dtau},
+  \item an ending time, $\tau_{qlm} +\Delta \tau_{ql}/2$, given by Eq.~\ref{eq:dtau},
   \item a starting frequency given by the frequency lower edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{l/N_{\phi}(Q_q)}$,
   \item a ending frequency given by the frequency upper edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{(l+1)/N_{\phi}(Q_q)}$.
 \end{enumerate}
 Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}. The TTree class is optimized to reduce disk space and enhance access speed. The trigger TTree is saved in a ROOT file for every data chunk. Besides the triggers, the list of processed time segments\footnote{List of chunks excluding the overlaps.} are saved as well as the Omicron process metadata.
+\begin{figure}
+  \center
+  \includegraphics[width=5cm]{./figures/triggerfile.png}
+  %\epsfig{width=5cm, file=./figures/triggerfile.eps}
+  \caption{Structure of a ROOT trigger files. Triggers are saved in a TTree structure as a set of 10 parameters. The list of processed time segments are saved. Finally, metadata, like the Omicron list of parameters, are also saved.}
+  \label{fig:triggerfile}
+\end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%  MAPPING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The mapping} \label{sec:algorithm:mapping}
+\subsection{The time-frequency mapping} \label{sec:algorithm:mapping}
 
-As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2-dimensional histograms (see Fig.~\ref{fig:tiling}), where bins are used to represent the time-frequency tiles. These histograms can be filled by the tile parameters such as the SNR, the amplitude or the phase. Hence, the result of the $Q$ transform can be graphically displayed in time-frequency planes; this is called mapping. Omicron can produce maps and save them in an output file with many formats.
-
-\begin{figure}
-  \center
-  \epsfig{width=7.5cm, file=./figures/gw150914_q0.eps} \epsfig{width=7.5cm, file=./figures/gw150914_q1.eps} \\
-  \epsfig{width=7.5cm, file=./figures/gw150914_q2.eps} \epsfig{width=7.5cm, file=./figures/gw150914_q3.eps} \\
-  \epsfig{width=7.5cm, file=./figures/gw150914_q4.eps} \epsfig{width=7.5cm, file=./figures/gw150914_full.eps}
-  \caption{maps}
-  \label{fig:gw150914_mapsnr}
-\end{figure}
+As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2-dimensional histograms (see Fig.~\ref{fig:tiling}), where bins are used to represent the time-frequency tiles. These histograms can be filled by the tile parameters such as the SNR, the amplitude or the phase. Hence, the result of the $Q$ transform can be graphically displayed in time-frequency planes; this is called mapping. In addition to individual $Q$ planes, a combined map can be displayed. The combined map is a representation where $Q$ maps are stacked up with the highest SNR tile displayed on the top.
 
 \begin{figure}
   \center
-  \epsfig{width=7.5cm, file=./figures/gw150914amp_q0.eps} \epsfig{width=7.5cm, file=./figures/gw150914amp_q1.eps} \\
-  \epsfig{width=7.5cm, file=./figures/gw150914amp_q2.eps} \epsfig{width=7.5cm, file=./figures/gw150914amp_q3.eps} \\
-  \epsfig{width=7.5cm, file=./figures/gw150914amp_q4.eps} \epsfig{width=7.5cm, file=./figures/gw150914amp_full.eps}
-  \caption{maps}
-  \label{fig:gw150914_mapsamp}
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_q0.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_q0.eps} \\
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_q1.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_q1.eps} \\
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_q2.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_q2.eps} \\
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_q3.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_q3.eps} \\
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_q4.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_q4.eps} \\
+  \epsfig{width=5.7cm, file=./figures/gw150914snr_full.eps}\epsfig{width=5.7cm, file=./figures/gw150914amp_full.eps}
+  \caption{Gravitational event GW150914 as detected by Omicron. Time-frequency maps with SNR values are displayed in the left column and maps with amplitude values are displayed in the right column. The first 5 rows show maps for single $Q$ values. The last row presents the combined map.}
+  \label{fig:gw150914_map}
 \end{figure}
 
 
