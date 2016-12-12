@@ -376,7 +376,7 @@ One of the output products of Omicron is a list of tiles the SNR of which is abo
   \item a starting frequency given by the frequency lower edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{l/N_{\phi}(Q_q)}$,
   \item a ending frequency given by the frequency upper edge, $\phi_{min}[\phi_{max}/\phi_{min}]^{(l+1)/N_{\phi}(Q_q)}$.
 \end{enumerate}
-Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}. The TTree class is optimized to reduce disk space and enhance access speed. The trigger TTree is saved in a ROOT file for every data chunk. Besides the triggers, the list of processed time segments\footnote{List of chunks excluding the overlaps.} are saved as well as the Omicron process metadata.
+Technically, triggers are saved in ROOT ntuples called TTree~\cite{Brun:1997pa}. The TTree class is optimized to reduce disk space and enhance access speed. The trigger TTree is saved in a ROOT file for every data chunk. Besides the triggers, the list of processed time segments\footnote{List of chunks excluding the overlaps.} are saved as well as the Omicron process metadata. In Fig.~\ref{fig:triggerfile}, the trigger file structure is represented.
 \begin{figure}
   \center
   \includegraphics[width=5cm]{./figures/triggerfile.png}
@@ -410,3 +410,31 @@ As described in Sec.~\ref{sec:algorithm:tiling}, $Q$ planes are represented by 2
 %%%%%%%%%%  SIGNAL INJECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The injection of simulated signals} \label{sec:algorithm:injections}
+The Omicron algorithm offers the possibility to add simulated signals in the data and to process the resulting data stream. This can be done in three different ways.
+
+First, simulated data can be read from frames saved in files. To use this feature, the user must provide three parameters in the option file. A frame file list file (\texttt{INJECTION FFL} option) must be given to indicate where the injection data is to be found. If this option is not provided, injection channels are expected to be found in the main FFL file (\texttt{DATA FFL} option). For each main channel (\texttt{DATA CHANNELS} option), an injection channel must be provided with the \texttt{INJECTION CHANNELS} keywords. If the number of main channels and the number of injection channels does not match, the Omicron processing will fail. Finally, it is possible to include a scaling factor with the \texttt{INJECTION FACTORS} keywords, the number of which must also match the number of channels. The final data stream analyzed by Omicron is $x = d + f \times i$, where $d$ and $i$ are the main data vector and the injection vector respectively. The scaling factor is $f$ and is set to 1 if not provided. The data injection is performed right after the main data is loaded, in \texttt{Omicron::LoadData()}, before the conditioning.
+
+Another possibility to inject simulated signals is to use the GWOLLUM injection library. Various waveform models are available and can be added up to the data. Moreover, provided that the detector is recognized~\footnote{In GWOLLUM, LIGO-Virgo detectors are identified based on the channel prefix: H1, H2, L1, V1.}, signals are injected coherently across the network. This means that time offsets are applied and amplitudes are down-weighted by antenna factors. The user must provide injection parameter files defining the desired waveform model as well as the associated parameters (timing, amplitude...). Injection parameter files are ROOT files and they must be generated with the \texttt{InjGen} class~\cite{InjGen_doxygen}. The path to the injection parameter files must be provided with the \texttt{INJECTION FILENAME}. The signal injection is performed right after the main data is loaded, in \texttt{Omicron::LoadData()}, before the conditioning.
+
+Finally, to measure the performance of Omicron, one last class of injections was introduced. Sinusoidal Gaussian waveforms can be injected in the data. The waveform is defined by Eq.~\ref{eq:sg_wave}:
+\begin{equation}
+  b(t) = Bw(t-\tau_b, \phi_b, Q_b)\cos(2\pi\phi_b t + \theta_b).
+  \label{eq:sginj}
+\end{equation}
+The simulated burst is parameterized by five parameters: an amplitude $B$, a central time $\tau_b$, a frequency $\phi_b$, a quality factor $Q_b$ and a phase term between the signal and the noise $\theta_b$. The Gaussian window is given by Eq.~\ref{eq:gausswindowt}. The user must define intervals in which those parameters will take random values. This is specified by keywords in the user parameter file (\texttt{INJECTION SGTIME}, \texttt{INJECTION SGFREQUENCY}, \texttt{INJECTION SGQ} and \texttt{INJECTION SGAMPLITUDE}). The phase term is not tunable; it takes random values between 0 and $2\pi$. The burst amplitude, frequency and $Q$ values are randomly drawn from a logarithmic distribution. This type of injection is performed a single time per data chunk. Therefore the user must specify a time range taking the chunk center as a reference. For example if a time range $[-0.1; +0.2]$ is specified in the parameter file, the time of the injection $\tau_b$ will be randomly picked bewtween $-0.1$~s and $+0.2$~s with respect to the center of the chunk.
+
+The sinusoidal Gaussian injection feature is activated by setting the option \texttt{INJECTION SG} to 1. Every time a new chunk is loaded with \texttt{Omicron::NewChunk()}, a new waveform is generated using Eq.~\ref{eq:sginj} and with random parameters. The waveform is then added up to the chunk data vector in \texttt{Omicron::LoadData()}. The burst parameters are listed in a text file which is saved at the end of the processing. This file also includes the true SNR value of the burst computed with Eq.~\ref{eq:snr_white}, so it can be compared to the SNR value measured by Omicron.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%  ONLINE APPLICATIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The low-latency application} \label{sec:algorithm:online}
+Omicron was primarily designed to process data with a low latency. Many structures are initialized in the constructor \texttt{Omicron::Omicron()} so that they are used optimally in the subsequent processing of the data. Moreover, common structures are used as often as possible. For example the tiling structure, which is memory demanding, is common to all channels.
+
+The object-oriented structure of the code offers a flexible analysis-block system which is useful to perform a low-latency processing. The flowchart presented in Fig.~\ref{fig:omicron_flowchart} must be modified to fit the constraints of an online analysis. In particular, FFL files are no longer used as the data are directly streamed in Omicron. The \texttt{Omicron::LoadData()} function takes as an argument any kind of data vector as long as it is compatible with the chunk size and the channel defined in a previous stage.
+
+The \texttt{Omicron} class also offers various and specific functions useful to build an online application. For example, it is possible to buffer triggers before saving them to disk. This features is important if one wants to have a chunk duration as small as possible and write triggers in files with a reasonable size. Functions are also available to interact with the triggers in the buffer. For example, if the trigger rate is found to be too high after the fact, triggers can be removed. Another example, is the PSD estimation described in Sec.~\ref{sec:algorithm:whitening}. In an online application, it is possible to control how the whitening is performed: functions are available to interact with the PSD buffer.
+
+Finally, various functions were developed to retrieve information about internal Omicron structures (status, parameters, statistics, errors...). The online application can therefore check the Omicron processing steps and react accordingly.

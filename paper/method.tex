@@ -158,7 +158,7 @@ where $X_b(\tau_{qlm}, \phi_{ql}, Q_q)$ is the $Q$ transform coefficient for the
 
 The SNR definition given by Eq.~\ref{eq:snrdef} is consistent with the maximum achievable SNR defined in the framework of the matched filter theory~\cite{helstrom:1968}. To demonstrate this, let's consider a burst test signal exactly matching the tile under consideration. The burst waveform is a sinusoidal Gaussian function of time, the parameters of which match the tile $(q,l,m)$:
 \begin{align}
-  b(t) &= Bw(t-\tau_{qlm}, \phi_{ql}, Q_q)\cos(2\pi\phi_{ql} t + \theta_{bt}),\\
+  b(t) &= Bw(t-\tau_{qlm}, \phi_{ql}, Q_q)\cos(2\pi\phi_{ql} t + \theta_{bt}), \label{eq:sg_wave}\\
   \tilde{b}(f) &= \frac{B}{2}e^{-2i\pi f\tau_{qlm}}\left[ \tilde{w}(f-\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f-\phi_{ql})}e^{i\theta_{bt}}+\tilde{w}(f+\phi_{ql},\phi_{ql},Q_q)e^{-2i\pi\tau_{qlm}(f+\phi_{ql})}e^{-i\theta_{bt}}\right],
 \end{align}
 where $B$ is the signal amplitude and $\theta_{bt}$ is the arbitrary phase between the burst and the tile. Using the frequency-domain $Q$ transform of Eq.~\ref{eq:qtransform2}, we compute the squared magnitude of the $Q$ transform coefficient, or energy, for tile $(q,l,m)$:
