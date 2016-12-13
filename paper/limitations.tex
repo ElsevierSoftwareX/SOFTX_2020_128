@@ -1,3 +1,14 @@
 \section{Known limitations} \label{sec:limitations}
 
+When using Omicron, the user must be aware of some limitations. In this section we list known issues and limitations of the algorithm.
 
+\subsection{Filtering artifacts} \label{sec:limitations:filtering}
+In Sec.~\ref{sec:algorithm:conditioning}, we explained that time-domain filtering is performed to condition the input data: the data is down-sampled and optionally high-pass filtered. IIR filters are used and those are known to create ringing artifacts the duration of which is hard to predict. Since the filters are used forward and backward, both chunk edges are affected. The overlap between chunks must be chosen long enough to hide this issue (see Sec.~\ref{sec:algorithm:conditioning}).
+
+\subsection{Dynamic range} \label{sec:limitations:dynamic}
+
+
+\subsection{Spectral lines} \label{sec:limitations:dynamic}
+
+
+\subsection{Memory usage} \label{sec:limitations:memory}

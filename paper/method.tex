@@ -98,7 +98,7 @@ In the following, we will often refer to a basis of complex-valued sinusoidal Ga
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The tiles} \label{sec:method:tiles}
-The tiles must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
+The tiles must be chosen to cover a finite region of parameter space, $[\tau_{min};\tau_{max}]\times [\phi_{min};\phi_{max}] \times [Q_{min};Q_{max}]$. The density of tiles must be large to guarantee a high detection efficiency. However, the number of tiles must also be as small as possible to provide a fast processing. To meet these two competitive requirements, the parameter space is tiled such that the fractional energy loss due to mismatch is below a pre-defined value, $\mu_{max}$. For complex-valued sinusoidal Gaussian waveforms, the mismatch can be analytically computed and the optimal number of tiles can be determined. The Omicron algorithm adopts the tiling strategy developed in~\cite{Chatterji:2004}, where the tiles are distributed over a cubic lattice using a mismatch metric~\footnote{The metric includes a non-diagonal $\delta \phi \delta Q$ term which has been neglected.} to measure distances:
 \begin{equation}
   \delta s^2 =
   \frac{4\pi^2\phi^2}{Q^2}\delta \tau^2
@@ -168,7 +168,7 @@ where $B$ is the signal amplitude and $\theta_{bt}$ is the arbitrary phase betwe
   &= B^2,
   \label{eq:qtransform_signal}
 \end{align}
-where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation verifying condition~\ref{eq:antialias1}.
+where we used the window normalization of~Eq.\ref{eq:winnorm} and the fact that $\tilde{w}^{*}(f,\phi_b,Q_b)\tilde{w}(f+2\phi_b,\phi_b,Q_b)=0$ if we use the bisquare window approximation verifying condition of Eq.~\ref{eq:antialias1}.
 
 Now, let's estimate the mean squared magnitude of the $Q$ transform coefficient for the noise in the denominator of Eq.~\ref{eq:snrdef}. We assume that the noise, $n(t)$, is a stationary stochastic process. With this assumption, the expectation value $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle$ is time-independent and the $\tau$ dependency can be dropped:
 \begin{equation}
@@ -188,7 +188,7 @@ to re-write Eq.~\ref{eq:qtransform_noise1}:
   \langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle =  \frac{1}{2}\int_{-\infty}^{+\infty}{ |\tilde{w}(\phi_{ql}-f,\phi_{ql},Q_q)|^2S_n(|f|) df }.
   \label{eq:qtransform_noise}
 \end{equation}
-Taking into account the normalization condition~\ref{eq:winnorm}, the mean squared magnitude of the $Q$ transform coefficient for a stationary stochastic process can be interpreted as the noise power density integrated over the tile frequency window. Moreover, if we consider that the power spectral density is approximately constant over the window bandwidth, we get $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle \simeq S_n(\phi_{ql})$. This result, combined with Eq.~\ref{eq:qtransform_signal}, can be used to derive the SNR defined by Eq.~\ref{eq:snrdef}:
+Taking into account the normalization condition of Eq.~\ref{eq:winnorm}, the mean squared magnitude of the $Q$ transform coefficient for a stationary stochastic process can be interpreted as the noise power density integrated over the tile frequency window. Moreover, if we consider that the power spectral density is approximately constant over the window bandwidth, we get $\langle |X_n(\tau_{qlm}, \phi_{ql}, Q_q)|^2 \rangle \simeq S_n(\phi_{ql})$. This result, combined with Eq.~\ref{eq:qtransform_signal}, can be used to derive the SNR defined by Eq.~\ref{eq:snrdef}:
 \begin{equation}
   \rho_{qlm} \simeq  \frac{B}{\sqrt{S_n(\phi_{ql})/2}}.
   \label{eq:snrmatch}
@@ -257,7 +257,7 @@ From this expression, we see that our SNR estimate can differ from the true valu
   \caption{Bias and uncertainty associated to the signal-to-noise estimator $\hat{\rho}$. Ten million events were generated at a fixed SNR, $\rho$, ranging from 3 to 100. The SNR is estimated using the Eq.~\ref{eq:snrbias}. $|X^{wh}_n|^2$ is drawn from an exponential distribution with a mean value of 2. $\theta_{bn}$ is drawn from a uniform distribution between $-\pi$ and $\pi$. We report the mean bias and the standard deviation associated to the distribution of $(\hat{\rho} - \rho)/\rho$.}
   \end{table}
 
-One additional source of uncertainty result from the assumption made until now: the match between the burst signal and the tile is never perfect. However it can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$).
+One additional source of uncertainty result from the assumption made until now: the match between the burst signal and the tile is perfect. In general, it is not the case. However the match can be improved by using a finer tiling structure as described in Sec.~\ref{sec:method:tiles} and this effect can be neglected when working with a low maximum mismatch value ($\mu_{max}$).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -270,4 +270,9 @@ The SNR expression in Eq.~\ref{eq:snr_white} suggests that it is possible to est
 \end{equation}
 By construction, this estimate of the amplitude differ from the true amplitude value for the same reasons listed in the previous section. Moreover, this amplitude only reflects how a given signal projects on a sinusoidal Gaussian waveform.
 
- \bluenote{Say something about the phase}
+In addition, the phase of the $Q$ transform coefficient can be computed:
+\begin{equation}
+  \angle X =  \arctan \left(\frac{\Im(X)}{\Re(X)}\right).
+  \label{eq:phase}
+\end{equation}
+This parameter is uniformly distributed between $-\pi/2$ and $\pi/2$. It is therefore uninformative for a single data stream. However, for multiple streams, the relative phase may carry useful information.
