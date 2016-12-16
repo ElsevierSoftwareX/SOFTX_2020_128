@@ -94,10 +94,25 @@ int main (int argc, char* argv[]){
       return 1;
     }
   }
+  stringstream tmpstream;
 
   // check file pattern
   if(!tfile_pat.compare("")){
     cerr<<"No trigger files"<<endl;
+
+    // make output name
+    tmpstream<<"no_trigger-"<<gps_start<<"-"<<gps_end-gps_start;
+    if(!filename.compare("default")) filename=tmpstream.str();
+
+    // print no-trigger plots
+    GwollumPlot *GP = new GwollumPlot("notrigger",style);
+    GP->AddText("NO TRIGGER", 0.1, 0.1, 0.2);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
+    delete GP;
     return 2;
   }
   
@@ -132,8 +147,6 @@ int main (int argc, char* argv[]){
   if(gps_end-gps_start<=3600)        ntbins = (gps_end-gps_start)/60+1;
   else if(gps_end-gps_start<=100000) ntbins = (gps_end-gps_start)/600+1;
   else                               ntbins = (gps_end-gps_start)/3600+1;
-
-  stringstream tmpstream;
 
   // Apply plot selections
   for(int s=0; s<(int)snrthr.size(); s++){
@@ -170,8 +183,8 @@ int main (int argc, char* argv[]){
   // make output name
   tmpstream<<TP->GetNamePrefix()<<"-"<<TP->GetNameSuffix()<<"-"<<gps_start<<"-"<<gps_end-gps_start;
   if(!filename.compare("default")) filename=tmpstream.str();
-  
 
+  // print plots
   TP->PrintPlot("snr");
   TP->DrawLegend();
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
@@ -191,9 +204,7 @@ int main (int argc, char* argv[]){
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
-
-  tmpstream.str(""); tmpstream.clear();
-
+  
   delete TP;
 
   return 0;
