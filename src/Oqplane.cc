@@ -69,7 +69,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   double delta_f;// Connes window 1/2-width
   int k, end;
   //double A1 = GetA1(); // not used
- 
+   
   for(int f=0; f<GetNBands(); f++){
     
     // no power

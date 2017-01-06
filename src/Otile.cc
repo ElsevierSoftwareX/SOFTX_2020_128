@@ -464,13 +464,14 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
 ////////////////////////////////////////////////////////////////////////////////////  
   
   // create combined tiling
-  int nfbins = 2*qplanes[nq-1]->GetNBands();
+  int nfbins = qplanes[nq-1]->GetNBands();
   double *fbins = new double [nfbins+1];
   double FrequencyMin=qplanes[0]->GetFrequencyMin();
   double FrequencyMax=qplanes[nq-1]->GetFrequencyMax();
   double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)nfbins;
   for(int f=0; f<=nfbins; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
-  TH2D *fullmap = new TH2D("fullmap","Full map",300,SeqT0-(double)aTimeRange/2.0,SeqT0+(double)aTimeRange/2.0,nfbins,fbins);
+  int ntbins = 1000;
+  TH2D *fullmap = new TH2D("fullmap","Full map",ntbins,SeqT0-(double)aTimeRange/2.0,SeqT0+(double)aTimeRange/2.0,nfbins,fbins);
   delete fbins;
   fullmap->GetXaxis()->SetTitle("Time [s]");
   fullmap->GetYaxis()->SetTitle("Frequency [Hz]");
