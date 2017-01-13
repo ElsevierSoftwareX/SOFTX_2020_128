@@ -52,7 +52,7 @@ Oqplane::Oqplane(const double aQ, const int aSampleFrequency, const int aTimeRan
   
   // set binning
   Omap::SetBins(Q,FrequencyMin,FrequencyMax,TimeRange,MismatchStep);
-    
+  
   // default snr threshold
   SetSNRThr(2.0);
 
