@@ -782,7 +782,7 @@ void Omicron::Whiten(Spectrum *aSpec){
   // normalize data by the ASD
   double asdval;
   for(; i<offt->GetSize_f(); i++){
-    asdval=sqrt(aSpec->GetPower((double)i/(double)tile->GetTimeRange())/2.0);
+    asdval=aSpec->GetAmplitude((double)i/(double)tile->GetTimeRange())/sqrt(2.0);
     if(!asdval){
       offt->SetRe_f(i,0.0);
       offt->SetIm_f(i,0.0);
