@@ -209,12 +209,12 @@ Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is es
   \center
   \epsfig{width=10cm, file=./figures/white1.eps} \\
   \epsfig{width=10cm, file=./figures/white2.eps}
-  \caption{Power spectral density of a data chunk before (top) and after (bottom) applying the whitening procedure.}
+  \caption{Power spectral density of a data chunk before (top) and after (bottom) applying the whitening procedure. \bluenote{TO REDO}.}
   \label{fig:white}
 \end{figure}
 
 
-The number of points in the PSD is kept small to guarantee an optimized processing: fast Fourier transforms and low memory usage. However, a low frequency resolution can sometimes be an issue for the FFTW algorithm: the frequency resolution is not high enough to account for large variations in the spectrum (especially at low frequencies). For this reason, the noise PSD is estimated into 2 steps. A first PSD estimate is computed as descibed above: $S_{n,1}$. It is used to perform a first whitening as prescribed by Eq.~\ref{eq:white_simple}. We obtain a whitened data vector $\tilde{x}_1^{wh}$. A Fourier transform is applied to switch back to the time domain: $x_1^{wh}$. Then, a second whitening procedure is applied: the data vector $x_1^{wh}$ is used to compute a second PSD, $S_{n,2}$, using the method presented above. The data vector is whitened a second time using the second PSD estimate $S_{n,2}$. Instead of Eq.~\ref{eq:white_simple}, the double whitening procedure implemented in Omicron is equivalent to:
+The number of points in the PSD is kept small to guarantee an optimized processing: fast Fourier transforms and low memory usage. However, a low frequency resolution can sometimes be an issue for the FFTW algorithm: the frequency resolution is not high enough to account for large variations in the spectrum (especially at low frequencies). For this reason, the noise PSD is estimated into 2 steps. A first PSD estimate is computed as descibed above: $S_{n,1}$. It is used to perform a first whitening as prescribed by Eq.~\ref{eq:white_simple}. We obtain a whitened data vector $\tilde{x}_1^{wh}$. An inverse Fourier transform is applied to switch back to the time domain: $x_1^{wh}$. Then, a second whitening procedure is applied: the data vector $x_1^{wh}$ is used to compute a second PSD, $S_{n,2}$, using the method presented above. The data vector is whitened a second time using the second PSD estimate $S_{n,2}$. Instead of Eq.~\ref{eq:white_simple}, the double whitening procedure implemented in Omicron is equivalent to:
 \begin{equation}
   \tilde{x}^{wh}[k] = \frac{\tilde{x}[k]}{\sqrt{\frac{S_{n,1}(k/T_c)}{2}\frac{S_{n,2}(k/T_c)}{2}}}, \qquad 0 \le k \le \frac{N_c}{2}.
   \label{eq:white_double}

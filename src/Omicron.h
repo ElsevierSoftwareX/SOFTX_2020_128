@@ -182,12 +182,12 @@ class Omicron {
   void PrintStatusInfo(void);
   
   /**
-   * Returns the segments associated to the trigger time coverage.
+   * Returns the segments associated to a selection of triggers.
    * See Triggers::GetTriggerSegments().
    *
    * NOTE: This function should be called somewhere after Project() and before WriteOutput() while the triggers are present in memory.
    * @param aThr threshold object
-   * @param aInfValue value above which the threshold is considered infinite
+   * @param aInfValue value above which the threshold is considered to be infinite
    */
   Segments* GetTriggerSegments(TH1D *aThr=NULL, const double aInfValue=1e20);
   
