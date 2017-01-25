@@ -82,8 +82,8 @@ A characteristic duration, $\Delta t$, and bandwidth, $\Delta f$, are defined us
 \end{align}
 For both the Gaussian and bisquare windows, we naturally find indentical values:
 \begin{align}
-  \Delta f &=  2\sigma_f = 2\sqrt{2}\frac{\phi}{Q}, \\ 
-  \Delta t &=  2\sigma_t = \frac{1}{\sqrt{2}\pi}\frac{Q}{\phi}.
+  \Delta f &=  2\sigma_f = 2\sqrt{2}\frac{\phi}{Q},  \label{eq:sigf} \\ 
+  \Delta t &=  2\sigma_t = \frac{1}{\sqrt{2}\pi}\frac{Q}{\phi}. \label{eq:sigt}
 \end{align}
 Fig.~\ref{fig:window} shows a comparison between an ideal Gaussian window and its approximate using a bisquare window.
 \begin{figure}
@@ -148,7 +148,7 @@ In a one-sided convention, the factor 2 accounts for the negative frequencies of
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The signal to noise ratio} \label{sec:method:snr}
+\subsection{The signal-to-noise ratio} \label{sec:method:snr}
 
 Let's consider a burst of energy, the waveform of which is $b(t)$. It lies on top of noise, $n(t)$, such as $x(t) = b(t) + n(t)$. An amplitude $Q$ transform signal-to-noise ratio (SNR) for each tile is defined as
 \begin{equation}

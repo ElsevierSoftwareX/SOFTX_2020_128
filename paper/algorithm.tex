@@ -204,7 +204,7 @@ Finally, as suggested in Sec.~\ref{sec:algorithm:discrete}, to optimize the proc
 \end{equation}
 where $S_n(k/T_c)$ is the PSD value intrapolated at the frequency $k/T_c$.
 
-Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is estimated using 300 s of data and is used to whiten one data chunk of 64 s. The plots in Fig.\ref{fig:white} show the PSD of the chunk before and after whitening. As expected, the PSD of the whitened data is flat and equal to 2. We note that, powerful spectral lines tend to be over-whitened. This effect is due to the low PSD frequency resolution and the linear interpolation which is performed to match the chunk frequency resolution: on both sides of a narrow line, the PSD is over-estimated.
+Fig.~\ref{fig:white} illustrates the effect of the whitening method. A PSD is estimated using 300 s of data and is used to whiten one data chunk of 64 s. The plots in Fig.\ref{fig:white} show the PSD of the chunk before and after whitening. As expected, the PSD of the whitened data is flat and equal to 2. We note that, powerful spectral lines tend to be over-whitened. This effect is due to the low PSD frequency resolution and the linear interpolation which is performed to match the chunk frequency resolution: on both sides of a narrow line, the PSD is over-estimated. This effect will be studied in greater detcails in Sec.~\ref{sec:characterization:whitening}.
 \begin{figure}
   \center
   \epsfig{width=10cm, file=./figures/white1.eps} \\
