@@ -119,7 +119,7 @@ Segments* Omicron::GetLastTriggerSegments(TH1D *aThr, const double aInfValue){
   }
   delete empty;
 
-  return triggers[chanindex]->GetLasTriggerSegments(aThr,aInfValue);
+  return triggers[chanindex]->GetLastTriggerSegments(aThr,aInfValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
