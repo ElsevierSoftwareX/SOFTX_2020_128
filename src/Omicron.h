@@ -192,6 +192,16 @@ class Omicron {
   Segments* GetTriggerSegments(TH1D *aThr=NULL, const double aInfValue=1e20);
   
   /**
+   * Returns the segments associated to a selection of triggers.
+   * See Triggers::GetLastTriggerSegments().
+   *
+   * NOTE: This function should be called somewhere after Project() and before WriteOutput() while the triggers are present in memory.
+   * @param aThr threshold object
+   * @param aInfValue value above which the threshold is considered to be infinite
+   */
+  Segments* GetLastTriggerSegments(TH1D *aThr=NULL, const double aInfValue=1e20);
+  
+  /**
    * Returns list of channels.
    */
   vector <string> GetChannels(void);

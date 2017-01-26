@@ -110,6 +110,19 @@ Segments* Omicron::GetTriggerSegments(TH1D *aThr, const double aInfValue){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+Segments* Omicron::GetLasTriggerSegments(TH1D *aThr, const double aInfValue){
+////////////////////////////////////////////////////////////////////////////////////
+  Segments* empty = new Segments();
+  if(!status_OK){
+    cerr<<"Omicron::GetLasTriggerSegments: the Omicron object is corrupted"<<endl;
+    return empty;
+  }
+  delete empty;
+
+  return triggers[chanindex]->GetLasTriggerSegments(aThr,aInfValue);
+}
+
+////////////////////////////////////////////////////////////////////////////////////
 string Omicron::GetColorCode(const double aSNRratio){
 ////////////////////////////////////////////////////////////////////////////////////
   if(aSNRratio<=0) return "";
