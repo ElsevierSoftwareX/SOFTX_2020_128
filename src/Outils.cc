@@ -110,7 +110,7 @@ Segments* Omicron::GetTriggerSegments(TH1D *aThr, const double aInfValue){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Segments* Omicron::GetLasTriggerSegments(TH1D *aThr, const double aInfValue){
+Segments* Omicron::GetLastTriggerSegments(TH1D *aThr, const double aInfValue){
 ////////////////////////////////////////////////////////////////////////////////////
   Segments* empty = new Segments();
   if(!status_OK){
