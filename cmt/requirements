@@ -48,3 +48,6 @@ alias omicron-listfile    "$(OMICRONROOT)/$(Omicron_tag)/omicron-listfile.exe"
 
 application omicron-plot omicron-plot.cc
 alias omicron-plot    "$(OMICRONROOT)/$(Omicron_tag)/omicron-plot.exe"
+
+application omicron-print omicron-print.cc
+alias omicron-print   "$(OMICRONROOT)/$(Omicron_tag)/omicron-print.exe"
