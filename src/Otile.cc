@@ -308,7 +308,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   if(aFormat.find("jpg")!=string::npos) form.push_back("jpg"); 
   if(aFormat.find("svg")!=string::npos) form.push_back("svg");
   if(aFormat.find("root")!=string::npos) form.push_back("root");
-
+  
   // no graphical format --> stop here
   if(!form.size()){
     double ss = qplanes[q_snrmax[0]]->GetTileSNR2(t_snrmax[q_snrmax[0]][0],f_snrmax[q_snrmax[0]][0]);
