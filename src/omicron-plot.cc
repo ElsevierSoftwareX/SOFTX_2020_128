@@ -16,6 +16,8 @@ void PrintUsage(void){
   cerr<<"                 gps-start=[GPS start] \\"<<endl;
   cerr<<"                 gps-end=[GPS end] \\"<<endl;
   cerr<<"                 snr-thresholds=[list of SNR thresholds] \\"<<endl;
+  cerr<<"                 freq-min=[minimum frequency] \\"<<endl;
+  cerr<<"                 freq-max=[maximum frequency] \\"<<endl;
   cerr<<"                 use-cluster=[cluster flag] \\"<<endl;
   cerr<<"                 cluster-dt=[cluster time window] \\"<<endl;
   cerr<<"                 use-date=[date flag] \\"<<endl;
@@ -30,6 +32,8 @@ void PrintUsage(void){
   cerr<<"[GPS start]               starting GPS time (integer only)"<<endl;
   cerr<<"[GPS end]                 stopping GPS time (integer only)"<<endl;
   cerr<<"[list of SNR thresholds]  list of SNR thresholds. By default, snr-thresholds=\"5;8;10;20\""<<endl;
+  cerr<<"[minimum frequency]       minimum frequency value [Hz]"<<endl;
+  cerr<<"[maximum frequency]       maximum frequency value [Hz]"<<endl;
   cerr<<"[cluster tag]             1 = use clusters, 0 = use triggers. By default, use-cluster=1"<<endl;
   cerr<<"[cluster time window]     cluster time window [s]. By default, cluster-dt=0.1"<<endl;
   cerr<<"[date tag]                1 = use date, 0 = use GPS time. By default, use-date=1"<<endl;
@@ -56,6 +60,8 @@ int main (int argc, char* argv[]){
   string snrthrs="5;8;10;20";  // list of SNR thresholds
   int gps_start=-1;      // GPS start
   int gps_end=-1;  // GPS end
+  double freqmin=-1; // freq min
+  double freqmax=1e20; // freq max
   string style="GWOLLUM"; // style
   bool usecluster=true; // use cluster
   double cluster_dt=0.1; // cluster time window
@@ -75,6 +81,8 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("gps-start"))      gps_start=atoi(sarg[1].c_str());
     if(!sarg[0].compare("gps-end"))        gps_end=atoi(sarg[1].c_str());
     if(!sarg[0].compare("snr-thresholds")) snrthrs=(string)sarg[1];
+    if(!sarg[0].compare("freq-min"))       freqmin=atof(sarg[1].c_str());
+    if(!sarg[0].compare("freq-max"))       freqmax=atof(sarg[1].c_str());
     if(!sarg[0].compare("style"))          style=(string)sarg[1];
     if(!sarg[0].compare("use-cluster"))    usecluster=!!(atoi(sarg[1].c_str()));
     if(!sarg[0].compare("cluster-dt"))     cluster_dt=atof(sarg[1].c_str());
@@ -120,7 +128,6 @@ int main (int argc, char* argv[]){
   sarg=SplitString(snrthrs,';');
   vector <double> snrthr;
   for(int s=0; s<(int)sarg.size(); s++) snrthr.push_back(atof(sarg[s].c_str()));
-
 
   // triggers
   TriggerPlot *TP = new TriggerPlot((int)snrthr.size(),tfile_pat,"",style);
@@ -168,6 +175,10 @@ int main (int argc, char* argv[]){
 
     // time format
     TP->SetDateFormat(usedate);
+
+    // set frequency range
+    if(TP->GetFrequencyMin()<freqmin) TP->GetCollectionSelection(s)->SetFrequencyMin(freqmin);
+    if(TP->GetFrequencyMax()>freqmax) TP->GetCollectionSelection(s)->SetFrequencyMax(freqmax);
 
     // set collection marker
     TP->SetCollectionMarker(s,20, TMath::Max(0.3,(double)(s+1)/(double)(snrthr.size())));
