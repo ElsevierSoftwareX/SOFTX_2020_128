@@ -270,7 +270,7 @@ class Omicron {
   /**
    * Returns Omicron version.
    */
-  inline string GetVersion(void){ return "v2r2"; };
+  inline string GetVersion(void){ return "v2r3"; };
 
  private:
 
