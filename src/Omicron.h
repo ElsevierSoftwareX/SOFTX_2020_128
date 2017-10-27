@@ -80,12 +80,12 @@ class Omicron {
    *
    * where [path_to_outdir] is the output directory specified by the user in the option file and [channel_name] is the channel name being processed.
    * 
-   * The GPS value is rounded to the ms digit.
+   * The aId value is rounded to the third digit.
    *
    * If this function is never called, all the output is dumped in the output directory specified by the user in the option file.
    * @param aId directory id
    */
-  bool MakeDirectories(const int aId = 0);
+  bool MakeDirectories(const double aId = 0.0);
 
   /**
    * Calls a new time chunk.
@@ -180,6 +180,12 @@ class Omicron {
    * Prints a progress report of the processing.
    */
   void PrintStatusInfo(void);
+  
+  /**
+   * When time plots are requested in output, a time offset [s] can be added.
+   * @param aTimeOffset time offset [s]
+   */
+  inline void SetPlotTimeOffset(const double aTimeOffset=0.0){ toffset=aTimeOffset; };
   
   /**
    * Returns the segments associated to a selection of triggers.
@@ -289,6 +295,7 @@ class Omicron {
   string fOutFormat;            ///< output format string
   string fOutProducts;          ///< output product string
   bool fNoLogo;                 ///< no logo flag
+  double toffset;               ///< time offset for plots
   vector <int> fWindows;        ///< plot time windows. FIXME: to move in Otile
   string fClusterAlgo;          ///< clustering algorithm
   string fftplan;               ///< fft plan

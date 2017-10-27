@@ -66,6 +66,7 @@ int main (int argc, char* argv[]){
   
   int start=0;
   int stop=0;
+  int sub;
   string segmentfile="none";
   string optionfile="none";
   int ostart=0;
@@ -73,18 +74,19 @@ int main (int argc, char* argv[]){
   string osegmentfile="none";
 
   // get first argument
-  start=(int)round(atof(argv[1]));
+  start=(int)floor(atof(argv[1]));
+  sub=(int)((atof(argv[1])-start)*1000.);
   if(!start)// a segment file is provided
     segmentfile=(string)argv[1];
 
   // get second argument
-  stop=(int)round(atof(argv[2]));
+  stop=(int)floor(atof(argv[2]));
   if(!stop)// a parameter file is provided
     optionfile=(string)argv[2];
 
   // get third argument
   if(argc>3){
-    ostart=(int)round(atof(argv[3]));
+    ostart=(int)floor(atof(argv[3]));
     if(!ostart){
       if(!optionfile.compare("none")) optionfile=(string)argv[3];
       else osegmentfile=(string)argv[3];
@@ -93,7 +95,7 @@ int main (int argc, char* argv[]){
 
   // get fourth argument
   if(argc>4){
-    ostop=(int)round(atof(argv[4]));
+    ostop=(int)floor(atof(argv[4]));
     if(!ostop) osegmentfile=(string)argv[4];
     else if(!ostart){ ostart=ostop; ostop=0; }
     else;
@@ -123,7 +125,10 @@ int main (int argc, char* argv[]){
   Segments *insegments;
   if(segmentfile.compare("none")) insegments = new Segments(segmentfile);
   else if(start&&stop) insegments = new Segments(start,stop);
-  else if(start) insegments = new Segments(start-O->GetChunkDuration()/2, start+O->GetChunkDuration()/2);
+  else if(start){
+    insegments = new Segments(start-O->GetChunkDuration()/2, start+O->GetChunkDuration()/2);
+    O->SetPlotTimeOffset((double)sub/1000.0);
+  }
   else{
     cerr<<"omicron: A valid input timing must be provided."<<endl;
     delete O;
@@ -158,7 +163,7 @@ int main (int argc, char* argv[]){
 
   // create specific trigger directories
   if(!stop&&!segmentfile.compare("none")){
-    if(!O->MakeDirectories(start)) return 2;
+    if(!O->MakeDirectories((double)start+(double)sub/1000.0)) return 2;
   }
   else{
     if(!O->MakeDirectories()) return 2;

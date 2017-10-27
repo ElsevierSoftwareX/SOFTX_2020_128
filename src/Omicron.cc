@@ -152,6 +152,9 @@ Omicron::Omicron(const string aOptionFile){
     oinjfile.precision(5);
   }
 
+  // default plottime offset
+  SetPlotTimeOffset();
+
   // process monitoring
   chanindex      = -1;
   inSegments     = new Segments();
@@ -284,7 +287,7 @@ bool Omicron::InitSegments(Segments *aInSeg, Segments *aOutSeg){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool Omicron::MakeDirectories(const int aId){
+bool Omicron::MakeDirectories(const double aId){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!status_OK){
     cerr<<"Omicron::MakeDirectories: the Omicron object is corrupted"<<endl;
@@ -678,7 +681,7 @@ bool Omicron::WriteOutput(void){
     if(fVerbosity>1) cout<<"\t- write maps"<<endl;
     snr=tile->SaveMaps(outdir[chanindex],
 		       triggers[chanindex]->GetNameConv()+"_OMICRON",
-		       fOutFormat,fWindows,(bool)(fOutProducts.find("html")+1));
+		       fOutFormat,fWindows,toffset,(bool)(fOutProducts.find("html")+1));
     if(snr>chan_mapsnrmax[chanindex]) chan_mapsnrmax[chanindex]=snr;// get snr max over all chunks
   }
 
@@ -1143,7 +1146,7 @@ void Omicron::SaveTS(const bool aWhite){
     
     // zoom
     for(int w=(int)fWindows.size()-1; w>=0; w--){
-      GDATA->GetXaxis()->SetLimits(tile->GetChunkTimeCenter()-(double)fWindows[w]/2.0,tile->GetChunkTimeCenter()+(double)fWindows[w]/2.0);
+      GDATA->GetXaxis()->SetLimits(tile->GetChunkTimeCenter()+toffset-(double)fWindows[w]/2.0,tile->GetChunkTimeCenter()+toffset+(double)fWindows[w]/2.0);
       for(int f=0; f<(int)form.size(); f++){
 	if(aWhite)
 	  ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];

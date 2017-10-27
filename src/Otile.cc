@@ -231,7 +231,7 @@ bool Otile::SaveTriggers(TriggerBuffer *aTriggers){
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-double Otile::SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const bool aThumb){
+double Otile::SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const double aTimeOffset, const bool aThumb){
 ////////////////////////////////////////////////////////////////////////////////////
   if(!IsDirectory(aOutdir)){
     cerr<<"Otile::SaveMaps: the directory "<<aOutdir<<" is missing"<<endl;
@@ -255,8 +255,8 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
       f_snrmax[q][w] = 0;
 
       for(int f=0; f<qplanes[q]->GetNBands(); f++){
-	tstart=qplanes[q]->GetTimeTileIndex(f,-(double)aWindows[w]/2.0);
-	tend=qplanes[q]->GetTimeTileIndex(f,(double)aWindows[w]/2.0);
+	tstart=qplanes[q]->GetTimeTileIndex(f,aTimeOffset-(double)aWindows[w]/2.0);
+	tend=qplanes[q]->GetTimeTileIndex(f,aTimeOffset+(double)aWindows[w]/2.0);
 
 	for(int t=tstart; t<tend; t++){
 	  snr2=qplanes[q]->GetTileSNR2(t,f);
@@ -330,7 +330,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     // draw map
     if(fVerbosity>2) cout<<"\t\t- Draw map"<<endl;
     ApplyOffset(qplanes[q],(double)SeqT0);
-    qplanes[q]->GetXaxis()->SetRange((double)SeqT0-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)SeqT0+(double)aWindows[(int)aWindows.size()-1]/2.0);
+    qplanes[q]->GetXaxis()->SetRange((double)SeqT0+aTimeOffset-(double)aWindows[(int)aWindows.size()-1]/2.0,(double)SeqT0+aTimeOffset+(double)aWindows[(int)aWindows.size()-1]/2.0);
     Draw(qplanes[q],"COLZ");
     
     // title
@@ -343,7 +343,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     for(int w=0; w<(int)aWindows.size(); w++){
       
       // zoom in
-      qplanes[q]->GetXaxis()->SetRangeUser((double)SeqT0-(double)aWindows[w]/2.0,(double)SeqT0+(double)aWindows[w]/2.0);
+      qplanes[q]->GetXaxis()->SetRangeUser((double)SeqT0+aTimeOffset-(double)aWindows[w]/2.0,(double)SeqT0+aTimeOffset+(double)aWindows[w]/2.0);
       
       // loudest tile
       if(!mapfill.compare("amplitude")) tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<qplanes[q]->GetTileTime(t_snrmax[q][w],f_snrmax[q][w])<<", f="<<qplanes[q]->GetBandFrequency(f_snrmax[q][w])<<" Hz, "<<mapfill<<"="<<scientific<<qplanes[q]->GetTileContent(t_snrmax[q][w],f_snrmax[q][w]);
@@ -377,7 +377,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   if(fVerbosity>1) cout<<"\t- full map"<<endl;
   TH2D* fullmap;
   for(int w=0; w<(int)aWindows.size(); w++){
-    fullmap = MakeFullMap(aWindows[w]);
+    fullmap = MakeFullMap(aWindows[w],aTimeOffset);
     
     // draw map
     Draw(fullmap,"COLZ");
@@ -386,8 +386,8 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     fullmap->SetTitle(aName.c_str());
     
     // loudest tile
-    if(!mapfill.compare("amplitude")) tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<scientific<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
-    else tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
+    if(!mapfill.compare("amplitude")) tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+aTimeOffset+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<scientific<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
+    else tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+aTimeOffset+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
     AddText(tmpstream.str(), 0.01,0.01,0.03);
     tmpstream.clear(); tmpstream.str("");
     
@@ -460,7 +460,7 @@ vector <double> Otile::ComputeQs(const double aQMin, const double aQMax, const d
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-TH2D* Otile::MakeFullMap(const int aTimeRange){
+TH2D* Otile::MakeFullMap(const int aTimeRange, const double aTimeOffset){
 ////////////////////////////////////////////////////////////////////////////////////  
   
   // create combined tiling
@@ -471,7 +471,8 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
   double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)nfbins;
   for(int f=0; f<=nfbins; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
   int ntbins = 1000;
-  TH2D *fullmap = new TH2D("fullmap","Full map",ntbins,SeqT0-(double)aTimeRange/2.0,SeqT0+(double)aTimeRange/2.0,nfbins,fbins);
+ 
+  TH2D *fullmap = new TH2D("fullmap","Full map",ntbins,SeqT0+aTimeOffset-(double)aTimeRange/2.0,SeqT0+aTimeOffset+(double)aTimeRange/2.0,nfbins,fbins);
   delete fbins;
   fullmap->GetXaxis()->SetTitle("Time [s]");
   fullmap->GetYaxis()->SetTitle("Frequency [Hz]");
@@ -485,7 +486,7 @@ TH2D* Otile::MakeFullMap(const int aTimeRange){
   fullmap->GetYaxis()->SetTitleSize(0.045);
   fullmap->GetZaxis()->SetTitleSize(0.045);
   
-  int ttstart, ttend, ffstart, ffend;
+  int tstart, tend, ttstart, ttend, ffstart, ffend;
   double content, snr2;
 
   // loop over q planes

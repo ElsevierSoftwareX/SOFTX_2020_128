@@ -160,7 +160,7 @@ class Otile: public GwollumPlot {
    * @param aWindows list of time windows
    * @param aThumb also produce thumbnails if set to true
    */
-  double SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const bool aThumb=false);
+  double SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const double aTimeOffset=0.0, const bool aThumb=false);
 
   /**
    * Computes a set of Q values.
@@ -317,7 +317,7 @@ class Otile: public GwollumPlot {
   int **t_snrmax;               ///< loudest time tile (SNR)
   int **f_snrmax;               ///< loudest frequency tile (SNR)
 
-  TH2D* MakeFullMap(const int aTimeRange); ///< make full map
+  TH2D* MakeFullMap(const int aTimeRange, const double aTimeOffset); ///< make full map
   void ApplyOffset(TH2D *aMap, const double aOffset);
 
   // SEQUENCE
