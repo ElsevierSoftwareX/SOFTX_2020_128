@@ -4,6 +4,10 @@ string GetOmicronFilePattern(const string aChannelName, const int aTimeStart, co
 
   // trigger directory
   string trigdir = getenv("OMICRON_TRIGGERS");
+
+  // special case of hpss
+  if(!trigdir.find("hpss")) return GetOmicronFilePatternFromHpss(aChannelName, aTimeStart, aTimeEnd);
+  
   if(!IsDirectory(trigdir)) return "";
   
   // channel stream
@@ -94,6 +98,92 @@ string GetOmicronFilePattern(const string aChannelName, const int aTimeStart, co
     }
     vfiles.clear();
     vfilefrag.clear();
+  }
+
+  return filelist;
+}
+
+string GetOmicronFilePatternFromHpss(const string aChannelName, const int aTimeStart, const int aTimeEnd){
+  string filelist="";
+
+  // trigger directory
+  string trigdir = getenv("OMICRON_TRIGGERS");
+
+  // channel stream
+  Streams *S = new Streams(aChannelName,0);
+
+  // random id
+  srand(time(NULL));
+  int randid = rand();
+
+  // tmp file
+  stringstream ss;
+  ss<<"${TMP}/omf-"<<S->GetNameSuffixUnderScore()<<"-"<<aTimeStart<<"-"<<aTimeEnd<<"."<<randid<<".tmp";
+  string tmpfile=ss.str();
+  ss.clear(); ss.str("");
+
+  // rfdir command
+  ss<<"rfdir ${OMICRON_TRIGGERS}/"<<S->GetNamePrefix()<<"/"<<S->GetNameSuffixUnderScore()<<"_OMICRON | grep OMICRON > "<<tmpfile;
+
+  // dump list of channel sub-directories in a tmp file
+  if(system(ss.str().c_str())) return filelist;
+  ss.clear(); ss.str("");
+  
+  ReadAscii *R = new ReadAscii(tmpfile,"i");
+  if(!R->GetNRow()) { delete R; return filelist; }
+
+  // list of gps directories
+  int startroot = aTimeStart / 100000;
+  int stoproot = aTimeEnd / 100000;
+  vector <int> gpsdir; int gps;
+  for(int g=0; g<R->GetNRow(); g++){
+    R->GetElement(gps,g,0);
+    if(g>=startroot && g<=stoproot) gpsdir.push_back(gps);
+  }
+
+  delete R;
+
+  // list relevant files in gps directories
+  vector <string> vfilefrag; string filename;
+  int fstart, fstop;
+  for(int g=0; g<(int)gpsdir.size(); g++){
+   
+    ss<<"rfdir ${OMICRON_TRIGGERS}/"<<S->GetNamePrefix()<<"/"<<S->GetNameSuffixUnderScore()<<"_OMICRON/"<<gpsdir[g]<<" | grep OMICRON > "<<tmpfile;
+    if(system(ss.str().c_str())) return "";
+    ss.clear(); ss.str("");
+
+    R = new ReadAscii(tmpfile,"s");
+
+    // select relevant files in that gps directories
+    for(int g=0; g<R->GetNRow(); g++){
+      R->GetElement(filename,g,0);
+
+      // get file fragments
+      vfilefrag.clear();
+      vfilefrag = SplitString(filename,'-');
+    
+      // check file naming convention (4 fragments)
+      if(vfilefrag.size()!=4) continue;
+    
+      // file timing
+      fstart = atoi(vfilefrag[2].c_str());
+      fstop = fstart+atoi(vfilefrag[3].substr(0,vfilefrag[3].size()-5).c_str());
+    
+      // check file start time
+      if(fstart>=aTimeEnd) continue;
+    
+      // check file stop time
+      if(fstop<aTimeStart) continue;
+
+      // full file name
+      ss<<"${OMICRON_TRIGGERS}/"<<S->GetNamePrefix()<<"/"+S->GetNameSuffixUnderScore()<<"_OMICRON/"<<gpsdir[g]<<"/"<<filename;
+      
+      // select file
+      filelist+=ss.str()+" ";
+    }
+
+    delete R;
+
   }
 
   return filelist;
