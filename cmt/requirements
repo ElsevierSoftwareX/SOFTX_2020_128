@@ -10,7 +10,7 @@ set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
 set OMICRON_TRIGGERS        ""\
     Florent		    "/home/florent/Analysis/Omicron/triggers"\
     Cascina		    "/data/omicron"\
-    CCIN2P3		    "/sps/virgo/USERS/frobinet/Omicron/triggers"\
+    CCIN2P3		    "/hpss/in2p3.fr/group/virgo/DETCHAR/triggers/Omicron"\
     LIGO		    "/home/detchar/triggers"
 
 set OMICRON_TRIGGERS_BASE   "100000"
