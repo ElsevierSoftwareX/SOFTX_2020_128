@@ -239,7 +239,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   }
   if(!aWindows.size()) aWindows.push_back(TimeRange);
    
-  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<SeqT0<<"..."<<endl;
+  if(fVerbosity) cout<<"Otile::SaveMaps: Saving maps for "<<aName<<" centered on "<<SeqT0+aTimeOffset<<"..."<<endl;
   ostringstream tmpstream;
 
   // get SNR-max bins /qplane and /window
@@ -321,7 +321,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   }
   
   // fill maps
-  for(int q=0; q<nq; q++) qplanes[q]->FillMap(mapfill);
+  for(int q=0; q<nq; q++) qplanes[q]->FillMap(mapfill,aTimeOffset-(double)aWindows[(int)aWindows.size()-1]/2.0,aTimeOffset+(double)aWindows[(int)aWindows.size()-1]/2.0);
   
   // save maps for each Q plane
   for(int q=0; q<nq; q++){
@@ -426,7 +426,7 @@ bool Otile::DrawMapTiling(const int aQindex){
     cerr<<"Otile::DrawMapTiling: the Q-plane #"<<aQindex<<" does not exist"<<endl;
     return false;
   }
-  qplanes[aQindex]->FillMap("display");
+  qplanes[aQindex]->FillMap("display",-TimeRange/2,TimeRange/2);
   qplanes[aQindex]->GetZaxis()->SetRangeUser(0,100);
   Draw(qplanes[aQindex],"COL");
   /*
@@ -492,20 +492,31 @@ TH2D* Otile::MakeFullMap(const int aTimeRange, const double aTimeOffset){
   // loop over q planes
   for(int q=0; q<nq; q++){
 
+    // loop over frequency band of that q plane
     for(int f=0; f<qplanes[q]->GetNBands(); f++){
+
+      // first and last frequency bin of full map to consider
       ffstart=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandStart(f));
       ffend=fullmap->GetYaxis()->FindBin(qplanes[q]->GetBandEnd(f));
 
-      for(int t=0; t<qplanes[q]->GetBandNtiles(f); t++){
+      // qplane time bin indexes to sweep
+      tstart=qplanes[q]->GetTimeTileIndex(f,fullmap->GetXaxis()->GetBinLowEdge(1)-SeqT0);
+      tend=qplanes[q]->GetTimeTileIndex(f,fullmap->GetXaxis()->GetBinUpEdge(fullmap->GetNbinsX()-1)-SeqT0);
+
+      // loop over relevant qplane time bins
+      for(int t=tstart; t<=tend; t++){
+
+	// first and last time bin of full map to consider
 	ttstart=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeStart(t,f)+SeqT0);
 	ttend=fullmap->GetXaxis()->FindBin(qplanes[q]->GetTileTimeEnd(t,f)+SeqT0);
-
+	
 	snr2=qplanes[q]->GetTileSNR2(t,f);
 	content=qplanes[q]->GetTileContent(t,f);
 	
+	// loop over full map bins over lapping with qplane bins
 	for(int tt=ttstart; tt<=ttend; tt++)
 	  for(int ff=ffstart; ff<=ffend; ff++)
-	    if(snr2>fullmap->GetBinError(tt,ff)){
+	    if(snr2>fullmap->GetBinError(tt,ff)){// update content if higher SNR
 	      fullmap->SetBinContent(tt,ff,content);
 	      fullmap->SetBinError(tt,ff,snr2);
 	    }

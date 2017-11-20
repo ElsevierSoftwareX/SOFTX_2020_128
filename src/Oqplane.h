@@ -37,7 +37,7 @@ class Oqplane: public Omap {
 
   void PrintParameters(void);
   int ProjectData(fft *aDataFft, const double aPadding=0.0);
-  void FillMap(const string aContentType="snr");
+  void FillMap(const string aContentType, const double aTimeStart, const double aTimeEnd);
   bool SaveTriggers(TriggerBuffer *aTriggers, const double aT0, Segments* aSeg);
 
   // GETS

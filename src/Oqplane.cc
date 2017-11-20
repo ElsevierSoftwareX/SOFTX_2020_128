@@ -120,28 +120,43 @@ Oqplane::~Oqplane(void){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Oqplane::FillMap(const string aContentType){
+void Oqplane::FillMap(const string aContentType, const double aTimeStart, const double aTimeEnd){
 ////////////////////////////////////////////////////////////////////////////////////
 
+  // start and end time
+  int tstart, tend;
+  
   if(!aContentType.compare("snr")){
-    for(int f=0; f<GetNBands(); f++)
-      for(int t=0; t<GetBandNtiles(f); t++)
+    for(int f=0; f<GetNBands(); f++){
+      tstart=Omap::GetTimeTileIndex(f,aTimeStart);
+      tend=Omap::GetTimeTileIndex(f,aTimeEnd);
+      for(int t=tstart; t<=tend; t++)
 	SetTileContent(t,f,sqrt(GetTileSNR2(t,f)));
+    }
   }
   else if(!aContentType.compare("amplitude")){
-    for(int f=0; f<GetNBands(); f++)
-      for(int t=0; t<GetBandNtiles(f); t++)
+    for(int f=0; f<GetNBands(); f++){
+      tstart=Omap::GetTimeTileIndex(f,aTimeStart);
+      tend=Omap::GetTimeTileIndex(f,aTimeEnd);
+      for(int t=tstart; t<=tend; t++)
 	SetTileContent(t,f,GetTileAmplitude(t,f));
+    }
   }
   else if(!aContentType.compare("phase")){
-    for(int f=0; f<GetNBands(); f++)
-      for(int t=0; t<GetBandNtiles(f); t++)
+    for(int f=0; f<GetNBands(); f++){
+      tstart=Omap::GetTimeTileIndex(f,aTimeStart);
+      tend=Omap::GetTimeTileIndex(f,aTimeEnd);
+      for(int t=tstart; t<=tend; t++)
 	SetTileContent(t,f,bandFFT[f]->GetPhase_t(t));
+    }
   }
   else{
-    for(int f=0; f<GetNBands(); f++)
-      for(int t=0; t<GetBandNtiles(f); t++)
+    for(int f=0; f<GetNBands(); f++){
+      tstart=Omap::GetTimeTileIndex(f,aTimeStart);
+      tend=Omap::GetTimeTileIndex(f,aTimeEnd);
+      for(int t=tstart; t<=tend; t++)
 	SetTileContent(t,f,50.0*(t%2));
+    }
   }
   
   return;
