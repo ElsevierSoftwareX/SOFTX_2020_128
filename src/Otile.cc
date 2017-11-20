@@ -386,8 +386,8 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     fullmap->SetTitle(aName.c_str());
     
     // loudest tile
-    if(!mapfill.compare("amplitude")) tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+aTimeOffset+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<scientific<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
-    else tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+aTimeOffset+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
+    if(!mapfill.compare("amplitude")) tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<scientific<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
+    else tmpstream<<"Loudest: GPS="<<fixed<<setprecision(3)<<(double)SeqT0+qplanes[q_snrmax[w]]->GetTileTime(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w])<<", f="<<qplanes[q_snrmax[w]]->GetBandFrequency(f_snrmax[q_snrmax[w]][w])<<" Hz, "<<mapfill<<"="<<qplanes[q_snrmax[w]]->GetTileContent(t_snrmax[q_snrmax[w]][w],f_snrmax[q_snrmax[w]][w]);
     AddText(tmpstream.str(), 0.01,0.01,0.03);
     tmpstream.clear(); tmpstream.str("");
     
@@ -470,8 +470,9 @@ TH2D* Otile::MakeFullMap(const int aTimeRange, const double aTimeOffset){
   double FrequencyMax=qplanes[nq-1]->GetFrequencyMax();
   double FrequencyLogStep = log(FrequencyMax/FrequencyMin) / (double)nfbins;
   for(int f=0; f<=nfbins; f++) fbins[f] = FrequencyMin * exp((double)f*FrequencyLogStep);
-  int ntbins = 1000;
- 
+  //int ntbins = 1000;
+  int ntbins = 301;
+
   TH2D *fullmap = new TH2D("fullmap","Full map",ntbins,SeqT0+aTimeOffset-(double)aTimeRange/2.0,SeqT0+aTimeOffset+(double)aTimeRange/2.0,nfbins,fbins);
   delete fbins;
   fullmap->GetXaxis()->SetTitle("Time [s]");

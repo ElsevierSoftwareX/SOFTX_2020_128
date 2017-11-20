@@ -205,6 +205,7 @@ void Omicron::MakeHtml(void){
     for(int s=0; s<(int)chunkcenter.size(); s++){
       report<<"  <tr>"<<endl;
       report<<"    <td>"<<chunkcenter[s]<<":</td>"<<endl;
+      //report<<"    <td>"<<chunkcenter[s]+toffset<<":</td>"<<endl;
 
       // triggers
       if(fOutProducts.find("triggers")!=string::npos){

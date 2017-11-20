@@ -877,7 +877,8 @@ void Omicron::SaveAPSD(const string aType){
   GPlot->RedrawAxis();
   GPlot->RedrawAxis("g");
   GAPSD2->SetLineWidth(1);
-  GAPSD2->GetXaxis()->SetTitleOffset(1.1);
+  GAPSD2->GetXaxis()->SetTitleOffset(0.9);
+  GAPSD2->GetYaxis()->SetTitleOffset(1.03);
   GAPSD2->GetXaxis()->SetLabelSize(0.045);
   GAPSD2->GetYaxis()->SetLabelSize(0.045);
   GAPSD2->GetXaxis()->SetTitleSize(0.045);
@@ -954,7 +955,8 @@ void Omicron::SaveWPSD(void){
   GPlot->RedrawAxis();
   GPlot->RedrawAxis("g");
   GPSD->SetLineWidth(1);
-  GPSD->GetXaxis()->SetTitleOffset(1.1);
+  GPSD->GetXaxis()->SetTitleOffset(0.9);
+  GPSD->GetYaxis()->SetTitleOffset(1.03);
   GPSD->GetXaxis()->SetLabelSize(0.045);
   GPSD->GetYaxis()->SetLabelSize(0.045);
   GPSD->GetXaxis()->SetTitleSize(0.045);
@@ -1023,7 +1025,8 @@ void Omicron::SaveSpectral(void){
   Gamp->GetHistogram()->SetXTitle("Frequency [Hz]");
   Gamp->GetHistogram()->SetYTitle("Amplitude /#sqrt{Hz}");
   Gamp->SetLineWidth(1);
-  Gamp->GetXaxis()->SetTitleOffset(1.1);
+  Gamp->GetXaxis()->SetTitleOffset(1.03);
+  Gamp->GetXaxis()->SetTitleOffset(1.03);
   Gamp->GetXaxis()->SetLabelSize(0.045);
   Gamp->GetYaxis()->SetLabelSize(0.045);
   Gamp->GetXaxis()->SetTitleSize(0.045);
@@ -1110,7 +1113,8 @@ void Omicron::SaveTS(const bool aWhite){
   else GDATA->SetTitle((triggers[chanindex]->GetName()+": amplitude conditionned time series").c_str());
   GDATA->SetLineWidth(1);
   GDATA->GetXaxis()->SetNoExponent();
-  GDATA->GetXaxis()->SetTitleOffset(1.1);
+  GDATA->GetXaxis()->SetTitleOffset(1.0);
+  GDATA->GetYaxis()->SetTitleOffset(1.03);
   GDATA->GetXaxis()->SetLabelSize(0.045);
   GDATA->GetYaxis()->SetLabelSize(0.045);
   GDATA->GetXaxis()->SetTitleSize(0.045);
