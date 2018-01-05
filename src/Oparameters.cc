@@ -138,6 +138,9 @@ void Omicron::ReadOptions(void){
     cerr<<"Omicron::ReadOptions: No search frequency range (PARAMETER/FREQUENCYRANGE)  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
     FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
+  if(FRange.size()==1){// single value
+    FRange.push_back(FRange[0]);
+  }
   if(FRange.size()!=2){// must be size 2
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
     FRange.clear();
@@ -159,6 +162,9 @@ void Omicron::ReadOptions(void){
   if(!io->GetOpt("PARAMETER","QRANGE", QRange)){
     cerr<<"Omicron::ReadOptions: No search Q range (PARAMETER/QRANGE)  --> set default: 4-100"<<endl;
     QRange.push_back(4); QRange.push_back(100);
+  }
+  if(QRange.size()==1){// single value
+    QRange.push_back(QRange[0]);
   }
   if(QRange.size()!=2){// must be size 2
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct  --> set default: 4-100"<<endl;
