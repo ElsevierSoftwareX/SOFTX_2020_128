@@ -189,8 +189,10 @@ int main (int argc, char* argv[]){
 		       
     // set collection color
     TP->SetCollectionColor(s,TP->GetColorPalette((int)((double)(s+1)/(double)(snrthr.size())*(double)(TP->GetNumberOfColors()))-2));
-      
   }
+
+  // force minimum marker size for first collection
+  if(gps_end-gps_start>10000) TP->SetCollectionMarker(0,1,1);
 
   // make collections
   TP->MakeCollections();
@@ -234,7 +236,7 @@ int main (int argc, char* argv[]){
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
   
   delete TP;
-
+  delete tvline;
   return 0;
 }
 
