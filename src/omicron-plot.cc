@@ -26,6 +26,7 @@ void PrintUsage(void){
   cerr<<"                 file-prefix=[file prefix] \\"<<endl;
   cerr<<"                 file-name=[file name] \\"<<endl;
   cerr<<"                 style=[style]"<<endl;
+  cerr<<"                 drawtimeline=[GPS time]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
@@ -42,6 +43,7 @@ void PrintUsage(void){
   cerr<<"[file prefix]             file name prefix. By default, file-prefix=plot"<<endl;
   cerr<<"[file name]               file name. By default, file-name=default"<<endl;
   cerr<<"[style]                   GWOLLUM-supported style. By default, style=GWOLLUM"<<endl;
+  cerr<<"[GPS time]                GPS time at which drawing a vertical line (time plots only)"<<endl;
   cerr<<endl;
   return;
 }
@@ -70,6 +72,7 @@ int main (int argc, char* argv[]){
   string outformat="png"; // file format
   string fileprefix="plot"; // file name prefix
   string filename="default"; // file name
+  double vline=-1.0;// do not draw a line
 
   // loop over arguments
   vector <string> sarg;
@@ -91,6 +94,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("outformat"))      outformat=(string)sarg[1];
     if(!sarg[0].compare("file-prefix"))    fileprefix=(string)sarg[1];
     if(!sarg[0].compare("file-name"))      filename=(string)sarg[1];
+    if(!sarg[0].compare("drawtimeline"))    vline=atof(sarg[1].c_str());
   }
 
   // centralized trigger files
@@ -191,6 +195,10 @@ int main (int argc, char* argv[]){
   // make collections
   TP->MakeCollections();
 
+  // vertical line
+  TLine *tvline = new TLine(vline,0,vline,1);
+  tvline->SetLineColor(2);
+  
   // make output name
   tmpstream<<TP->GetNamePrefix()<<"-"<<TP->GetNameSuffix()<<"-"<<gps_start<<"-"<<gps_end-gps_start;
   if(!filename.compare("default")) filename=tmpstream.str();
@@ -201,14 +209,23 @@ int main (int argc, char* argv[]){
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
+  tvline->SetY1(TP->GetYmin("rate",0));
+  tvline->SetY2(TP->GetYmax("rate",0));
+  TP->Draw(tvline,"same");
   TP->DrawLegend();
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
+  tvline->SetY1(TP->GetYmin("freqtime",0));
+  tvline->SetY2(TP->GetYmax("freqtime",0));
+  TP->Draw(tvline,"same");
   TP->DrawLegend();
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
+  tvline->SetY1(TP->GetYmin("snrtime",0));
+  tvline->SetY2(TP->GetYmax("snrtime",0));
+  TP->Draw(tvline,"same");
   TP->DrawLegend();
   TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
 
