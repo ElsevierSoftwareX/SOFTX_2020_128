@@ -712,7 +712,7 @@ bool Omicron::ExtractTriggers(void){
   }
 
   // trigger rate: evaluated over the chunk excluding nominal overlaps/2
-  double trate = trig_ctr[chanindex]/(tile->GetTimeRange()-tile->GetOverlapDuration());
+  double trate = (double)trig_ctr[chanindex]/(double)(tile->GetTimeRange()-tile->GetOverlapDuration());
 
   // check against trigger rate limit
   if(trate>fratemax){
