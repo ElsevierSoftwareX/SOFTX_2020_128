@@ -25,8 +25,10 @@ void PrintUsage(void){
   cerr<<"                 outformat=[output file format] \\"<<endl;
   cerr<<"                 file-prefix=[file prefix] \\"<<endl;
   cerr<<"                 file-name=[file name] \\"<<endl;
-  cerr<<"                 style=[style]"<<endl;
-  cerr<<"                 drawtimeline=[GPS time]"<<endl;
+  cerr<<"                 style=[style] \\"<<endl;
+  cerr<<"                 drawtimeline=[GPS time] \\"<<endl;
+  cerr<<"                 plot-width=[plot width] \\"<<endl;
+  cerr<<"                 plot-height=[plot height]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
@@ -44,6 +46,8 @@ void PrintUsage(void){
   cerr<<"[file name]               file name. By default, file-name=default"<<endl;
   cerr<<"[style]                   GWOLLUM-supported style. By default, style=GWOLLUM"<<endl;
   cerr<<"[GPS time]                GPS time at which drawing a vertical line (time plots only)"<<endl;
+  cerr<<"[plot width]              plot width in pixels. By default, plot-width=850"<<endl;
+  cerr<<"[plot height]             plot height in pixels. By default, plot-height=500"<<endl;
   cerr<<endl;
   return;
 }
@@ -73,6 +77,8 @@ int main (int argc, char* argv[]){
   string fileprefix="plot"; // file name prefix
   string filename="default"; // file name
   double vline=-1.0;// do not draw a line
+  int plot_w=850;  // plot width
+  int plot_h=500;  // plot height
 
   // loop over arguments
   vector <string> sarg;
@@ -94,7 +100,9 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("outformat"))      outformat=(string)sarg[1];
     if(!sarg[0].compare("file-prefix"))    fileprefix=(string)sarg[1];
     if(!sarg[0].compare("file-name"))      filename=(string)sarg[1];
-    if(!sarg[0].compare("drawtimeline"))    vline=atof(sarg[1].c_str());
+    if(!sarg[0].compare("drawtimeline"))   vline=atof(sarg[1].c_str());
+    if(!sarg[0].compare("plot-width"))     plot_w=atoi(sarg[1].c_str());
+    if(!sarg[0].compare("plot-height"))    plot_h=atoi(sarg[1].c_str());
   }
 
   // centralized trigger files
@@ -119,11 +127,11 @@ int main (int argc, char* argv[]){
     // print no-trigger plots
     GwollumPlot *GP = new GwollumPlot("notrigger",style);
     GP->AddText("NO TRIGGER", 0.1, 0.1, 0.2);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat,plot_w,plot_h);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat,plot_w,plot_h);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat,plot_w,plot_h);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat,plot_w,plot_h);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat,plot_w,plot_h);
     delete GP;
     return 2;
   }
@@ -208,32 +216,32 @@ int main (int argc, char* argv[]){
   // print plots
   TP->PrintPlot("snr");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat,plot_w,plot_h);
 
   TP->PrintCollectionPlot("rate");
   tvline->SetY1(TP->GetYmin("rate",0));
   tvline->SetY2(TP->GetYmax("rate",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat,plot_w,plot_h);
 
   TP->PrintCollectionPlot("freqtime");
   tvline->SetY1(TP->GetYmin("freqtime",0));
   tvline->SetY2(TP->GetYmax("freqtime",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat,plot_w,plot_h);
 
   TP->PrintCollectionPlot("snrtime");
   tvline->SetY1(TP->GetYmin("snrtime",0));
   tvline->SetY2(TP->GetYmax("snrtime",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat,plot_w,plot_h);
 
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat,plot_w,plot_h);
   
   delete TP;
   delete tvline;
