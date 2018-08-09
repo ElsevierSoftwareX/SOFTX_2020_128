@@ -80,11 +80,15 @@ int main (int argc, char* argv[]){
     
     TFile *tmp = new TFile(filename);
     if( !tmp || tmp->IsZombie() ){
-      cout<<filename<<endl;
+      cout<<"ZOMBIE  "<<filename<<endl;
       continue;
     }
-    if( tmp->ReadKeys() ) tmp->Close();
-    else cout<<filename<<endl;
+    if( tmp->ReadKeys() ){
+      cout<<"OK      "<<filename<<endl;
+      tmp->Close();
+    }
+    else
+      cout<<"NOKEYS  "<<filename<<endl;
       
   }
   pclose(in);
