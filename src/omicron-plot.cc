@@ -133,7 +133,7 @@ int main (int argc, char* argv[]){
     GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat,plot_w,plot_h);
     GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat,plot_w,plot_h);
     delete GP;
-    return 0;
+    return 2;
   }
   
   // snr thresholds
