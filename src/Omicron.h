@@ -208,6 +208,11 @@ class Omicron {
   Segments* GetLastTriggerSegments(TH1D *aThr=NULL, const double aInfValue=1e20);
   
   /**
+   * Returns the number of channels.
+   */
+  inline int GetNChannels(void){ return nchannels; };
+
+  /**
    * Returns list of channels.
    */
   vector <string> GetChannels(void);
