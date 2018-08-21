@@ -115,6 +115,12 @@ class Omicron {
   bool NewChannel(void);
 
   /**
+   * Returns the name of the current channel.
+   * Returns "none" if no channel is defined.
+   */
+  inline string GetChannel(void){ if(chanindex>=0) return triggers[chanindex]->GetName(); return "none"; };
+
+  /**
    * Loads a data vector.
    * The data vector of the current channel and the current chunk is loaded. If requested in the option file, the injection stream and the software injections are added to the data vector. This function loads the data from the frames listed in the FFL. The FFL option is therefore mandatory to use this function.
    * It is the user's responsibility to delete the returned data vector.
