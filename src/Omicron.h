@@ -118,7 +118,7 @@ class Omicron {
    * Returns the name of the current channel.
    * Returns "none" if no channel is defined.
    */
-  inline string GetChannel(void){ if(chanindex>=0) return triggers[chanindex]->GetName(); return "none"; };
+  inline string GetChannelName(void){ if(chanindex>=0) return triggers[chanindex]->GetName(); return "none"; };
 
   /**
    * Loads a data vector.
