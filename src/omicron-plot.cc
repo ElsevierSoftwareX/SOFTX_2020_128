@@ -200,7 +200,7 @@ int main (int argc, char* argv[]){
   }
 
   // force minimum marker size for first collection
-  if(gps_end-gps_start>10000) TP->SetCollectionMarker(0,1,1);
+  if(gps_end-gps_start>40000) TP->SetCollectionMarker(0,1,1);
 
   // make collections
   TP->MakeCollections();
