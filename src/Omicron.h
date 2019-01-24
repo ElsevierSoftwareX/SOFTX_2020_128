@@ -243,6 +243,10 @@ class Omicron {
    */
   inline int GetNTriggers(void){ return triggers[chanindex]->GetNtriggers(); };
 
+  /**
+   * Returns the SNR threshold used for the triggers
+   */
+  inline int GetSNRThreshold(void){return tile->GetSNRTriggerThr(); };
   
   /**
    * Returns the buffer livetime for the current channel.
