@@ -219,8 +219,16 @@ void Omicron::MakeHtml(void){
 	tmpstream<<outdir[c]<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONMAP-"<<chunkcenter[s]<<"-"<<fWindows[0]<<"."<<form;
 	if(IsBinaryFile(tmpstream.str())){
 	  for(int q=0; q<=tile->GetNQ(); q++){
-	    if(q) report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAPQ"<<q-1<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a></td>"<<endl;
-	    else  report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAP"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Full map</a></td>"<<endl;
+	    if(q){
+	      report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAPQ"<<q-1<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">mapQ="<<setprecision(1)<<fixed<<tile->GetQ(q-1)<<"</a>";
+	      if(tile->GetChirpMass()>0) report<<"<a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAPQ"<<q-1<<"C-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">(C)</a>";
+	      report<<"</td>"<<endl;
+	    }
+	    else{
+	      report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAP"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Full map</a>";
+	      if(tile->GetChirpMass()>0) report<<"<a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONMAPC-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">(C)</a>";
+	      report<<"</td>"<<endl;
+	    }
 	  }
 	}
 	else{

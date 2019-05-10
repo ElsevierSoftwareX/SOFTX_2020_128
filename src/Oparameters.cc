@@ -289,9 +289,14 @@ void Omicron::ReadOptions(void){
   //*****************************
 
   //***** set chirp mass *****
-  double mch;
-  if(io->GetOpt("PARAMETER","DRAWCHIRP", mch)) tile->SetChirpMass(mch);
-  else tile->SetChirpMass(-1.0);
+  vector <double> ch;
+  if(!io->GetOpt("PARAMETER","CHIRP", ch)) tile->SetChirp(-1.0,-1.0);
+  else{
+    if(ch.size()==2) tile->SetChirp(ch[0],ch[1]);
+    else if(ch.size()==1) tile->SetChirp(ch[0],-1.0);
+    else tile->SetChirp(-1.0,-1.0);
+  }
+
   //*****************************
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

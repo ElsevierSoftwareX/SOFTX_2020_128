@@ -69,9 +69,11 @@ Otile::Otile(const int aTimeRange,
   SetRangez();
 
   // chirp track
-  chirp = new TF1("chirp","pow([0]*(x-[1]), -3.0/8.0)",-(double)aTimeRange/2.0,0.0001);
+  chirp = new TF1("chirp","pow([0]*(x-[1]), -3.0/8.0)",-(double)aTimeRange/2.0,-0.0001);
   chirp->SetLineColor(0);
-  
+  chirp->SetLineWidth(1);
+  chirp->SetNpx(1000);
+
   // Sequence
   SeqInSegments  = new Segments();
   SeqOutSegments = new Segments();
@@ -373,7 +375,14 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 
 	// with chirp
 	if(mchirp>0){
-	  chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	  if(tchirp<=0){
+	    chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	    chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
+	  }
+	  else{
+	    chirp->SetParameter(1,tchirp);
+	    chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
+	  }
 	  Draw(chirp,"LSAME");
 	  tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str());
@@ -427,8 +436,14 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 
       // with chirp
       if(mchirp>0){
-	chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
-	cout<<(double)SeqT0+aTimeOffset<<endl;
+	if(tchirp<=0){
+	  chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
+	}
+	else{
+	  chirp->SetParameter(1,tchirp);
+	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
+	}	  
 	Draw(chirp,"LSAME");
 	tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());

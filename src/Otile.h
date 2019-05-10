@@ -307,12 +307,21 @@ class Otile: public GwollumPlot {
   /**
    * Sets the chirp mass [solar mass].
    * Use a negative value, not to draw the chirp track.
+   * If the GPS time is negative, the merger time is taken at the center of the  timing window.
+   * @param[in] aMchirp Chirp mass in solar masses.
+   * @param[in] aMergerTime merger GPS time.
    */
-  inline void SetChirpMass(const double aMchirp=-1.0){
+  inline void SetChirp(const double aMchirp=-1.0, const double aMergerTime=-1.0){
     mchirp=aMchirp;
+    tchirp=aMergerTime;
     chirp->SetParameter(0, -8.0*96.0/3.0/5.0*TMath::Power(TMath::Pi(),8.0/3.0)*TMath::Power(TMath::G()*mchirp*1.989e30/TMath::C()/TMath::C()/TMath::C(), 5.0/3.0));
+    if(tchirp>0) chirp->SetParameter(1, tchirp);
   }
 
+  /**
+   * Returns the chirp mass [solar mass].
+   */
+  inline double GetChirpMass(void){ return mchirp; };
 
  private:
 
@@ -328,6 +337,7 @@ class Otile: public GwollumPlot {
   int **f_snrmax;               ///< loudest frequency tile (SNR)
   TF1 *chirp;                   ///< chirp track
   double mchirp;                ///< chirp mass in solar masses
+  double tchirp;                ///< chirp merger GPS time.
 
   TH2D* MakeFullMap(const int aTimeRange, const double aTimeOffset); ///< make full map
   void ApplyOffset(TH2D *aMap, const double aOffset);
