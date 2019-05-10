@@ -305,14 +305,20 @@ bool Omicron::MakeDirectories(const double aId){
     tmpstream<<fMaindir<<"/"<<setprecision(3)<<fixed<<aId;
     maindir=tmpstream.str();
     tmpstream.clear(); tmpstream.str("");
-    system(("mkdir -p "+maindir).c_str());
+    if(system(("mkdir -p "+maindir).c_str())){
+      cerr<<"Omicron::MakeDirectories: the output directory cannot be created"<<endl;
+      return false;
+    }
   }
 
   // channel directories
   outdir.clear();
   for(int c=0; c<nchannels; c++){
     outdir.push_back(maindir+"/"+triggers[c]->GetName());
-    system(("mkdir -p "+outdir[c]).c_str());
+    if(system(("mkdir -p "+outdir[c]).c_str())){
+      cerr<<"Omicron::MakeDirectories: the output directory cannot be created"<<endl;
+      return false;
+    }
   }
 
 

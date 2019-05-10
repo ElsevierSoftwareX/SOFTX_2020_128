@@ -63,7 +63,7 @@ void Omicron::ReadOptions(void){
   //***** set output style *****
   if(!io->GetOpt("OUTPUT","NOLOGO", fNoLogo)) fNoLogo=false;
   //*****************************
-  
+    
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------                  DATA                  --------------
@@ -288,6 +288,11 @@ void Omicron::ReadOptions(void){
   }
   //*****************************
 
+  //***** set chirp mass *****
+  double mch;
+  if(io->GetOpt("PARAMETER","DRAWCHIRP", mch)) tile->SetChirpMass(mch);
+  else tile->SetChirpMass(-1.0);
+  //*****************************
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   //--------------               INJECTIONS               --------------

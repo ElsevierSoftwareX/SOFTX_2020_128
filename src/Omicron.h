@@ -318,7 +318,7 @@ class Omicron {
   vector <string> fInjChan;     ///< injection channel names
   vector <double> fInjFact;     ///< injection factors
   int fsginj;                   ///< perform SG injections
-
+   
   // PROCESS MONITORING
   Segments *inSegments;         ///< requested segments
   Segments **outSegments;       ///< segments currently processed

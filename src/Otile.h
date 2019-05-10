@@ -303,6 +303,16 @@ class Otile: public GwollumPlot {
    */
   inline int GetOverlapDuration(void){ return SeqOverlap; };
 
+  
+  /**
+   * Sets the chirp mass [solar mass].
+   * Use a negative value, not to draw the chirp track.
+   */
+  inline void SetChirpMass(const double aMchirp=-1.0){
+    mchirp=aMchirp;
+    chirp->SetParameter(0, -8.0*96.0/3.0/5.0*TMath::Power(TMath::Pi(),8.0/3.0)*TMath::Power(TMath::G()*mchirp*1.989e30/TMath::C()/TMath::C()/TMath::C(), 5.0/3.0));
+  }
+
 
  private:
 
@@ -316,6 +326,8 @@ class Otile: public GwollumPlot {
   string mapfill;               ///< map fill type
   int **t_snrmax;               ///< loudest time tile (SNR)
   int **f_snrmax;               ///< loudest frequency tile (SNR)
+  TF1 *chirp;                   ///< chirp track
+  double mchirp;                ///< chirp mass in solar masses
 
   TH2D* MakeFullMap(const int aTimeRange, const double aTimeOffset); ///< make full map
   void ApplyOffset(TH2D *aMap, const double aOffset);

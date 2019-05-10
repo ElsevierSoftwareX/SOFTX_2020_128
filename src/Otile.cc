@@ -68,6 +68,10 @@ Otile::Otile(const int aTimeRange,
   SetMapFill();
   SetRangez();
 
+  // chirp track
+  chirp = new TF1("chirp","pow([0]*(x-[1]), -3.0/8.0)",-(double)aTimeRange/2.0,0.0001);
+  chirp->SetLineColor(0);
+  
   // Sequence
   SeqInSegments  = new Segments();
   SeqOutSegments = new Segments();
@@ -89,6 +93,7 @@ Otile::~Otile(void){
   delete f_snrmax;
   delete SeqInSegments;
   delete SeqOutSegments;
+  delete chirp;
 }
  
 
@@ -365,6 +370,20 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}
+
+	// with chirp
+	if(mchirp>0){
+	  chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	  Draw(chirp,"LSAME");
+	  tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	  Print(tmpstream.str());
+	  tmpstream.clear(); tmpstream.str("");
+	  if(aThumb){ //thumbnail
+	    tmpstream<<aOutdir<<"/th"<<aName<<"MAPQ"<<q<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	    Print(tmpstream.str(),0.5);
+	    tmpstream.clear(); tmpstream.str("");
+	  }
+	}
       }
     }
     
@@ -405,6 +424,22 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	Print(tmpstream.str(),0.5);
 	tmpstream.clear(); tmpstream.str("");
       }
+
+      // with chirp
+      if(mchirp>0){
+	chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	cout<<(double)SeqT0+aTimeOffset<<endl;
+	Draw(chirp,"LSAME");
+	tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	Print(tmpstream.str());
+	tmpstream.clear(); tmpstream.str("");
+	if(aThumb){ //thumbnail
+	  tmpstream<<aOutdir<<"/th"<<aName<<"MAP"<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
+	  Print(tmpstream.str(),0.5);
+	  tmpstream.clear(); tmpstream.str("");
+	}
+      }
+
     }
     
     delete fullmap;
