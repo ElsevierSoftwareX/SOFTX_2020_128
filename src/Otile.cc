@@ -329,6 +329,12 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
   
   // fill maps
   for(int q=0; q<nq; q++) qplanes[q]->FillMap(mapfill,aTimeOffset-(double)aWindows[(int)aWindows.size()-1]/2.0,aTimeOffset+(double)aWindows[(int)aWindows.size()-1]/2.0);
+
+  // set chirp parameters
+  if(mchirp>0){
+    if(tchirp<=0) chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+    else chirp->SetParameter(1,tchirp);
+  }
   
   // save maps for each Q plane
   for(int q=0; q<nq; q++){
@@ -372,18 +378,17 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	  Print(tmpstream.str(),0.5);
 	  tmpstream.clear(); tmpstream.str("");
 	}
+      }
 
-	// with chirp
-	if(mchirp>0){
-	  if(tchirp<=0){
-	    chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
-	    chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
-	  }
-	  else{
-	    chirp->SetParameter(1,tchirp);
-	    chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
-	  }
-	  Draw(chirp,"LSAME");
+      // save plot with chirp
+      if(mchirp>0){
+	if(tchirp<=0)
+	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
+	else
+	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
+      
+	Draw(chirp,"LSAME");
+	for(int f=0; f<(int)form.size(); f++){
 	  tmpstream<<aOutdir<<"/"<<aName<<"MAPQ"<<q<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	  Print(tmpstream.str());
 	  tmpstream.clear(); tmpstream.str("");
@@ -393,7 +398,9 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	    tmpstream.clear(); tmpstream.str("");
 	  }
 	}
+	UnDraw(chirp);
       }
+      
     }
     
     // unzoom
@@ -433,18 +440,20 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	Print(tmpstream.str(),0.5);
 	tmpstream.clear(); tmpstream.str("");
       }
+    }
 
-      // with chirp
-      if(mchirp>0){
-	if(tchirp<=0){
-	  chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
-	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
-	}
-	else{
-	  chirp->SetParameter(1,tchirp);
-	  chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
-	}	  
-	Draw(chirp,"LSAME");
+    // save plot with chirp
+    if(mchirp>0){
+      if(tchirp<=0){
+	chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
+	chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,(double)SeqT0+aTimeOffset-0.00001);
+      }
+      else{
+	chirp->SetParameter(1,tchirp);
+	chirp->SetRange((double)SeqT0+aTimeOffset-aWindows[w]/2.0,tchirp-0.00001);
+      }	  
+      Draw(chirp,"LSAME");
+      for(int f=0; f<(int)form.size(); f++){
 	tmpstream<<aOutdir<<"/"<<aName<<"MAP"<<"C-"<<SeqT0<<"-"<<aWindows[w]<<"."<<form[f];
 	Print(tmpstream.str());
 	tmpstream.clear(); tmpstream.str("");
@@ -454,7 +463,7 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
 	  tmpstream.clear(); tmpstream.str("");
 	}
       }
-
+      
     }
     
     delete fullmap;
