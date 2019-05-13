@@ -29,6 +29,7 @@ void PrintUsage(void){
   cerr<<"                 drawtimeline=[GPS time] \\"<<endl;
   cerr<<"                 plot-width=[plot width] \\"<<endl;
   cerr<<"                 plot-height=[plot height]"<<endl;
+  cerr<<"                 plot-star=[plot star flag]"<<endl;
   cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
@@ -48,6 +49,7 @@ void PrintUsage(void){
   cerr<<"[GPS time]                GPS time at which drawing a vertical line (time plots only)"<<endl;
   cerr<<"[plot width]              plot width in pixels. By default, plot-width=850"<<endl;
   cerr<<"[plot height]             plot height in pixels. By default, plot-height=500"<<endl;
+  cerr<<"[plot star flag]          plot a star on the loudest event (=1, default). =0: do not plot the star"<<endl;
   cerr<<endl;
   return;
 }
@@ -79,6 +81,7 @@ int main (int argc, char* argv[]){
   double vline=-1.0;// do not draw a line
   int plot_w=850;  // plot width
   int plot_h=500;  // plot height
+  int plot_star=1; // plot star
 
   // loop over arguments
   vector <string> sarg;
@@ -103,6 +106,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("drawtimeline"))   vline=atof(sarg[1].c_str());
     if(!sarg[0].compare("plot-width"))     plot_w=atoi(sarg[1].c_str());
     if(!sarg[0].compare("plot-height"))    plot_h=atoi(sarg[1].c_str());
+    if(!sarg[0].compare("plot-star"))      plot_star=atoi(sarg[1].c_str());
   }
 
   // centralized trigger files
@@ -152,6 +156,9 @@ int main (int argc, char* argv[]){
   // clusterize
   TP->SetClusterizeDt(cluster_dt);
   if(usecluster) TP->Clusterize(1);
+
+  // star for the loudest event
+  TP->PlotLoudestEvent((bool)plot_star);
 
   // SNR max
   double snrmax;
