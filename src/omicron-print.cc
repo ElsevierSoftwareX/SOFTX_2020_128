@@ -19,7 +19,7 @@ void PrintUsage(void){
   cerr<<"                  snr-max=[maximum SNR] \\"<<endl;
   cerr<<"                  freq-min=[minimum frequency] \\"<<endl;
   cerr<<"                  freq-max=[maximum frequency] \\"<<endl;
-  cerr<<"                  use-cluster=[cluster flag] \\"<<endl;
+  cerr<<"                  print=[output type] \\"<<endl;
   cerr<<"                  cluster-dt=[cluster time window] \\"<<endl;
   cerr<<"                  print-time=[1/0] \\"<<endl;
   cerr<<"                  print-freq=[1/0] \\"<<endl;
@@ -42,7 +42,7 @@ void PrintUsage(void){
   cerr<<"[maximum SNR]             maximum SNR value"<<endl;
   cerr<<"[minimum frequency]       minimum frequency value [Hz]"<<endl;
   cerr<<"[maximum frequency]       maximum frequency value [Hz]"<<endl;
-  cerr<<"[cluster tag]             1 = use clusters, 0 = use triggers. By default, use-cluster=1"<<endl;
+  cerr<<"[output type]             \"triggers\", \"clusters\" or \"segments\". By default, print=\"clusters\""<<endl;
   cerr<<"[cluster time window]     cluster time window [s]. By default, cluster-dt=0.1"<<endl;
   cerr<<endl;
   cerr<<"For \"print-\" options, 1=yes and 0=no."<<endl;
@@ -67,7 +67,7 @@ int main (int argc, char* argv[]){
   double snrmax=1.0e20; // SNR max
   double freqmin=-1.0;  // frequency min
   double freqmax=1.0e20;// frequency max
-  bool usecluster=true; // use cluster
+  string printtype="clusters";// print type
   double cluster_dt=0.1;// cluster time window
   bool ptime=true;
   bool pfreq=true;
@@ -95,7 +95,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("snr-max"))        snrmax=atof(sarg[1].c_str());
     if(!sarg[0].compare("freq-min"))       freqmin=atof(sarg[1].c_str());
     if(!sarg[0].compare("freq-max"))       freqmax=atof(sarg[1].c_str());
-    if(!sarg[0].compare("use-cluster"))    usecluster=!!(atoi(sarg[1].c_str()));
+    if(!sarg[0].compare("print"))          printtype=(string)sarg[1];
     if(!sarg[0].compare("cluster-dt"))     cluster_dt=atof(sarg[1].c_str());
     if(!sarg[0].compare("print-time"))     ptime=!!(atoi(sarg[1].c_str()));
     if(!sarg[0].compare("print-freq"))     pfreq=!!(atoi(sarg[1].c_str()));
@@ -128,7 +128,6 @@ int main (int argc, char* argv[]){
     return 2;
   }
   
-
   // triggers
   ReadTriggers *RT = new ReadTriggers(tfile_pat,"",0);
   if(!RT->GetStatus()||!RT->GetSegments()->GetLiveTime()) return 2;
@@ -137,8 +136,90 @@ int main (int argc, char* argv[]){
   if(gps_start<0) gps_start=RT->GetTimeMin();
   if(gps_end<0)   gps_end=RT->GetTimeMax();
 
+  //*************** print segments
+  if(!printtype.compare("segments")){
+
+    Segments *S = new Segments(gps_start, gps_end);
+    S->Intersect(RT->GetSegments());
+    S->Dump();
+    delete S;
+  }
+
+  //*************** print triggers
+  else if(!printtype.compare("triggers")){
+    
+    RT->SetTriggerBranchStatus("*",false);
+    RT->SetTriggerBranchStatus("tstart",true);
+    RT->SetTriggerBranchStatus("tend",true);
+    RT->SetTriggerBranchStatus("frequency",true);
+    RT->SetTriggerBranchStatus("snr",true);
+    
+    // header + optimize speed
+    cout<<"# raw triggers";
+    cout<<endl;
+    if(ptstart) cout<<"# starting time [GPS]"<<endl;
+    if(ptime){
+      RT->SetTriggerBranchStatus("time",true);
+      cout<<"# peak time [GPS]"<<endl;
+    }
+    if(ptend) cout<<"# ending time [GPS]"<<endl;
+    if(pduration) cout<<"# duration [s]"<<endl;
+    if(pfstart){
+      RT->SetTriggerBranchStatus("fstart",true);
+      cout<<"# starting frequency [Hz]"<<endl;
+    }
+    if(pfreq) cout<<"# peak frequency [Hz]"<<endl;
+    if(pfend){
+      RT->SetTriggerBranchStatus("fend",true);
+      cout<<"# ending frequency [Hz]"<<endl;
+    }
+    if(pbandwidth){
+      RT->SetTriggerBranchStatus("fstart",true);
+      RT->SetTriggerBranchStatus("fend",true);
+      cout<<"# bandwidth [Hz]"<<endl;
+    }
+    if(pq){
+      RT->SetTriggerBranchStatus("q",true);
+      cout<<"# Q [-]"<<endl;
+    }
+    if(psnr) cout<<"# SNR [-]"<<endl;
+    if(pamp){
+      RT->SetTriggerBranchStatus("amplitude",true);
+      cout<<"# amplitude [Hz^-1/2]"<<endl;
+    }
+    if(pph){
+      RT->SetTriggerBranchStatus("phase",true);
+      cout<<"# phase [rad]"<<endl;
+    }
+
+    for(int c=0; c<RT->GetNtriggers(); c++){
+      // trigger selection
+      if(RT->GetTriggerTimeEnd(c)<gps_start) continue;
+      if(RT->GetTriggerTimeStart(c)>=gps_end) break;
+      //if(RT->GetTriggerTime(c)<gps_start||RT->GetTriggerTime(c)>=gps_end) continue;
+      if(RT->GetTriggerSNR(c)<snrmin||RT->GetTriggerSNR(c)>=snrmax) continue;
+      if(RT->GetTriggerFrequency(c)<freqmin||RT->GetTriggerFrequency(c)>=freqmax) continue;
+      
+      // print
+      if(ptstart)    cout<<fixed<<setprecision(4)<<RT->GetTriggerTimeStart(c)<<" ";
+      if(ptime)      cout<<fixed<<setprecision(4)<<RT->GetTriggerTime(c)<<" ";
+      if(ptend)      cout<<fixed<<setprecision(4)<<RT->GetTriggerTimeEnd(c)<<" ";
+      if(pduration)  cout<<fixed<<setprecision(4)<<RT->GetTriggerDuration(c)<<" ";
+      if(pfstart)    cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequencyStart(c)<<" ";
+      if(pfreq)      cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequency(c)<<" ";
+      if(pfend)      cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequencyEnd(c)<<" ";
+      if(pbandwidth) cout<<fixed<<setprecision(2)<<RT->GetTriggerBandWidth(c)<<" ";
+      if(pq)         cout<<fixed<<setprecision(2)<<RT->GetTriggerQ(c)<<" ";
+      if(psnr)       cout<<fixed<<setprecision(2)<<RT->GetTriggerSNR(c)<<" ";
+      if(pamp)       cout<<scientific<<setprecision(4)<<RT->GetTriggerAmplitude(c)<<" ";
+      if(pph)        cout<<fixed<<setprecision(4)<<RT->GetTriggerPhase(c)<<" ";
+      cout<<endl;
+
+    }
+  }
+
   //*************** print clusters
-  if(usecluster){
+  else{
     RT->SetClusterizeDt(cluster_dt);
     if(!RT->Clusterize(1)){ delete RT; return 3; }
 
@@ -209,83 +290,10 @@ int main (int argc, char* argv[]){
       if(pamp)       cout<<scientific<<setprecision(4)<<RT->GetClusterAmplitude(c)<<" ";
       if(pph)        cout<<fixed<<setprecision(4)<<RT->GetClusterPhase(c)<<" ";
       cout<<endl;
-
     }
   }
 
 
-  //*************** print triggers
-  else{
-
-    RT->SetTriggerBranchStatus("*",false);
-    RT->SetTriggerBranchStatus("tstart",true);
-    RT->SetTriggerBranchStatus("tend",true);
-    RT->SetTriggerBranchStatus("frequency",true);
-    RT->SetTriggerBranchStatus("snr",true);
-
-    // header + optimize speed
-    cout<<"# raw triggers";
-    cout<<endl;
-    if(ptstart) cout<<"# starting time [GPS]"<<endl;
-    if(ptime){
-      RT->SetTriggerBranchStatus("time",true);
-      cout<<"# peak time [GPS]"<<endl;
-    }
-    if(ptend) cout<<"# ending time [GPS]"<<endl;
-    if(pduration) cout<<"# duration [s]"<<endl;
-    if(pfstart){
-      RT->SetTriggerBranchStatus("fstart",true);
-      cout<<"# starting frequency [Hz]"<<endl;
-    }
-    if(pfreq) cout<<"# peak frequency [Hz]"<<endl;
-    if(pfend){
-      RT->SetTriggerBranchStatus("fend",true);
-      cout<<"# ending frequency [Hz]"<<endl;
-    }
-    if(pbandwidth){
-      RT->SetTriggerBranchStatus("fstart",true);
-      RT->SetTriggerBranchStatus("fend",true);
-      cout<<"# bandwidth [Hz]"<<endl;
-    }
-    if(pq){
-      RT->SetTriggerBranchStatus("q",true);
-      cout<<"# Q [-]"<<endl;
-    }
-    if(psnr) cout<<"# SNR [-]"<<endl;
-    if(pamp){
-      RT->SetTriggerBranchStatus("amplitude",true);
-      cout<<"# amplitude [Hz^-1/2]"<<endl;
-    }
-    if(pph){
-      RT->SetTriggerBranchStatus("phase",true);
-      cout<<"# phase [rad]"<<endl;
-    }
-
-    for(int c=0; c<RT->GetNtriggers(); c++){
-      // trigger selection
-      if(RT->GetTriggerTimeEnd(c)<gps_start) continue;
-      if(RT->GetTriggerTimeStart(c)>=gps_end) break;
-      //if(RT->GetTriggerTime(c)<gps_start||RT->GetTriggerTime(c)>=gps_end) continue;
-      if(RT->GetTriggerSNR(c)<snrmin||RT->GetTriggerSNR(c)>=snrmax) continue;
-      if(RT->GetTriggerFrequency(c)<freqmin||RT->GetTriggerFrequency(c)>=freqmax) continue;
-      
-      // print
-      if(ptstart)    cout<<fixed<<setprecision(4)<<RT->GetTriggerTimeStart(c)<<" ";
-      if(ptime)      cout<<fixed<<setprecision(4)<<RT->GetTriggerTime(c)<<" ";
-      if(ptend)      cout<<fixed<<setprecision(4)<<RT->GetTriggerTimeEnd(c)<<" ";
-      if(pduration)  cout<<fixed<<setprecision(4)<<RT->GetTriggerDuration(c)<<" ";
-      if(pfstart)    cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequencyStart(c)<<" ";
-      if(pfreq)      cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequency(c)<<" ";
-      if(pfend)      cout<<fixed<<setprecision(2)<<RT->GetTriggerFrequencyEnd(c)<<" ";
-      if(pbandwidth) cout<<fixed<<setprecision(2)<<RT->GetTriggerBandWidth(c)<<" ";
-      if(pq)         cout<<fixed<<setprecision(2)<<RT->GetTriggerQ(c)<<" ";
-      if(psnr)       cout<<fixed<<setprecision(2)<<RT->GetTriggerSNR(c)<<" ";
-      if(pamp)       cout<<scientific<<setprecision(4)<<RT->GetTriggerAmplitude(c)<<" ";
-      if(pph)        cout<<fixed<<setprecision(4)<<RT->GetTriggerPhase(c)<<" ";
-      cout<<endl;
-
-    }
-  }
     
   delete RT;
   
