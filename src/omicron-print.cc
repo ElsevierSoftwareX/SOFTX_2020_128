@@ -19,6 +19,8 @@ void PrintUsage(void){
   cerr<<"                  snr-max=[maximum SNR] \\"<<endl;
   cerr<<"                  freq-min=[minimum frequency] \\"<<endl;
   cerr<<"                  freq-max=[maximum frequency] \\"<<endl;
+  cerr<<"                  q-min=[minimum Q] \\"<<endl;
+  cerr<<"                  q-max=[maximum Q] \\"<<endl;
   cerr<<"                  print=[output type] \\"<<endl;
   cerr<<"                  cluster-dt=[cluster time window] \\"<<endl;
   cerr<<"                  print-time=[1/0] \\"<<endl;
@@ -42,6 +44,8 @@ void PrintUsage(void){
   cerr<<"[maximum SNR]             maximum SNR value"<<endl;
   cerr<<"[minimum frequency]       minimum frequency value [Hz]"<<endl;
   cerr<<"[maximum frequency]       maximum frequency value [Hz]"<<endl;
+  cerr<<"[minimum Q]               minimum Q value"<<endl;
+  cerr<<"[maximum Q]               maximum Q value"<<endl;
   cerr<<"[output type]             \"triggers\", \"clusters\" or \"segments\". By default, print=\"clusters\""<<endl;
   cerr<<"[cluster time window]     cluster time window [s]. By default, cluster-dt=0.1"<<endl;
   cerr<<endl;
@@ -67,6 +71,9 @@ int main (int argc, char* argv[]){
   double snrmax=1.0e20; // SNR max
   double freqmin=-1.0;  // frequency min
   double freqmax=1.0e20;// frequency max
+  double qmin=-1.0;     // Q min
+  double qmax=1.0e20;   // Q max
+
   string printtype="clusters";// print type
   double cluster_dt=0.1;// cluster time window
   bool ptime=true;
@@ -95,6 +102,8 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("snr-max"))        snrmax=atof(sarg[1].c_str());
     if(!sarg[0].compare("freq-min"))       freqmin=atof(sarg[1].c_str());
     if(!sarg[0].compare("freq-max"))       freqmax=atof(sarg[1].c_str());
+    if(!sarg[0].compare("q-min"))          qmin=atof(sarg[1].c_str());
+    if(!sarg[0].compare("q-max"))          qmax=atof(sarg[1].c_str());
     if(!sarg[0].compare("print"))          printtype=(string)sarg[1];
     if(!sarg[0].compare("cluster-dt"))     cluster_dt=atof(sarg[1].c_str());
     if(!sarg[0].compare("print-time"))     ptime=!!(atoi(sarg[1].c_str()));
@@ -152,6 +161,7 @@ int main (int argc, char* argv[]){
     RT->SetTriggerBranchStatus("tstart",true);
     RT->SetTriggerBranchStatus("tend",true);
     RT->SetTriggerBranchStatus("frequency",true);
+    RT->SetTriggerBranchStatus("q",true);
     RT->SetTriggerBranchStatus("snr",true);
     
     // header + optimize speed
@@ -178,10 +188,7 @@ int main (int argc, char* argv[]){
       RT->SetTriggerBranchStatus("fend",true);
       cout<<"# bandwidth [Hz]"<<endl;
     }
-    if(pq){
-      RT->SetTriggerBranchStatus("q",true);
-      cout<<"# Q [-]"<<endl;
-    }
+    if(pq) cout<<"# Q [-]"<<endl;
     if(psnr) cout<<"# SNR [-]"<<endl;
     if(pamp){
       RT->SetTriggerBranchStatus("amplitude",true);
@@ -199,7 +206,8 @@ int main (int argc, char* argv[]){
       //if(RT->GetTriggerTime(c)<gps_start||RT->GetTriggerTime(c)>=gps_end) continue;
       if(RT->GetTriggerSNR(c)<snrmin||RT->GetTriggerSNR(c)>=snrmax) continue;
       if(RT->GetTriggerFrequency(c)<freqmin||RT->GetTriggerFrequency(c)>=freqmax) continue;
-      
+      if(RT->GetTriggerQ(c)<qmin||RT->GetTriggerQ(c)>=qmax) continue;
+
       // print
       if(ptstart)    cout<<fixed<<setprecision(4)<<RT->GetTriggerTimeStart(c)<<" ";
       if(ptime)      cout<<fixed<<setprecision(4)<<RT->GetTriggerTime(c)<<" ";
@@ -228,6 +236,7 @@ int main (int argc, char* argv[]){
     RT->SetClusterBranchStatus("tstart",true);
     RT->SetClusterBranchStatus("tend",true);
     RT->SetClusterBranchStatus("frequency",true);
+    RT->SetClusterBranchStatus("q",true);
     RT->SetClusterBranchStatus("snr",true);
 
     // header + optimize speed
@@ -254,10 +263,7 @@ int main (int argc, char* argv[]){
       RT->SetClusterBranchStatus("fend",true);
       cout<<"# bandwidth [Hz]"<<endl;
     }
-    if(pq){
-      RT->SetClusterBranchStatus("q",true);
-      cout<<"# Q [-]"<<endl;
-    }
+    if(pq) cout<<"# Q [-]"<<endl;
     if(psnr) cout<<"# SNR [-]"<<endl;
     if(pamp){
       RT->SetClusterBranchStatus("amplitude",true);
@@ -275,7 +281,8 @@ int main (int argc, char* argv[]){
       //if(RT->GetClusterTime(c)<gps_start||RT->GetClusterTime(c)>=gps_end) continue;
       if(RT->GetClusterSNR(c)<snrmin||RT->GetClusterSNR(c)>=snrmax) continue;
       if(RT->GetClusterFrequency(c)<freqmin||RT->GetClusterFrequency(c)>=freqmax) continue;
-      
+      if(RT->GetClusterQ(c)<qmin||RT->GetClusterQ(c)>=qmax) continue;
+
       // print
       if(ptstart)    cout<<fixed<<setprecision(4)<<RT->GetClusterTimeStart(c)<<" ";
       if(ptime)      cout<<fixed<<setprecision(4)<<RT->GetClusterTime(c)<<" ";
