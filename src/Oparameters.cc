@@ -4,7 +4,7 @@
 #include "Omicron.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::ReadOptions(const int aGpsRef){
+void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // check that the option file exists
@@ -25,6 +25,7 @@ void Omicron::ReadOptions(const int aGpsRef){
   //***** output directory *****
   if(!io->GetOpt("OUTPUT","DIRECTORY", fMaindir)){
     cerr<<"Omicron::ReadOptions: No output directory (OUTPUT/DIRECTORY)  --> set default: current"<<endl;
+    if(aStrict) status_OK=false;
     fMaindir=".";
   }
   if(!IsDirectory(fMaindir)){
@@ -116,18 +117,22 @@ void Omicron::ReadOptions(const int aGpsRef){
   if(FFL!=NULL){
     for(int c1=0; c1<(int)channels_tmp.size(); c1++){// apply filters
       channels_tmp2=FFL->GetChannelList(channels_tmp[c1]);
-      if(channels_tmp2.size()==0)
+      if(channels_tmp2.size()==0){
 	cerr<<"Omicron::ReadOptions: No channels matching "<<channels_tmp[c1]<<" (@"<<aGpsRef<<") --> ignore"<<endl;
+	if(aStrict) status_OK=false;
+      }
 
       for(int c2=0; c2<(int)channels_tmp2.size(); c2++){
 
 	// check channel validity
 	if(FFL->GetChannelSampling(channels_tmp2[c2],ndummy)<16){// must be >=16 Hz
 	  cerr<<"Omicron::ReadOptions: "<<channels_tmp2[c2]<<" sampling frequency is too low --> ignore"<<endl;
+	  if(aStrict) status_OK=false;
 	  continue;
 	}
 	if(FFL->GetChannelSampling(channels_tmp2[c2],ndummy)<sampling){// check working sampling frequency
 	  cerr<<"Omicron::ReadOptions: "<<channels_tmp2[c2]<<" sampling frequency is below the working frequency --> ignore"<<endl;
+	  if(aStrict) status_OK=false;
 	  continue;
 	}
 	bl=false;
@@ -201,14 +206,17 @@ void Omicron::ReadOptions(const int aGpsRef){
   if(FRange.size()!=2){// must be size 2
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
     FRange.clear();
+    if(aStrict) status_OK=false;
     FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
   if(FRange[1]>(double)triggers[0]->GetWorkingFrequency()/2.0){// check for Nyquist
+    if(aStrict) status_OK=false;
     FRange.pop_back();
     FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
   if(FRange[0]>=FRange[1]){// check the order
     cerr<<"Omicron::ReadOptions: Frequency range (PARAMETER/FREQUENCYRANGE) is not correct  --> set default: 2-"<<triggers[0]->GetWorkingFrequency()/2<<" Hz"<<endl;
+    if(aStrict) status_OK=false;
     FRange.clear();
     FRange.push_back(2); FRange.push_back(triggers[0]->GetWorkingFrequency()/2);
   }
@@ -225,11 +233,13 @@ void Omicron::ReadOptions(const int aGpsRef){
   }
   if(QRange.size()!=2){// must be size 2
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct  --> set default: 4-100"<<endl;
-    QRange.push_back(4); QRange.push_back(100);
+    if(aStrict) status_OK=false;
+    QRange.clear(); QRange.push_back(4); QRange.push_back(100);
   }
   if(QRange[0]>=QRange[1]){// check the order
     cerr<<"Omicron::ReadOptions: Q range (PARAMETER/QRANGE) is not correct  --> set default: 4-100"<<endl;
-    QRange.push_back(4); QRange.push_back(100);
+    if(aStrict) status_OK=false;
+    QRange.clear(); QRange.push_back(4); QRange.push_back(100);
   }
   //*****************************
 

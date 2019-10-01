@@ -52,8 +52,9 @@ class Omicron {
    *
    * @param aOptionFile path to the option file
    * @param aGpsRef Reference time to initiate structures (default).
+   * @param aStrict strict mode when set to true: the status of the Omicron object is set to false if options are incorrectly provided.
    */
-  Omicron(const string aOptionFile, const int aGpsRef=-1);
+  Omicron(const string aOptionFile, const int aGpsRef=-1, const bool aStrict=false);
   
   /**
    * Destructor of the Omicron class.
@@ -305,7 +306,7 @@ class Omicron {
   int chanindex;                ///< current channel index
 
   // OPTIONS
-  void ReadOptions(const int aGpsRef=-1);       ///< to parse option card
+  void ReadOptions(const int aGpsRef=-1, const bool aStrict=false);       ///< to parse option card
   string fOptionFile;           ///< option file name
   int fVerbosity;               ///< verbosity level
   string fMaindir;              ///< main output directory

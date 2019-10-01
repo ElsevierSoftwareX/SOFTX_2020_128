@@ -113,7 +113,11 @@ int main (int argc, char* argv[]){
   }
 
   // init omicron
-  Omicron *O = new Omicron(optionfile);
+  Omicron *O;
+  if(start) O = new Omicron(optionfile,start,strict);
+  else if(stop) O = new Omicron(optionfile,start,strict);
+  else O = new Omicron(optionfile,-1,strict);
+  
   if(!O->GetStatus()){
     cerr<<"omicron: The Omicron object is corrupted."<<endl;
     delete O;
