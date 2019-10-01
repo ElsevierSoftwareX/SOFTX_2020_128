@@ -42,17 +42,19 @@ class Omicron {
    * After initialization, the Omicron methods should be called sequentially to perform the analysis. Here is a typical sequence:
    * - InitSegments() defines the data segments to process.
    * - MakeDirectories() creates a specific directory structure for the output 
-(optional).
+   (optional).
    * - NewChunk() loads a new chunk of data (loop #1).
    * - NewChannel() loads a new channel (loop #2).
    * - LoadData() loads the data vector for this chunk and this channel from FFL file (in loop #1/2)
    * - Condition() conditions data vector (in loop #1/2)
    * - Project() projects data onto the tiles (in loop #1/2)
    * - WriteOutput() writes output data products to disk (in loop #1/2)
+   *
    * @param aOptionFile path to the option file
+   * @param aGpsRef Reference time to initiate structures (default).
    */
-  Omicron(const string aOptionFile);
-
+  Omicron(const string aOptionFile, const int aGpsRef=-1);
+  
   /**
    * Destructor of the Omicron class.
    */
@@ -303,7 +305,7 @@ class Omicron {
   int chanindex;                ///< current channel index
 
   // OPTIONS
-  void ReadOptions(void);       ///< to parse option card
+  void ReadOptions(const int aGpsRef=-1);       ///< to parse option card
   string fOptionFile;           ///< option file name
   int fVerbosity;               ///< verbosity level
   string fMaindir;              ///< main output directory

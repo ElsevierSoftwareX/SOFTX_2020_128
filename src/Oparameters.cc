@@ -4,7 +4,7 @@
 #include "Omicron.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
-void Omicron::ReadOptions(void){
+void Omicron::ReadOptions(const int aGpsRef){
 ////////////////////////////////////////////////////////////////////////////////////
 
   // check that the option file exists
@@ -74,6 +74,8 @@ void Omicron::ReadOptions(void){
   if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile)){
     FFL = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
     FFL->SetName("mainffl");
+    status_OK*=FFL->DefineTmpDir(fMaindir);
+    status_OK*=FFL->LoadFrameFile(aGpsRef);
   }
   else
     FFL=NULL;
@@ -87,22 +89,6 @@ void Omicron::ReadOptions(void){
     bufsize=0;
   }
   
-  //***** List of channels/streams  *****
-  vector <string> channels; nchannels=0;
-  if(!io->GetAllOpt("DATA","CHANNELS", channels)){
-    cerr<<"Omicron::ReadOptions: a list of channels is required (DATA/CHANNELS)"<<endl;
-    channels.push_back("M1:MISSING");
-    status_OK=false;
-  }
-  nchannels = (int)channels.size();
-  triggers = new TriggerBuffer* [nchannels];
-  for(int c=0; c<nchannels; c++){
-    triggers[c] = new TriggerBuffer(bufsize,channels[c],fVerbosity);
-    triggers[c]->SetDCRemoval(true);
-  }
-  channels.clear();
-  //*****************************
-  
   //***** Sampling frequency *****
   int sampling;
   if(!io->GetOpt("DATA","SAMPLEFREQUENCY", sampling)){
@@ -115,8 +101,79 @@ void Omicron::ReadOptions(void){
     sampling=16;
     status_OK=false;
   }
-  for(int c=0; c<nchannels; c++)
+
+  //***** List of channels/streams  *****
+  vector <string> channels; nchannels=0;
+  vector <string> bl_channels;
+  vector <string> channels_tmp;
+  vector <string> channels_tmp2;
+  int ndummy;
+  bool bl;
+  io->GetAllOpt("DATA","CHANNELS", channels_tmp);
+  io->GetAllOpt("DATA","BLACKLISTEDCHANNELS", bl_channels);
+  
+  // select channels at GPS ref
+  if(FFL!=NULL){
+    for(int c1=0; c1<(int)channels_tmp.size(); c1++){// apply filters
+      channels_tmp2=FFL->GetChannelList(channels_tmp[c1]);
+      if(channels_tmp2.size()==0)
+	cerr<<"Omicron::ReadOptions: No channels matching "<<channels_tmp[c1]<<" (@"<<aGpsRef<<") --> ignore"<<endl;
+
+      for(int c2=0; c2<(int)channels_tmp2.size(); c2++){
+
+	// check channel validity
+	if(FFL->GetChannelSampling(channels_tmp2[c2],ndummy)<16){// must be >=16 Hz
+	  cerr<<"Omicron::ReadOptions: "<<channels_tmp2[c2]<<" sampling frequency is too low --> ignore"<<endl;
+	  continue;
+	}
+	if(FFL->GetChannelSampling(channels_tmp2[c2],ndummy)<sampling){// check working sampling frequency
+	  cerr<<"Omicron::ReadOptions: "<<channels_tmp2[c2]<<" sampling frequency is below the working frequency --> ignore"<<endl;
+	  continue;
+	}
+	bl=false;
+	for(int b=0; b<(int)bl_channels.size(); b++){
+	  if(!fnmatch(bl_channels[b].c_str(), channels_tmp2[c2].c_str(),FNM_NOESCAPE)){ // black-listed
+	    cerr<<"Omicron::ReadOptions: "<<channels_tmp2[c2]<<" is blacklisted --> ignore"<<endl;
+	    bl=true;
+	    break;
+	  }
+	}
+	if(bl) continue;
+	channels.push_back(channels_tmp2[c2]);
+      }
+    }
+  }
+  else{
+    for(int c1=0; c1<(int)channels_tmp.size(); c1++){
+      bl=false;
+      for(int b=0; b<(int)bl_channels.size(); b++){
+	if(!fnmatch(bl_channels[b].c_str(), channels_tmp[c1].c_str(),FNM_NOESCAPE)){ // black-listed
+	  cerr<<"Omicron::ReadOptions: "<<channels_tmp[c1]<<" is blacklisted --> ignore"<<endl;
+	  bl=true;
+	  break;
+	}
+      }
+      if(bl) continue;
+      channels.push_back(channels_tmp[c1]);
+    }
+  }
+  channels_tmp.clear();
+  channels_tmp2.clear();
+
+  if(channels.size()==0){
+    cerr<<"Omicron::ReadOptions: the list of channels is empty (DATA/CHANNELS)"<<endl;
+    channels.push_back("M1:MISSING");
+    status_OK=false;
+  }
+  
+  nchannels = (int)channels.size();
+  triggers = new TriggerBuffer* [nchannels];
+  for(int c=0; c<nchannels; c++){
+    triggers[c] = new TriggerBuffer(bufsize,channels[c],fVerbosity);
+    triggers[c]->SetDCRemoval(true);
     status_OK*=triggers[c]->SetFrequencies(sampling,sampling,0.0);
+  }
+  channels.clear();
   //*****************************
 
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -323,6 +380,8 @@ void Omicron::ReadOptions(void){
     if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
       FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
       FFL_inject->SetName("injffl");
+      status_OK*=FFL->DefineTmpDir(fMaindir);
+      status_OK*=FFL->LoadFrameFile(aGpsRef);
     }
     else
       FFL_inject=FFL;

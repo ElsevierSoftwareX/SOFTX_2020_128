@@ -7,7 +7,7 @@ ClassImp(Omicron)
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-Omicron::Omicron(const string aOptionFile){ 
+Omicron::Omicron(const string aOptionFile, const int aGpsRef){ 
 ////////////////////////////////////////////////////////////////////////////////////
   PrintASCIIlogo();
   gErrorIgnoreLevel = 3000;
@@ -20,17 +20,7 @@ Omicron::Omicron(const string aOptionFile){
   // parse option file
   if(fVerbosity) cout<<"Omicron::Omicron: init options..."<<endl;
   fOptionFile=aOptionFile;
-  ReadOptions();
-
-  // load ffl if any
-  if(FFL!=NULL){
-    status_OK*=FFL->DefineTmpDir(fMaindir);
-    status_OK*=FFL->LoadFrameFile();
-  }
-  if(FFL_inject!=NULL&&FFL_inject!=FFL){
-    status_OK*=FFL_inject->DefineTmpDir(fMaindir);
-    status_OK*=FFL_inject->LoadFrameFile();
-  }
+  ReadOptions(aGpsRef);
 
   // sort time windows
   // FIXME: to move in Otile
