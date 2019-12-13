@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.9.0 FATAL_ERROR)
 project(
     Omicron
     LANGUAGES CXX
-    VERSION 2.3.6
+    VERSION 2.3.11
     DESCRIPTION "An algorithm to detect and characterize transient events in gravitational-wave detectors"
 )
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
@@ -17,15 +17,15 @@ string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 # -- extra requirements -----
 
 include(GNUInstallDirs)
-find_package(PkgConfig)
+find_package(PkgConfig REQUIRED)
 
 # -- set install paths ------
 
 if (WIN32)
     set(RUNTIME_DESTINATION ${CMAKE_INSTALL_BINDIR})
-    set(LIBRARY_DESTINATION ${CMAKE_INSTALL_BINDIR})
+    set(LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else (WIN32)
-    set(RUNTIME_DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    set(RUNTIME_DESTINATION ${CMAKE_INSTALL_BINDIR})
     set(LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif(WIN32)
 

@@ -8,25 +8,33 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 include(${ROOT_USE_FILE})
 
 # GWOLLUM
-pkg_check_modules(GWOLLUM REQUIRED "gwollum")
-message(STATUS ${GWOLLUM_INCLUDE_DIRS})
+#find_package(GWOLLUM 2.3.11 REQUIRED)
+pkg_check_modules(GWOLLUM REQUIRED IMPORTED_TARGET "gwollum")
+message(STATUS "GWOLLUM headers: ${GWOLLUM_INCLUDE_DIRS}")
+message(STATUS "GWOLLUM libraries: ${GWOLLUM_LINK_LIBRARIES}")
+message(STATUS "HDF5 libraries: ${HDF5_INCLUDE_DIRS}")
 
 # -- libOmicron -------------
 
-# build ROOT dictionary
 set(
-    OMICRON_HEADERS
-    Omap.h
-    Oqplane.h
-    Otile.h
-    Oinject.h
-    Omicron.h
+  OMICRON_HEADERS
+  Omap.h
+  Oqplane.h
+  Otile.h
+  Oinject.h
+  Omicron.h
+)
+
+# build ROOT dictionary
+include_directories(
+  ${GWOLLUM_INCLUDE_DIRS}
+  ${HDF5_INCLUDE_DIRS}
 )
 root_generate_dictionary(
-    OmicronDict
-    LINKDEF LinkDef.h
-    MODULE Omicron
-    OPTIONS ${OMICRON_HEADERS} -I${CMAKE_CURRENT_SOURCE_DIR}
+  OmicronDict
+  LINKDEF LinkDef.h
+  MODULE Omicron
+  OPTIONS ${OMICRON_HEADERS} -I${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # compile library
@@ -54,7 +62,8 @@ target_include_directories(
 )
 target_link_libraries(
     libOmicron
-    Inject
+    PkgConfig::GWOLLUM
+#    Inject
 )
 set_target_properties(
     libOmicron PROPERTIES
@@ -68,10 +77,14 @@ add_library(
     SHARED
     OmicronUtils.cc
 )
+target_include_directories(
+    OmicronUtils
+    PRIVATE
+    ${GWOLLUM_INCLUDE_DIRS}
+)
 target_link_libraries(
     OmicronUtils
-    Triggers
-    Streams
+    PkgConfig::GWOLLUM
 )
 
 # -- executables ------------
@@ -83,8 +96,9 @@ add_executable(
 target_link_libraries(
     omicron
     ${ROOT_Core_LIBRARY}
-    CUtils
-    Segments
+    PkgConfig::GWOLLUM
+#    CUtils
+#    Segments
     libOmicron
 )
 
@@ -94,7 +108,8 @@ add_executable(
 )
 target_link_libraries(
     omicron-listfile
-    Streams
+    PkgConfig::GWOLLUM
+#    Streams
     libOmicron
     OmicronUtils
 )
@@ -107,7 +122,8 @@ target_link_libraries(
     omicron-scanfile
     ${ROOT_Core_LIBRARY}
     ${ROOT_RIO_LIBRARY}
-    CUtils
+    PkgConfig::GWOLLUM
+#    CUtils
     libOmicron
     OmicronUtils
 )
@@ -120,10 +136,11 @@ target_link_libraries(
     omicron-plot
     ${ROOT_Core_LIBRARY}
     ${ROOT_Graf_LIBRARY}
-    CUtils
-    RootUtils
-    Segments
-    Triggers
+    PkgConfig::GWOLLUM
+#    CUtils
+#    RootUtils
+#    Segments
+#    Triggers
     libOmicron
     OmicronUtils
 )
@@ -135,9 +152,10 @@ add_executable(
 target_link_libraries(
     omicron-print
     ${ROOT_Core_LIBRARY}
-    CUtils
-    Segments
-    Triggers
+    PkgConfig::GWOLLUM
+#    CUtils
+#    Segments
+#    Triggers
     libOmicron
     OmicronUtils
 )
