@@ -36,6 +36,23 @@ set(LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 add_subdirectory(src)
 
+# -- user environment -------
+
+configure_file(./omicron.env.sh.in ./omicron.env.sh @ONLY)
+
+# install environment scripts
+install(
+  FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/omicron.env.sh
+  DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+  )
+
+install(
+  DIRECTORY
+  html
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/omicron
+  )
+
 # -- build tarball ----------
 #
 # to build a source tarball:
@@ -67,7 +84,6 @@ set(CPACK_SOURCE_IGNORE_FILES
   "_CPack_Packages/"
   "build/"
   "doc/"
-  "html/"
   "paper/"
   "\\\\.cmake"
   "\\\\.tar\\\\.xz"
