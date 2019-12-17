@@ -74,6 +74,8 @@ Omicron::Omicron(const string aOptionFile, const int aGpsRef, const bool aStrict
   fOptionName.push_back("omicron_OUTPUT_DIRECTORY");            fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_VERBOSITY");            fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_FORMAT");               fOptionType.push_back("s");
+  fOptionName.push_back("omicron_OUTPUT_PLOTWIDTH");            fOptionType.push_back("i");
+  fOptionName.push_back("omicron_OUTPUT_PLOTHEIGHT");           fOptionType.push_back("i");
   fOptionName.push_back("omicron_OUTPUT_PRODUCTS");             fOptionType.push_back("s");
   fOptionName.push_back("omicron_OUTPUT_STYLE");                fOptionType.push_back("s");
 
@@ -125,8 +127,9 @@ Omicron::Omicron(const string aOptionFile, const int aGpsRef, const bool aStrict
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[31],fMaindir);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[32],fVerbosity);
     status_OK*=triggers[c]->SetUserMetaData(fOptionName[33],fOutFormat);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[34],fOutProducts);
-    status_OK*=triggers[c]->SetUserMetaData(fOptionName[35],GPlot->GetCurrentStyle());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[34],tile->GetWidth());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[35],tile->GetHeight());
+    status_OK*=triggers[c]->SetUserMetaData(fOptionName[36],tile->GetCurrentStyle());
   }
 
   // default output directory: main dir
@@ -201,7 +204,6 @@ Omicron::~Omicron(void){
   }
   delete oinj;
   delete tile;
-  delete GPlot;
   delete ChunkVect;
   delete TukeyWindow;
   delete offt;
@@ -852,14 +854,14 @@ void Omicron::SaveAPSD(const string aType){
   delete G1;
  
   // cosmetics
-  GPlot->SetLogx(1);
-  GPlot->SetLogy(1);
-  GPlot->SetGridx(1);
-  GPlot->SetGridy(1);
-  GPlot->Draw(GAPSD2,"AP");
+  tile->SetLogx(1);
+  tile->SetLogy(1);
+  tile->SetGridx(1);
+  tile->SetGridy(1);
+  tile->Draw(GAPSD2,"AP");
   //for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(0)+spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
   for(int i=0; i<spectrum1[chanindex]->GetNSubSegmentsMax(1); i++){
-    if(G2[i]!=NULL) GPlot->Draw(G2[i],"Lsame");
+    if(G2[i]!=NULL) tile->Draw(G2[i],"Lsame");
   }
   GAPSD2->GetHistogram()->SetXTitle("Frequency [Hz]");
   if(aType.compare("ASD")){
@@ -870,9 +872,9 @@ void Omicron::SaveAPSD(const string aType){
     GAPSD2->GetHistogram()->SetYTitle("Amplitude [Amp/#sqrt{Hz}]");
     GAPSD2->SetTitle((triggers[chanindex]->GetName()+": Amplitude spectrum density").c_str());
   }
-  GPlot->Draw(GAPSD2,"PLsame");
-  GPlot->RedrawAxis();
-  GPlot->RedrawAxis("g");
+  tile->Draw(GAPSD2,"PLsame");
+  tile->RedrawAxis();
+  tile->RedrawAxis("g");
   GAPSD2->SetLineWidth(1);
   GAPSD2->GetXaxis()->SetTitleOffset(0.9);
   GAPSD2->GetYaxis()->SetTitleOffset(1.03);
@@ -882,7 +884,7 @@ void Omicron::SaveAPSD(const string aType){
   GAPSD2->GetYaxis()->SetTitleSize(0.045);
   GAPSD2->GetYaxis()->SetRangeUser(GAPSD2->GetYaxis()->GetXmin()/100.0,GAPSD2->GetYaxis()->GetXmax()*2.0);
   GAPSD1->SetLineWidth(1);
-  GPlot->Draw(GAPSD1,"PLsame");
+  tile->Draw(GAPSD1,"PLsame");
 
   
   // set new name
@@ -919,7 +921,7 @@ void Omicron::SaveAPSD(const string aType){
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
       ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRON"<<aType<<"-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<"."<<form[f];
-      GPlot->Print(ss.str().c_str());
+      tile->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
   }
@@ -944,13 +946,13 @@ void Omicron::SaveWPSD(void){
   if(GPSD==NULL) return;
   
   // cosmetics
-  GPlot->SetLogx(1);
-  GPlot->SetLogy(1);
-  GPlot->SetGridx(1);
-  GPlot->SetGridy(1);
-  GPlot->Draw(GPSD,"APL");
-  GPlot->RedrawAxis();
-  GPlot->RedrawAxis("g");
+  tile->SetLogx(1);
+  tile->SetLogy(1);
+  tile->SetGridx(1);
+  tile->SetGridy(1);
+  tile->Draw(GPSD,"APL");
+  tile->RedrawAxis();
+  tile->RedrawAxis("g");
   GPSD->SetLineWidth(1);
   GPSD->GetXaxis()->SetTitleOffset(0.9);
   GPSD->GetYaxis()->SetTitleOffset(1.03);
@@ -993,7 +995,7 @@ void Omicron::SaveWPSD(void){
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
       ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWPSD-"<<tile->GetChunkTimeStart()<<"-"<<tile->GetTimeRange()<<"."<<form[f];
-      GPlot->Print(ss.str().c_str());
+      tile->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
   }
@@ -1053,17 +1055,17 @@ void Omicron::SaveSpectral(void){
   if(fOutFormat.find("svg")!=string::npos) form.push_back("svg"); 
 
   // draw
-  GPlot->Draw(Gamp,"APL");
-  GPlot->SetLogx(1);
-  GPlot->SetLogy(1);
-  GPlot->SetGridx(1);
-  GPlot->SetGridy(1);
+  tile->Draw(Gamp,"APL");
+  tile->SetLogx(1);
+  tile->SetLogy(1);
+  tile->SetGridx(1);
+  tile->SetGridy(1);
 
   // save
   if(form.size()){
     for(int f=0; f<(int)form.size(); f++){
       ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetName()<<"_"<<tile->GetChunkTimeCenter()<<"_spec."<<form[f];
-      GPlot->Print(ss.str().c_str());
+      tile->Print(ss.str().c_str());
       ss.str(""); ss.clear();
     }
   }
@@ -1100,10 +1102,10 @@ void Omicron::SaveTS(const bool aWhite){
   ss.str(""); ss.clear();
      
   // cosmetics
-  GPlot->SetLogx(0);
-  GPlot->SetLogy(0);
-  GPlot->SetGridx(1);
-  GPlot->SetGridy(1);
+  tile->SetLogx(0);
+  tile->SetLogy(0);
+  tile->SetGridx(1);
+  tile->SetGridy(1);
   GDATA->GetHistogram()->SetXTitle("Time [s]");
   GDATA->GetHistogram()->SetYTitle("Amplitude");
   if(aWhite) GDATA->SetTitle((triggers[chanindex]->GetName()+": amplitude whitened data time series").c_str());
@@ -1117,7 +1119,7 @@ void Omicron::SaveTS(const bool aWhite){
   GDATA->GetXaxis()->SetTitleSize(0.045);
   GDATA->GetYaxis()->SetTitleSize(0.045);
   GDATA->GetXaxis()->SetNdivisions(4,5,0);
-  GPlot->Draw(GDATA,"APL");
+  tile->Draw(GDATA,"APL");
  
   // ROOT
   if(fOutFormat.find("root")!=string::npos){
@@ -1153,14 +1155,14 @@ void Omicron::SaveTS(const bool aWhite){
 	  ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	else
 	  ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
-	GPlot->Print(ss.str().c_str());
+	tile->Print(ss.str().c_str());
 	ss.str(""); ss.clear();
 
 	if(aWhite)
 	  ss<<outdir[chanindex]<<"/th"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
 	else
 	  ss<<outdir[chanindex]<<"/th"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<"."<<form[f];
-	GPlot->Print(ss.str().c_str(),0.5);
+	tile->Print(ss.str().c_str(),0.5);
 	ss.str(""); ss.clear();
       }
     }

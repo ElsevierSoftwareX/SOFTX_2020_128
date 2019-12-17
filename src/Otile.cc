@@ -335,6 +335,12 @@ double Otile::SaveMaps(const string aOutdir, const string aName, const string aF
     if(tchirp<=0) chirp->SetParameter(1,(double)SeqT0+aTimeOffset);
     else chirp->SetParameter(1,tchirp);
   }
+
+  // cosmetics
+  SetLogx(0);
+  SetLogy(1);
+  SetGridx(0);
+  SetGridy(0);
   
   // save maps for each Q plane
   for(int q=0; q<nq; q++){
@@ -487,6 +493,10 @@ bool Otile::DrawMapTiling(const int aQindex){
   }
   qplanes[aQindex]->FillMap("display",-TimeRange/2,TimeRange/2);
   qplanes[aQindex]->GetZaxis()->SetRangeUser(0,100);
+  SetLogx(0);
+  SetLogy(1);
+  SetGridx(0);
+  SetGridy(0);
   Draw(qplanes[aQindex],"COL");
   /*
   qplanes[aQindex]->GetXaxis()->SetRangeUser(-0.1,0.1);

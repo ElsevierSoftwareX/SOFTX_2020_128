@@ -294,7 +294,7 @@ class Omicron {
   /**
    * Returns Omicron version.
    */
-  inline string GetVersion(void){ return "v2r3"; };
+  inline string GetVersion(void){ return "v2r3p11"; };
 
  private:
 
@@ -339,7 +339,6 @@ class Omicron {
   
   // COMPONENTS
   int nchannels;                ///< number of channels
-  GwollumPlot *GPlot;           ///< Gwollum plots
   vector <string> outdir;       ///< output directories / channel
   Spectrum **spectrum1;         ///< 1st spectrum structure / channel
   Spectrum **spectrum2;         ///< 2nd spectrum structure / channel

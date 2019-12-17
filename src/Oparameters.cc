@@ -58,7 +58,11 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
     cerr<<"Omicron::ReadOptions: No output products (OUTPUT/STYLE)  --> set default: GWOLLUM"<<endl;
     outstyle="GWOLLUM";
   }
-  GPlot = new GwollumPlot ("Omicron",outstyle);
+  //*****************************
+
+  //***** set plot dimensions *****
+  vector <int> dims;
+  io->GetOpt("OUTPUT","PLOTDIMENSIONS", dims);
   //*****************************
 
   //***** set output style *****
@@ -73,7 +77,7 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
   //***** ffl file *****
   string fflfile;
   if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile)){
-    FFL = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+    FFL = new ffl(fflfile, outstyle, fVerbosity);
     FFL->SetName("mainffl");
     status_OK*=FFL->DefineTmpDir(fMaindir);
     status_OK*=FFL->LoadFrameFile(aGpsRef);
@@ -249,7 +253,10 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
     cerr<<"Omicron::ReadOptions: No mismatch (PARAMETER/MISMATCHMAX)  --> set default: 0.25"<<endl;
     mmm=0.25;
   }
-  tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,GPlot->GetCurrentStyle(),fVerbosity);// tiling definition
+  tile = new Otile(timing[0],QRange[0],QRange[1],FRange[0],FRange[1],triggers[0]->GetWorkingFrequency(),mmm,outstyle,fVerbosity);// tiling definition
+  if(dims.size()==2){
+    tile->ResizePlot(dims[0],dims[1]);
+  }
   tile->SetOverlapDuration(timing[1]);
   if(fOutProducts.find("mapsnr")!=string::npos) tile->SetMapFill("snr");
   else if(fOutProducts.find("mapamplitude")!=string::npos) tile->SetMapFill("amplitude");
@@ -388,7 +395,7 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
       for(int i=0; i<nchannels; i++) fInjFact.push_back(1.0);
     }
     if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
-      FFL_inject = new ffl(fflfile, GPlot->GetCurrentStyle(), fVerbosity);
+      FFL_inject = new ffl(fflfile, outstyle, fVerbosity);
       FFL_inject->SetName("injffl");
       status_OK*=FFL->DefineTmpDir(fMaindir);
       status_OK*=FFL->LoadFrameFile(aGpsRef);
