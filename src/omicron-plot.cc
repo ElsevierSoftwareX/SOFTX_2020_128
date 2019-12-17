@@ -130,12 +130,13 @@ int main (int argc, char* argv[]){
 
     // print no-trigger plots
     GwollumPlot *GP = new GwollumPlot("notrigger",style);
+    GP->ResizePlot(plot_w,plot_h);
     GP->AddText("NO TRIGGER", 0.1, 0.1, 0.2);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat,plot_w,plot_h);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat,plot_w,plot_h);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat,plot_w,plot_h);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat,plot_w,plot_h);
-    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat,plot_w,plot_h);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
+    GP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
     delete GP;
     return 2;
   }
@@ -148,6 +149,7 @@ int main (int argc, char* argv[]){
   // triggers
   TriggerPlot *TP = new TriggerPlot((int)snrthr.size(),tfile_pat,"",style);
   if(!TP->GetStatus()||!TP->GetSegments()->GetLiveTime()) return 2;
+  TP->ResizePlot(plot_w,plot_h);
 
   // use trigger time range
   if(gps_start<0) gps_start=TP->GetTimeMin();
@@ -223,32 +225,32 @@ int main (int argc, char* argv[]){
   // print plots
   TP->PrintPlot("snr");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat,plot_w,plot_h);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snr."+outformat);
 
   TP->PrintCollectionPlot("rate");
   tvline->SetY1(TP->GetYmin("rate",0));
   tvline->SetY2(TP->GetYmax("rate",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat,plot_w,plot_h);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_rate."+outformat);
 
   TP->PrintCollectionPlot("freqtime");
   tvline->SetY1(TP->GetYmin("freqtime",0));
   tvline->SetY2(TP->GetYmax("freqtime",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat,plot_w,plot_h);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_freqtime."+outformat);
 
   TP->PrintCollectionPlot("snrtime");
   tvline->SetY1(TP->GetYmin("snrtime",0));
   tvline->SetY2(TP->GetYmax("snrtime",0));
   TP->Draw(tvline,"same");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat,plot_w,plot_h);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrtime."+outformat);
 
   TP->PrintCollectionPlot("snrfreq");
   TP->DrawLegend();
-  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat,plot_w,plot_h);
+  TP->Print(outdir+"/"+fileprefix+"_"+filename+"_snrfreq."+outformat);
   
   delete TP;
   delete tvline;
