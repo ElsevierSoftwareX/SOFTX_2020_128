@@ -18,6 +18,7 @@ include(${ROOT_USE_FILE})
 pkg_check_modules(GWOLLUM REQUIRED IMPORTED_TARGET "gwollum")
 message(STATUS "GWOLLUM headers: ${GWOLLUM_INCLUDE_DIRS}")
 message(STATUS "GWOLLUM libraries: ${GWOLLUM_LIBRARY_DIRS}")
+#message(STATUS "GWOLLUM libraries: ${GWOLLUM_LIBRARIES}")
 message(STATUS "HDF5 libraries: ${HDF5_INCLUDE_DIRS}")
 
 # add link paths
