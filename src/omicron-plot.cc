@@ -15,6 +15,7 @@ void PrintUsage(void){
   cerr<<"                 file=[trigger file pattern] \\"<<endl;
   cerr<<"                 gps-start=[GPS start] \\"<<endl;
   cerr<<"                 gps-end=[GPS end] \\"<<endl;
+  cerr<<"                 segments=[segment file] \\"<<endl;
   cerr<<"                 snr-thresholds=[list of SNR thresholds] \\"<<endl;
   cerr<<"                 freq-min=[minimum frequency] \\"<<endl;
   cerr<<"                 freq-max=[maximum frequency] \\"<<endl;
@@ -35,6 +36,7 @@ void PrintUsage(void){
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
   cerr<<"[GPS start]               starting GPS time (integer only)"<<endl;
   cerr<<"[GPS end]                 stopping GPS time (integer only)"<<endl;
+  cerr<<"[segment file]            path to a file with a list of segments"<<endl;
   cerr<<"[list of SNR thresholds]  list of SNR thresholds. By default, snr-thresholds=\"5;8;10;20\""<<endl;
   cerr<<"[minimum frequency]       minimum frequency value [Hz]"<<endl;
   cerr<<"[maximum frequency]       maximum frequency value [Hz]"<<endl;
@@ -68,6 +70,7 @@ int main (int argc, char* argv[]){
   string snrthrs="5;8;10;20";  // list of SNR thresholds
   int gps_start=-1;      // GPS start
   int gps_end=-1;  // GPS end
+  string segfile=""; // segment file
   double freqmin=-1; // freq min
   double freqmax=1e20; // freq max
   string style="GWOLLUM"; // style
@@ -92,6 +95,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("file"))           tfile_pat=sarg[1];
     if(!sarg[0].compare("gps-start"))      gps_start=atoi(sarg[1].c_str());
     if(!sarg[0].compare("gps-end"))        gps_end=atoi(sarg[1].c_str());
+    if(!sarg[0].compare("segments"))       segfile=(string)sarg[1];
     if(!sarg[0].compare("snr-thresholds")) snrthrs=(string)sarg[1];
     if(!sarg[0].compare("freq-min"))       freqmin=atof(sarg[1].c_str());
     if(!sarg[0].compare("freq-max"))       freqmax=atof(sarg[1].c_str());
@@ -109,6 +113,24 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("plot-star"))      plot_star=atoi(sarg[1].c_str());
   }
 
+  // selection segment file
+  Segments *SelSeg = NULL;
+  if(segfile.compare("")){
+    
+    SelSeg = new Segments(segfile);
+    if(!SelSeg->GetStatus() || !SelSeg->GetNsegments()){
+      cerr<<"Invalid segment file: "<<segfile<<endl;
+      cerr<<"Type omicron-plot.exe for help"<<endl;
+      return 1;
+    }
+
+    // trim segments
+    if(gps_start>0) SelSeg->Intersect(gps_start,20000000000);
+    else gps_start=(int)SelSeg->GetStart(0);
+    if(gps_end>0) SelSeg->Intersect(700000000, gps_end);
+    else gps_end=(int)ceil(SelSeg->GetEnd(SelSeg->GetNsegments()-1));
+  }
+
   // centralized trigger files
   if(!tfile_pat.compare("")){
     if(chname.compare("")&&gps_start>0&&gps_end>0) tfile_pat=GetOmicronFilePattern(chname,gps_start,gps_end);// get centralized trigger files
@@ -118,6 +140,7 @@ int main (int argc, char* argv[]){
       return 1;
     }
   }
+
   stringstream tmpstream;
 
   // check file pattern
@@ -176,6 +199,9 @@ int main (int argc, char* argv[]){
   else if(gps_end-gps_start<=100000) ntbins = (gps_end-gps_start)/600+1;
   else                               ntbins = (gps_end-gps_start)/3600+1;
 
+  // selection segments
+  TP->SetSelectionSegments(SelSeg);
+  
   // Apply plot selections
   for(int s=0; s<(int)snrthr.size(); s++){
 
@@ -254,6 +280,8 @@ int main (int argc, char* argv[]){
   
   delete TP;
   delete tvline;
+  if(SelSeg!=NULL) delete SelSeg;
+  
   return 0;
 }
 
