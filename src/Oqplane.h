@@ -4,8 +4,8 @@
 #ifndef __Oqplane__
 #define __Oqplane__
 
-#include "TriggerBuffer.h"
-#include "Spectrum.h"
+#include <TriggerBuffer.h>
+#include <Spectrum.h>
 #include "Omap.h"
 
 // eq 5.95 with alpha=2

@@ -82,7 +82,7 @@ Omicron::Omicron(const string aOptionFile, const int aGpsRef, const bool aStrict
   // triggers metadata
   for(int c=0; c<nchannels; c++){
     triggers[c]->SetMprocessname("OMICRON");
-    triggers[c]->SetProcessVersion(GetVersion());
+    triggers[c]->SetProcessVersion((string)O_PROJECT_VERSION);
     status_OK*=triggers[c]->InitUserMetaData(fOptionName,fOptionType);
     if(FFL==NULL) status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],"none");
     else          status_OK*=triggers[c]->SetUserMetaData(fOptionName[0],FFL->GetInputFfl());

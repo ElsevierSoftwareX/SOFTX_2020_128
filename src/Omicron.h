@@ -4,15 +4,16 @@
 #ifndef __Omicron__
 #define __Omicron__
 
-#include "IO.h"
+#include <IO.h>
 #include "Otile.h"
 #include "Oinject.h"
-#include "Date.h"
-#include "InjEct.h"
-#include "ffl.h"
-#include "TRandom.h"
-#include "TRandom3.h"
-#include "TriggerBuffer.h"
+#include "Oconfig.h"
+#include <Date.h>
+#include <InjEct.h>
+#include <ffl.h>
+#include <TRandom.h>
+#include <TRandom3.h>
+#include <TriggerBuffer.h>
 
 using namespace std;
 
@@ -290,11 +291,6 @@ class Omicron {
    * Returns verbosity level.
    */
   inline int GetVerbosity(void){ return fVerbosity; };
-
-  /**
-   * Returns Omicron version.
-   */
-  inline string GetVersion(void){ return "v2r3p11"; };
 
  private:
 

@@ -5,7 +5,7 @@
 #define __Otile__
 
 #include "Oqplane.h"
-#include "GwollumPlot.h"
+#include <GwollumPlot.h>
 
 using namespace std;
 

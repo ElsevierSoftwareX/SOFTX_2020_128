@@ -3,9 +3,9 @@
 //////////////////////////////////////////////////////////////////////////////
 #ifndef __Oinject__
 #define __Oinject__
-#include "Spectrum.h"
-#include "TRandom3.h"
-#include "TMath.h"
+#include <Spectrum.h>
+#include <TRandom3.h>
+#include <TMath.h>
 
 #define sqrt2pi 2.5066282746310002416123552393401042
 

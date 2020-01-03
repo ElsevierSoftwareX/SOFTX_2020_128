@@ -4,9 +4,9 @@
 #ifndef __Oplot__
 #define __Oplot__
 
-#include "TriggerPlot.h"
-#include "EventMap.h"
-#include "TGraph.h"
+#include <TriggerPlot.h>
+#include <EventMap.h>
+#include <TGraph.h>
 
 using namespace std;
 

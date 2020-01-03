@@ -51,6 +51,11 @@ void printhelp(void){
 }
 int main (int argc, char* argv[]){
 
+  if(argc>1&&!((string)argv[1]).compare("version")){
+    PrintVersion();
+    return 0;
+  }
+
   // check the command line
   if(argc<3||argc>7){
     printhelp();

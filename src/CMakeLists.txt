@@ -22,7 +22,12 @@ message(STATUS "GWOLLUM libraries: ${GWOLLUM_LIBRARY_DIRS}")
 message(STATUS "HDF5 libraries: ${HDF5_INCLUDE_DIRS}")
 
 # add link paths
-link_directories(${FRAMEL_LIBRARY_DIRS} ${GWOLLUM_LIBRARY_DIRS} ${HDF5_LIBRARY_DIRS})
+link_directories(${FRAMEL_LIBRARY_DIRS} ${GWOLLUM_LIBRARY_DIRS})
+
+# versioning
+configure_file(Oconfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Oconfig.h @ONLY)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 
 # -- libOmicron -------------
 
@@ -73,7 +78,17 @@ target_include_directories(
   )
 target_link_libraries(
   libOmicron
+  ${ROOT_Core_LIBRARY}
+  ${ROOT_Hist_LIBRARY}
+  ${ROOT_MathCore_LIBRARY}
+  CUtils
   Inject
+  RootUtils
+  Segments
+  Spectrum
+  Streams
+  Time
+  Triggers
   )
 set_target_properties(
   libOmicron PROPERTIES
@@ -89,6 +104,7 @@ add_library(
   )
 target_link_libraries(
   OmicronUtils
+  CUtils
   Streams
   )
 

@@ -1,0 +1,36 @@
+//////////////////////////////////////////////////////////////////////////////
+//  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
+//////////////////////////////////////////////////////////////////////////////
+#ifndef __Oconfig__
+#define __Oconfig__
+
+/**
+ * @file
+ * @brief This module parameterizes a Omicron release.
+ * @authors Florent Robinet, robinet@lal.in2p3.fr
+ */
+
+#include <CUtils.h>
+
+using namespace std;
+
+/**
+ * @brief Project version number.
+ */
+#define O_PROJECT_NAME "@PROJECT_NAME@"
+
+/**
+ * @brief Project version number.
+ */
+#define O_PROJECT_VERSION "@PROJECT_VERSION@"
+
+/**
+ * @brief Print the version.
+ */
+inline void PrintVersion(void){
+  cout<<(string)O_PROJECT_NAME<<" "<<(string)O_PROJECT_VERSION<<endl;
+}
+
+#endif
+
+
