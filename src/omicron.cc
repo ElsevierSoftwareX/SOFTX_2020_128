@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
-#include "Omicron.h"
+#include "Oomicron.h"
 #include "Segments.h"
 
 using namespace std;

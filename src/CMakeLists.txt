@@ -37,7 +37,7 @@ set(
   Oqplane.h
   Otile.h
   Oinject.h
-  Omicron.h
+  Oomicron.h
   )
 
 # build ROOT dictionary
@@ -63,7 +63,7 @@ add_library(
   Ohtml.cc
   Oinject.cc
   Omap.cc
-  Omicron.cc
+  Oomicron.cc
   OmicronDict.cxx
   Oparameters.cc
   Oqplane.cc
