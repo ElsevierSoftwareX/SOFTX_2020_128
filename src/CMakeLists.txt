@@ -81,6 +81,7 @@ target_link_libraries(
   ${ROOT_Core_LIBRARY}
   ${ROOT_Hist_LIBRARY}
   ${ROOT_MathCore_LIBRARY}
+  ${ROOT_RIO_LIBRARY}
   CUtils
   Inject
   RootUtils
