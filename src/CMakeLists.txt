@@ -86,8 +86,6 @@ target_link_libraries(
   Inject
   RootUtils
   Segments
-  Spectrum
-  Streams
   Time
   Triggers
   )
