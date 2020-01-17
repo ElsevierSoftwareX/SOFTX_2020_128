@@ -101,6 +101,11 @@ add_library(
   SHARED
   OmicronUtils.cc
   )
+set_target_properties(
+  OmicronUtils
+  PROPERTIES
+  PUBLIC_HEADER "OmicronUtils.h"
+  )
 target_link_libraries(
   OmicronUtils
   CUtils
