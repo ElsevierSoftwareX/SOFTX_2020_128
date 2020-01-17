@@ -15,7 +15,7 @@ include(${ROOT_USE_FILE})
 
 # GWOLLUM
 #find_package(GWOLLUM 2.3.11 REQUIRED)
-pkg_check_modules(GWOLLUM REQUIRED IMPORTED_TARGET "gwollum")
+pkg_check_modules(GWOLLUM REQUIRED IMPORTED_TARGET "gwollum=${PROJECT_VERSION}")
 message(STATUS "GWOLLUM headers: ${GWOLLUM_INCLUDE_DIRS}")
 message(STATUS "GWOLLUM libraries: ${GWOLLUM_LIBRARY_DIRS}")
 #message(STATUS "GWOLLUM libraries: ${GWOLLUM_LIBRARIES}")

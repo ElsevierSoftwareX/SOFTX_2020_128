@@ -16,7 +16,7 @@ void Omicron::MakeHtml(void){
   if(!fNoLogo) system(("cp -f ${OMICRON_HTML}/pics/omicronlogo."+tile->GetCurrentStyle()+".gif "+maindir+"/logo.gif").c_str());
   else system(("rm -f "+maindir+"/logo.gif").c_str());
   system(("cp -f "+fOptionFile+" "+maindir+"/omicron.parameters.txt").c_str());
-
+  
   // select format
   string form;
   if(fOutFormat.find("png")!=string::npos) form="png";
@@ -26,10 +26,20 @@ void Omicron::MakeHtml(void){
 
   // window set
   ostringstream tmpstream;
+  ostringstream tmpstream2;
   tmpstream<<"[";
   for(int w=0; w<(int)fWindows.size(); w++){
     if(w) tmpstream<<",";
     tmpstream<<"'"<<fWindows[w]<<"'";
+
+    // sound images
+    if(fOutFormat.find("wav")!=string::npos){
+      tmpstream2<<fWindows[w];
+      tile->Clear();
+      tile->AddText(("- "+tmpstream2.str()+" s -").c_str(), 0.1, 0.3, 0.35);
+      tile->Print(maindir+"/listen-"+tmpstream2.str()+".gif",0.5);
+      tmpstream2.clear(); tmpstream2.str("");
+    }
   }
   tmpstream<<"]";
   string windowset=tmpstream.str();
@@ -55,6 +65,18 @@ void Omicron::MakeHtml(void){
   report<<"      \"./\" + channel + \"/\" + basename + \".\" + format;"<<endl;
   report<<"    document.getElementById(\"img_\" + channelconv + \"-\" + timerange[dt]).src ="<<endl;
   report<<"      \"./\" + channel + \"/th\" + basename + \".\" + format;"<<endl;
+  report<<"  }"<<endl;
+  report<<"}"<<endl;
+  report<<"</script>"<<endl;
+  report<<"<script type=\"text/javascript\">"<<endl;
+  report<<"function showSound(channel, channelconv, type, timerange) {"<<endl;
+  report<<"  for (var dt in timerange) {"<<endl;
+  report<<"    var basename ="<<endl;
+  report<<"      channelconv + \"_\" + type + \"-\" + timerange[dt];"<<endl;
+  report<<"    document.getElementById(\"a_\" + channelconv + \"-\" + timerange[dt]).href ="<<endl;
+  report<<"      \"./\" + channel + \"/\" + basename + \".wav\";"<<endl;
+  report<<"    document.getElementById(\"img_\" + channelconv + \"-\" + timerange[dt]).src ="<<endl;
+  report<<"      \"./listen-\" + timerange[dt] + \".gif\";"<<endl;
   report<<"  }"<<endl;
   report<<"}"<<endl;
   report<<"</script>"<<endl;
@@ -254,14 +276,22 @@ void Omicron::MakeHtml(void){
       // whitened PSD
       if(fOutProducts.find("whitepsd")!=string::npos)
 	report<<"    <td><a href=\"./"<<triggers[c]->GetName()<<"/"<<triggers[c]->GetNameConv()<<"_OMICRONWPSD-"<<chunkcenter[s]-tile->GetTimeRange()/2<<"-"<<tile->GetTimeRange()<<"."<<form<<"\" target=\"_blank\">Whitened PSD</a></td>"<<endl;
-	
+      
       // conditioned time-series
-      if(fOutProducts.find("timeseries")!=string::npos)
-	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONCONDTS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Conditioned data"<<"</a></td>"<<endl;
+      if(fOutProducts.find("timeseries")!=string::npos){
+	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONCONDTS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Conditioned data"<<"</a>";
+ 	if(fOutFormat.find("wav")!=string::npos)
+	  report<<" <a href=\"javascript:showSound('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONCONDTS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<");\">(.wav)</a>";
+        report<<"    </td>"<<endl;
+      }
       
       // whitened time-series
-      if(fOutProducts.find("white")!=string::npos)
-	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONWHITETS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Whitened data"<<"</a></td>"<<endl;
+      if(fOutProducts.find("white")!=string::npos){
+	report<<"    <td><a href=\"javascript:showImage('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONWHITETS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<", '"<<form<<"');\">Whitened data"<<"</a>";
+	if(fOutFormat.find("wav")!=string::npos)
+	  report<<" <a href=\"javascript:showSound('"<<triggers[c]->GetName()<<"', '"<<triggers[c]->GetNameConv()<<"', 'OMICRONWHITETS"<<"-"<<chunkcenter[s]<<"', "<<windowset<<");\">(.wav)</a>";
+        report<<"    </td>"<<endl;
+      }
       
     }
     

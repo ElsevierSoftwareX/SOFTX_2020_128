@@ -1135,6 +1135,33 @@ void Omicron::SaveTS(const bool aWhite){
     fdata->Close();
   }
  
+  // WAV
+  if(fOutFormat.find("wav")!=string::npos){
+    // adjust volume
+    double volume = 0;
+    if(GDATA->GetN()) volume=65500.0/GDATA->GetMaximum();
+
+    // loop over windows
+    for(int w=(int)fWindows.size()-1; w>=0; w--){
+      if(aWhite)
+	ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONWHITETS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<".wav";
+      else
+	ss<<outdir[chanindex]<<"/"+triggers[chanindex]->GetNameConv()<<"_OMICRONCONDTS-"<<tile->GetChunkTimeCenter()<<"-"<<fWindows[w]<<".wav";
+
+      // n samples
+      int sound_nstart = TMath::Max(0,(int)(((double)tile->GetChunkTimeCenter()+toffset-(double)fWindows[w]/2.0-(double)tile->GetChunkTimeStart())*(double)triggers[chanindex]->GetWorkingFrequency()));
+      int sound_n = TMath::Min(GDATA->GetN()*fWindows[w]/(tile->GetChunkTimeEnd()-tile->GetChunkTimeStart()), GDATA->GetN()-sound_nstart);
+
+      // generate wav file
+      MakeStereoSoundFile(ss.str(),
+			  sound_n,
+			  triggers[chanindex]->GetWorkingFrequency(), GDATA->GetY(), GDATA->GetY(), volume,
+			  sound_nstart);
+      ss.str(""); ss.clear();
+
+    }
+  }
+ 
   // Graphix
   vector <string> form;
   if(fOutFormat.find("gif")!=string::npos) form.push_back("gif");
