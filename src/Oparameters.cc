@@ -75,12 +75,17 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** ffl file *****
-  string fflfile;
-  if(io->GetOpt("DATA","FFL", fflfile)||io->GetOpt("DATA","LCF", fflfile)){
-    FFL = new ffl(fflfile, outstyle, fVerbosity);
+  string fflfileopt;
+  vector <string> fflfile;
+  if(io->GetOpt("DATA","FFL", fflfileopt)||io->GetOpt("DATA","LCF", fflfileopt)){
+    fflfile = SplitString(fflfileopt, ' ');
+    FFL = new ffl(fflfile[0], outstyle, fVerbosity);
     FFL->SetName("mainffl");
     status_OK*=FFL->DefineTmpDir(fMaindir);
-    status_OK*=FFL->LoadFrameFile(aGpsRef);
+
+    if(fflfile.size()==1) status_OK*=FFL->LoadFrameFile(aGpsRef);
+    else if(fflfile.size()==2) status_OK*=FFL->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()));
+    else status_OK*=FFL->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()), atoi(fflfile[2].c_str()));
   }
   else
     FFL=NULL;
@@ -378,6 +383,7 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
   //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
   //***** injection channels *****
+  fflfile.clear();
   FFL_inject=NULL;
   if(io->GetOpt("INJECTION","CHANNELS", fInjChan)){
     if((int)fInjChan.size()!=nchannels){
@@ -394,11 +400,16 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
     else{
       for(int i=0; i<nchannels; i++) fInjFact.push_back(1.0);
     }
-    if(io->GetOpt("INJECTION","FFL", fflfile)||io->GetOpt("INJECTION","LCF", fflfile)){
-      FFL_inject = new ffl(fflfile, outstyle, fVerbosity);
+    if(io->GetOpt("INJECTION","FFL", fflfileopt)||io->GetOpt("INJECTION","LCF", fflfileopt)){
+      fflfile = SplitString(fflfileopt, ' ');
+      FFL_inject = new ffl(fflfile[0], outstyle, fVerbosity);
       FFL_inject->SetName("injffl");
-      status_OK*=FFL->DefineTmpDir(fMaindir);
-      status_OK*=FFL->LoadFrameFile(aGpsRef);
+      status_OK*=FFL_inject->DefineTmpDir(fMaindir);
+      if(fflfile.size()==1) status_OK*=FFL_inject->LoadFrameFile(aGpsRef);
+      else if(fflfile.size()==2) status_OK*=FFL_inject->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()));
+      else status_OK*=FFL_inject->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()), atoi(fflfile[2].c_str()));
+      
+      status_OK*=FFL_inject->LoadFrameFile(aGpsRef);
     }
     else
       FFL_inject=FFL;
