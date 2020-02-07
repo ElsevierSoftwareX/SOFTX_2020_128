@@ -1,56 +1,18 @@
 package Omicron
 
-use GWOLLUM v2r3p11
+use GWOLLUM      v2r3p13
 
-#### LOCALS
+set OMICRONLIBPATH "$(OMICRONROOT)/$(Omicron_tag)/lib64"
+set OMICRONINCPATH "$(OMICRONROOT)/$(Omicron_tag)/include"
 
-set OMICRON_HTML       "$(OMICRONROOT)/html"
-set OMICRON_SCRIPTS    "$(OMICRONROOT)/scripts"
+macro_prepend pkgconfig_path "$(OMICRONLIBPATH)/pkgconfig/:"
 
-set OMICRON_TRIGGERS        ""\
-    Florent		    "/home/florent/Analysis/Omicron/triggers"\
-    Cascina		    "/data/omicron"\
-    CCIN2P3		    "/hpss/in2p3.fr/group/virgo/DETCHAR/triggers/Omicron"\
-    LIGO		    "/home/detchar/triggers"
+macro  Omicron_linkopts " -L$(OMICRONLIBPATH) -lOmicronUtils -lOmicron"
+macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONLIBPATH)"
 
-set OMICRON_TRIGGERS_BASE   "100000"
+include_path $(OMICRONINCPATH)
 
-#### for the environment
-path_prepend LD_LIBRARY_PATH "$(OMICRONROOT)/$(Omicron_tag)"
-path_prepend PATH "$(OMICRONROOT)/$(Omicron_tag):$(OMICRONROOT)/scripts"
-macro_prepend RPATH "$(OMICRONROOT)/$(Omicron_tag):"
+setup_script $(OMICRONROOT)/$(Omicron_tag)/$(CMTCONFIG)/etc/omicron.env
 
-include_dirs " $(OMICRONROOT)/src"
+document pb_build       "omicron-2.3.13"
 
-#### alias scripts
-alias GetOmicronChannels   "$(OMICRONROOT)/scripts/GetOmicronChannels.sh"
-alias GetOmicronTriggers   "$(OMICRONROOT)/scripts/GetOmicronTriggers.sh"
-
-#### dictionaries generation
-document rootcling OmicronDict Omap.h Oqplane.h Otile.h Oinject.h Omicron.h LinkDef.h
-
-#### libraries generation
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lInject" 
-library Omicron -no_prototypes -no_static Omap.cc Oqplane.cc Otile.cc Oinject.cc Oparameters.cc Outils.cc Ohtml.cc Omicron.cc -s=../$(Omicron_tag) OmicronDict.cc
-
-macro_append Omicron_shlibflags " -L$(GWOLLUMROOT)/$(GWOLLUM_tag) -lTriggers" 
-library OmicronUtils -no_prototypes -no_static OmicronUtils.cc
-
-#### Applications generation
-macro  Omicron_linkopts "-L$(OMICRONROOT)/$(Omicron_tag) -lOmicron -lOmicronUtils"
-macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONROOT)/$(Omicron_tag)"
-
-application omicron omicron.cc
-alias omicron             "$(OMICRONROOT)/$(Omicron_tag)/omicron.exe"
-
-application omicron-listfile omicron-listfile.cc
-alias omicron-listfile    "$(OMICRONROOT)/$(Omicron_tag)/omicron-listfile.exe"
-
-application omicron-scanfile omicron-scanfile.cc
-alias omicron-scanfile    "$(OMICRONROOT)/$(Omicron_tag)/omicron-scanfile.exe"
-
-application omicron-plot omicron-plot.cc
-alias omicron-plot    "$(OMICRONROOT)/$(Omicron_tag)/omicron-plot.exe"
-
-application omicron-print omicron-print.cc
-alias omicron-print   "$(OMICRONROOT)/$(Omicron_tag)/omicron-print.exe"
