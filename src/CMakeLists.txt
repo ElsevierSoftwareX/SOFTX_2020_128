@@ -45,6 +45,7 @@ include_directories(
   ${GWOLLUM_INCLUDE_DIRS}
   ${FRAMEL_INCLUDE_DIRS}
   ${HDF5_INCLUDE_DIRS}
+  ${GSL_INCLUDE_DIRS}
   )
 root_generate_dictionary(
   OmicronDict
