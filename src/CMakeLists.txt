@@ -3,6 +3,9 @@
 # FrameL
 pkg_check_modules(FRAMEL REQUIRED "libframe")
 
+# GSL
+find_package(GSL)
+
 # HDF5
 find_package(HDF5)
 
