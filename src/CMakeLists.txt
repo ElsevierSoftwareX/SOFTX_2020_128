@@ -3,6 +3,9 @@
 # FrameL
 pkg_check_modules(FRAMEL REQUIRED "libframe")
 
+# FFTW
+pkg_check_modules(FFTW REQUIRED "fftw3")
+
 # GSL
 find_package(GSL)
 
@@ -49,6 +52,7 @@ include_directories(
   ${FRAMEL_INCLUDE_DIRS}
   ${HDF5_INCLUDE_DIRS}
   ${GSL_INCLUDE_DIRS}
+  ${FFTW_INCLUDE_DIRS}
   )
 root_generate_dictionary(
   OmicronDict
