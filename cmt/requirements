@@ -12,7 +12,7 @@ macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONLIBPATH)"
 
 include_path $(OMICRONINCPATH)
 
-setup_script $(OMICRONROOT)/$(Omicron_tag)/$(CMTCONFIG)/etc/omicron.env
+setup_script $(OMICRONROOT)/$(Omicron_tag)/$(OMICRONCONFIG)/etc/omicron.env
 
 document pb_build       "omicron-2.3.13"
 
