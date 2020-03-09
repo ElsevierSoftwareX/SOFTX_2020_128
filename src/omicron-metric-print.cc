@@ -80,6 +80,10 @@ int main (int argc, char* argv[]){
       return 1;
   }
 
+  // chirp mass
+  if(mc<0) mc=pow(m1*m2,3.0/5.0)/pow(m1+m2,1.0/5.0);
+
+
   
   return 0;
 }
