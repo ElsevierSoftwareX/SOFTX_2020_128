@@ -185,6 +185,18 @@ target_link_libraries(
   OmicronUtils
   )
 
+add_executable(
+  omicron-metric-print
+  omicron-metric-print.cc
+  )
+target_link_libraries(
+  omicron-metric-print
+  ${ROOT_Core_LIBRARY}
+  CUtils
+  Triggers
+  OmicronUtils
+  )
+
 # -- installation -----------
 
 
@@ -215,6 +227,7 @@ install(
   omicron-scanfile
   omicron-plot
   omicron-print
+  omicron-metric-print
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
