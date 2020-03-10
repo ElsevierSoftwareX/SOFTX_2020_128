@@ -192,6 +192,7 @@ add_executable(
 target_link_libraries(
   omicron-metric-print
   ${ROOT_Core_LIBRARY}
+  ${ROOT_Hist_LIBRARY}
   CUtils
   Triggers
   OmicronUtils
