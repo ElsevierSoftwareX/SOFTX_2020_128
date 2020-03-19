@@ -20,7 +20,8 @@ void PrintUsage(void){
   cerr<<"                     trigger-mchirp=[chirp mass] \\"<<endl;
   cerr<<"                     channel=[channel name] \\"<<endl;
   cerr<<"                     file=[trigger file pattern] \\"<<endl;
-  cerr<<"                     file-print=[output file name]"<<endl;
+  cerr<<"                     spec-print=[output file name]"<<endl;
+  cerr<<"                     dist-print=[output file name]"<<endl;
   cerr<<endl;
   cerr<<"[GPS end]                 Stopping GPS time (required)"<<endl;
   cerr<<"[GPS start]               Starting GPS time (required)"<<endl;
@@ -59,7 +60,9 @@ int main (int argc, char* argv[]){
   double m1=1.4;        // m1
   double m2=1.4;        // m2
   double mc=-1.0;       // mc
-  string outfile="";    // output file
+  string outfile_spec="";// output file
+  string outfile_dist="";// output file
+
   const double sun_mass=1.989e30; // kg
 
   // loop over arguments
@@ -75,7 +78,8 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("trigger-m1"))        m1=stod(sarg[1]);
     if(!sarg[0].compare("trigger-m2"))        m2=stod(sarg[1]);
     if(!sarg[0].compare("trigger-mchirp"))    mc=stod(sarg[1]);
-    if(!sarg[0].compare("file-print"))        outfile=(string)sarg[1];
+    if(!sarg[0].compare("spec-print"))        outfile_spec=(string)sarg[1];
+    if(!sarg[0].compare("dist-print"))        outfile_dist=(string)sarg[1];
   }
 
   // required time range
@@ -85,6 +89,15 @@ int main (int argc, char* argv[]){
       return 1;
   }
 
+  // distribution
+  TH1D *h1_dist=NULL;
+  if(outfile_dist.compare("")){
+    h1_dist = new TH1D("h1_dist","Distance distribution",1000,-8,8);
+    h1_dist->SetStats(1);
+    h1_dist->GetXaxis()->SetTitle("Time distance [s]");
+    h1_dist->GetYaxis()->SetTitle("Number of tiles (SNR^{2}-weighted)");
+  }
+  
   // chirp mass
   if(mc<0) mc=pow(m1*m2,3.0/5.0)/pow(m1+m2,1.0/5.0);
 
@@ -99,19 +112,24 @@ int main (int argc, char* argv[]){
   if(!tfile_pat.compare("")){
     tfile_pat=GetOmicronFilePattern(chname,gps_start-10,gps_end+10);
   }
-  cout<<tfile_pat<<endl;
+
   // trigger metric object
   TriggerMetric *T = new TriggerMetric(tfile_pat);
-  T->ComputeMetric(func, gps_start, gps_end);
+  T->ComputeMetric(func, gps_start, gps_end, h1_dist);
 
   // print result
   cout<<"Omicron metric = "<<T->GetDistanceMean()<<" +- "<<sqrt(T->GetDistanceVariance())<<endl;
   cout<<"Number of overlapping clusters = "<<T->GetNOverlappingClusters()<<endl;
   cout<<"Number of tiles = "<<T->GetNTiles()<<endl;
 
-  // print plot
-  if(outfile.compare("")){
-    T->PrintMetric(func, gps_start, gps_end, outfile);
+  // print dist plot
+  if(outfile_dist.compare("")){
+    T->Print(h1_dist, outfile_dist);
+  }
+
+  // print spec plot
+  if(outfile_spec.compare("")){
+    T->PrintMetric(func, gps_start, gps_end, outfile_spec);
   }
 
   
