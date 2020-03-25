@@ -89,15 +89,6 @@ int main (int argc, char* argv[]){
       return 1;
   }
 
-  // distribution
-  TH1D *h1_dist=NULL;
-  if(outfile_dist.compare("")){
-    h1_dist = new TH1D("h1_dist","Distance distribution",1000,-8,8);
-    h1_dist->SetStats(1);
-    h1_dist->GetXaxis()->SetTitle("Time distance [s]");
-    h1_dist->GetYaxis()->SetTitle("Number of tiles (SNR^{2}-weighted)");
-  }
-  
   // chirp mass
   if(mc<0) mc=pow(m1*m2,3.0/5.0)/pow(m1+m2,1.0/5.0);
 
@@ -115,6 +106,18 @@ int main (int argc, char* argv[]){
 
   // trigger metric object
   TriggerMetric *T = new TriggerMetric(tfile_pat);
+
+  // distribution
+  TH1D *h1_dist=NULL;
+  if(outfile_dist.compare("")){
+    h1_dist = new TH1D("h1_dist","Distance distribution",1000,-15,15);
+    h1_dist->SetStats(1);
+    gStyle->SetOptStat(1);
+    h1_dist->GetXaxis()->SetTitle("Time distance [s]");
+    h1_dist->GetYaxis()->SetTitle("Number of tiles (SNR^{2}-weighted)");
+  }
+
+  // compute metric  
   T->ComputeMetric(func, gps_start, gps_end, h1_dist);
 
   // print result
