@@ -15,6 +15,7 @@ void PrintUsage(void){
   cerr<<"omicron-metric-print trigger-gps-end=[GPS end] \\"<<endl;
   cerr<<"                     trigger-gps-start=[GPS start] \\"<<endl;
   cerr<<"                     trigger-function=[TFormula] \\"<<endl;
+  cerr<<"                     trigger-graph=[graph file] \\"<<endl;
   cerr<<"                     trigger-m1=[first mass] \\"<<endl;
   cerr<<"                     trigger-m2=[second mass] \\"<<endl;
   cerr<<"                     trigger-mchirp=[chirp mass] \\"<<endl;
@@ -32,6 +33,7 @@ void PrintUsage(void){
   cerr<<"                          https://root.cern.ch/doc/master/classTFormula.html"<<endl;
   cerr<<"                          By default trigger-function=\"pow(x, -8.0/3.0)/[0]+[1]\", corresponding"<<endl;
   cerr<<"                          to a CBC Newtonian waveform. Parameters [0] and [1] are automatically set."<<endl;
+  cerr<<"[graph file]              Text file with 2 columns: time - frequency"<<endl;
   cerr<<"[first mass]              First mass m1 in solar masses. By default =1.4"<<endl;
   cerr<<"[second mass]             Second mass m2 in solar masses. By default =1.4"<<endl;
   cerr<<"[chirp mass]              Chirp mass mc in solar masses. By default it is computed using m1 and m2"<<endl;
@@ -57,6 +59,7 @@ int main (int argc, char* argv[]){
   double gps_start=-1;  // GPS start
   double gps_end=-1;    // GPS end
   string sfunc="pow(x, -8.0/3.0)/[0]+[1]";// user func
+  string gfile="";// user func
   double m1=1.4;        // m1
   double m2=1.4;        // m2
   double mc=-1.0;       // mc
@@ -75,6 +78,7 @@ int main (int argc, char* argv[]){
     if(!sarg[0].compare("trigger-gps-start")) gps_start=stod(sarg[1]);
     if(!sarg[0].compare("trigger-gps-end"))   gps_end=stod(sarg[1]);
     if(!sarg[0].compare("trigger-function"))  sfunc=(string)sarg[1];
+    if(!sarg[0].compare("trigger-graph"))     gfile=(string)sarg[1];
     if(!sarg[0].compare("trigger-m1"))        m1=stod(sarg[1]);
     if(!sarg[0].compare("trigger-m2"))        m2=stod(sarg[1]);
     if(!sarg[0].compare("trigger-mchirp"))    mc=stod(sarg[1]);
@@ -93,12 +97,21 @@ int main (int argc, char* argv[]){
   if(mc<0) mc=pow(m1*m2,3.0/5.0)/pow(m1+m2,1.0/5.0);
 
   // track function  
-  TF1 *func = new TF1("func",sfunc.c_str(),gps_start,gps_end);
-  if(func->GetNpar()>0)
-    func->SetParameter(0,-8.0*96.0/3.0/5.0*TMath::Power(TMath::Pi(),8.0/3.0)*TMath::Power(TMath::G()*mc*sun_mass/TMath::C()/TMath::C()/TMath::C(), 5.0/3.0));
-  if(func->GetNpar()>1)
-    func->SetParameter(1,gps_end);
-
+  TF1 *func = NULL;
+  TGraph *graph = NULL;
+  if(gfile.compare("")){
+    TGraph *graphtmp = new TGraph(gfile.c_str());
+    graph = new TGraph(graphtmp->GetN(),graphtmp->GetY(),graphtmp->GetX());
+    delete graphtmp;
+  }
+  else{
+    new TF1("func",sfunc.c_str(),gps_start,gps_end);
+    if(func->GetNpar()>0)
+      func->SetParameter(0,-8.0*96.0/3.0/5.0*TMath::Power(TMath::Pi(),8.0/3.0)*TMath::Power(TMath::G()*mc*sun_mass/TMath::C()/TMath::C()/TMath::C(), 5.0/3.0));
+    if(func->GetNpar()>1)
+      func->SetParameter(1,gps_end);
+  }
+  
   // Omicron trigger files
   if(!tfile_pat.compare("")){
     tfile_pat=GetOmicronFilePattern(chname,gps_start-10,gps_end+10);
@@ -117,8 +130,11 @@ int main (int argc, char* argv[]){
     h1_dist->GetYaxis()->SetTitle("Number of tiles (SNR^{2}-weighted)");
   }
 
-  // compute metric  
-  T->ComputeMetric(func, gps_start, gps_end, h1_dist);
+  // compute metric
+  if(graph==NULL)
+    T->ComputeMetric(func, gps_start, gps_end, h1_dist);
+  else
+    T->ComputeMetric(graph, gps_start, gps_end, h1_dist);
 
   // print result
   cout<<"Omicron metric = "<<T->GetDistanceMean()<<" +- "<<sqrt(T->GetDistanceVariance())<<endl;
@@ -132,7 +148,10 @@ int main (int argc, char* argv[]){
 
   // print spec plot
   if(outfile_spec.compare("")){
-    T->PrintMetric(func, gps_start, gps_end, outfile_spec);
+    if(graph==NULL)
+      T->PrintMetric(func, gps_start, gps_end, outfile_spec);
+    else
+      T->PrintMetric(graph, gps_start, gps_end, outfile_spec);
   }
 
   

@@ -408,8 +408,6 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
       if(fflfile.size()==1) status_OK*=FFL_inject->LoadFrameFile(aGpsRef);
       else if(fflfile.size()==2) status_OK*=FFL_inject->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()));
       else status_OK*=FFL_inject->LoadFrameFile(aGpsRef, atoi(fflfile[1].c_str()), atoi(fflfile[2].c_str()));
-      
-      status_OK*=FFL_inject->LoadFrameFile(aGpsRef);
     }
     else
       FFL_inject=FFL;
