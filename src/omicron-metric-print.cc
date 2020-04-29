@@ -105,7 +105,7 @@ int main (int argc, char* argv[]){
     delete graphtmp;
   }
   else{
-    new TF1("func",sfunc.c_str(),gps_start,gps_end);
+    func = new TF1("func",sfunc.c_str(),gps_start,gps_end);
     if(func->GetNpar()>0)
       func->SetParameter(0,-8.0*96.0/3.0/5.0*TMath::Power(TMath::Pi(),8.0/3.0)*TMath::Power(TMath::G()*mc*sun_mass/TMath::C()/TMath::C()/TMath::C(), 5.0/3.0));
     if(func->GetNpar()>1)
