@@ -4,10 +4,7 @@
 pkg_check_modules(FFTW REQUIRED "fftw3")
 
 # FrameL
-pkg_check_modules(FRAMEL REQUIRED "libframe")
-
-# FFTW
-pkg_check_modules(FFTW REQUIRED "fftw3")
+pkg_check_modules(FRAMEL REQUIRED "framel")
 
 # GSL
 find_package(GSL)

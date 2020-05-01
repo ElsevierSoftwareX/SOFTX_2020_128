@@ -1,18 +1,11 @@
 package Omicron
 
-use GWOLLUM      v2r3p13
-
-set OMICRONLIBPATH "$(OMICRONROOT)/$(Omicron_tag)/lib64"
-set OMICRONINCPATH "$(OMICRONROOT)/$(Omicron_tag)/include"
-
-macro_prepend pkgconfig_path "$(OMICRONLIBPATH)/pkgconfig/:"
-
-macro  Omicron_linkopts " -L$(OMICRONLIBPATH) -lOmicronUtils -lOmicron"
-macro+ Omicron_linkopts " -Wl,-rpath,$(OMICRONLIBPATH)"
-
-include_path $(OMICRONINCPATH)
+use GWOLLUM	 v2r3p14
 
 setup_script $(OMICRONROOT)/$(Omicron_tag)/$(OMICRONCONFIG)/etc/omicron.env
 
-document pb_build       "omicron-2.3.13"
+apply_pattern pb_cmake execs="omicron omicron-metric-print omicron-print omicron-listfile omicron-plot omicron-scanfile"
+
+include_path "$(OMICRONROOT)/$(Omicron_tag)/include"
+
 
