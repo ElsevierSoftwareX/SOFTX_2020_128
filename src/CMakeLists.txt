@@ -10,7 +10,7 @@ pkg_check_modules(FRAMEL REQUIRED "framel")
 find_package(GSL)
 
 # HDF5
-find_package(HDF5)
+find_package(HDF5 COMPONENTS CXX)
 
 # ROOT
 find_package(ROOT)
