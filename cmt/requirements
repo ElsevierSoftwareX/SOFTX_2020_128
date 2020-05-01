@@ -1,6 +1,6 @@
 package Omicron
 
-use GWOLLUM	 v2r3p14
+use GWOLLUM	 v2r4p0
 
 setup_script $(OMICRONROOT)/$(Omicron_tag)/$(OMICRONCONFIG)/etc/omicron.env
 
