@@ -38,6 +38,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(
   OMICRON_HEADERS
+  ${CMAKE_CURRENT_BINARY_DIR}/Oconfig.h
   Omap.h
   Oqplane.h
   Otile.h
