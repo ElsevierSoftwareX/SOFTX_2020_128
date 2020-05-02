@@ -99,6 +99,7 @@ target_link_libraries(
 set_target_properties(
   libOmicron PROPERTIES
   OUTPUT_NAME Omicron
+  PUBLIC_HEADER "${OMICRON_HEADERS}"
   )
 
 # -- libOmicronUtils --------
