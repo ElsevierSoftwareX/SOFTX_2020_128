@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.9.0 FATAL_ERROR)
 project(
   Omicron
   LANGUAGES C CXX
-  VERSION 2.4.0
+  VERSION 2.4.1
   DESCRIPTION "An algorithm to detect and characterize transient events in gravitational-wave detectors"
   )
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
