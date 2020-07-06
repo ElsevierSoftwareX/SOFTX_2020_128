@@ -94,6 +94,7 @@ target_link_libraries(
   Inject
   RootUtils
   Segments
+  Streams
   Time
   Triggers
   )
