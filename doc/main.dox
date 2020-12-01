@@ -1,0 +1,85 @@
+/*! \mainpage Omicron
+ * \tableofcontents
+ * Omicron has been derived from a well-known 'burst-type' search pipeline called [Q-pipeline](https://gwic.ligo.org/assets/docs/theses/Chatterji_Thesis.pdf) (a.k.a Omega). The Q-pipeline is able to detect and characterize detector glitches with a very good efficiency and precision. So, the idea was to adapt it for detector characterization purposes, i.e. to run it over many auxiliary channels. To achieve this, the original matlab code has been replaced by a C++ architecture and many steps have been removed to run faster. The name Omicron was chosen to recall the Omega inheritance.
+ *
+ * \section main_download_sec Download Omicron
+ * First, define your source directory and your installation directories. For example:
+ * \verbatim
+export OMICRON_SRCDIR=${HOME}/src
+export OMICRON_INSTALLDIR=${HOME}/opt/Omicron
+mkdir -p ${OMICRON_SRCDIR} ${OMICRON_INSTALLDIR}
+ \endverbatim
+ * You can download the Omicron source tarball from [gitlab](https://git.ligo.org/virgo/virgoapp/Omicron/-/releases):
+ * \verbatim
+ cd ${OMICRON_SRCDIR}
+ wget https://git.ligo.org/virgo/virgoapp/Omicron/-/archive/[X.Y.Z]/Omicron-[X.Y.Z].tar.gz
+ tar -xzf Omicron-[X.Y.Z].tar.gz
+ \endverbatim
+ * where `[X.Y.Z]` is the Omicron version of your choice.
+ *
+ * Alternatively, you can get a development copy of the Omicron software using git and select a release tag:
+ * \verbatim
+ cd ${OMICRON_SRCDIR}
+ git clone https://git.ligo.org/virgo/virgoapp/Omicron/Omicron.git
+ cd Omicron/
+ git checkout [X.Y.Z]
+ \endverbatim
+ * 
+ * \section main_build_sec Build Omicron
+ * The Omicron package relies on several external packages which you must install on your machine:
+ * - [GWOLLUM](https://virgo.docs.ligo.org/virgoapp/GWOLLUM/) libraries offers many analysis tools needed by Omicron.
+ * - [CMake](https://cmake.org/) is used to build Omicron.
+ * - [Doxygen](http://www.doxygen.nl/) is used to build the Omicron documentation. This package is optional.
+ *
+ * In this section we give step-by-step instructions to build Omicron for UNIX (bash/sh) systems.
+ \verbatim
+# go to the source directory
+cd ${OMICRON_SRCDIR}/Omicron/
+
+# create the build directory
+mkdir ./build/; cd ./build/
+
+# configure Omicron
+cmake -DCMAKE_INSTALL_PREFIX=${OMICRON_INSTALLDIR} ${OMICRON_SRCDIR}/Omicron
+
+# compile Omicron
+make
+
+# install Omicron
+make install
+\endverbatim
+ * An environment script has been generated. It must be sourced before using Omicron:
+ * \verbatim
+source ${OMICRON_INSTALLDIR}/etc/omicron.env.sh
+\endverbatim
+ * You can test that Omicron is correctly installed by typing:
+  * \verbatim
+omicron version
+\endverbatim
+ * If you have the [Doxygen](http://www.doxygen.nl/) software installed in your machine, you can access Omicron documentation with a web browser at `file://${OMICRON_INSTALLDIR}/share/doc/Omicron/html/index.html`.
+ *
+ * \section main_program_sec User programs
+ * Omicron comes with a collection of user programs using Omicron libraries:
+ * - TBC
+ *
+ * \section main_develop_sec Develop a project on top of Omicron libraries
+ * Omicron offers a set of [C++ classes](annotated.html) to run Q-transforms analyses. The corresponding libraries can be used to develop user programs or projects:
+ * - [C++ classes](annotated.html): documentation for Omicron C++ classes.
+ *
+ * \section main_documentation_sec Documentation and links
+ *
+ * \subsection main_documentation_general_sec General
+ *
+ * - [Omicron gitlab page](https://git.ligo.org/virgo/virgoapp/Omicron)
+ * - [Omicron wiki](https://git.ligo.org/virgo/virgoapp/Omicron/-/wikis/home)
+ * - [Omicron issue tracker](https://git.ligo.org/virgo/virgoapp/Omicron/-/issues)
+ * - [Laboratoire de Physique des 2 infinis Irène Joliot-Curie (IJCLab)](https://www.ijclab.in2p3.fr)
+ *  
+ * \subsection main_documentation_related_sec Related pages
+ *
+ * See all documentation pages in the [Related Pages](./pages.html)
+ *
+ * \section main_author_sec Authors
+ * <b>Florent Robinet</b> - Laboratoire de Physique des 2 Infinis Irène Joliot-Curie (IJCLab) Orsay, France - <a href="mailto:florent.robinet@ijclab.in2p3.fr">contact</a>
+ */
+
