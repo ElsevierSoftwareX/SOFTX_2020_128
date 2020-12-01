@@ -1,0 +1,14 @@
+pages:
+  image: ubuntu
+  before_script:
+  - apt-get update
+  - apt-get upgrade -y
+  - apt-get install --yes doxygen
+  - apt-get install --yes graphviz
+  - apt-get install --yes build-essential
+  script:
+  - bash ./doc/rundox.sh
+  - mv doc/html/ public/
+  artifacts:
+    paths:
+    - public

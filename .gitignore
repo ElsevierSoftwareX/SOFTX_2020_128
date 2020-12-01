@@ -1,6 +1,17 @@
+*.o
+*~
+*.bak
 
-# /
-/Linux-x86_64
+build
+cmt/cleanup.csh
+cmt/cleanup.sh
+cmt/setup.csh
+cmt/setup.sh
+cmt/Makefile
+Linux-x86_64/*
 
-# /cmt/
-/cmt/setup.csh
+# Doxygen
+doc/html
+doc/latex
+
+

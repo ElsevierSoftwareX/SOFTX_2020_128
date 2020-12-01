@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.9.0 FATAL_ERROR)
 project(
   Omicron
   LANGUAGES C CXX
-  VERSION 2.4.1
+  VERSION 2.4.2
   DESCRIPTION "An algorithm to detect and characterize transient events in gravitational-wave detectors"
   )
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
@@ -35,6 +35,7 @@ set(LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # -- build components -------
 
 add_subdirectory(src)
+add_subdirectory(doc)
 
 # -- user environment -------
 
