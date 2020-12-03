@@ -1,6 +1,9 @@
 /*! \mainpage Omicron
  * \tableofcontents
- * Omicron has been derived from a well-known 'burst-type' search pipeline called [Q-pipeline](https://gwic.ligo.org/assets/docs/theses/Chatterji_Thesis.pdf) (a.k.a Omega). The Q-pipeline is able to detect and characterize detector glitches with a very good efficiency and precision. So, the idea was to adapt it for detector characterization purposes, i.e. to run it over many auxiliary channels. To achieve this, the original matlab code has been replaced by a C++ architecture and many steps have been removed to run faster. The name Omicron was chosen to recall the Omega inheritance.
+ * Omicron is a software tool designed to perform the [Q-transform](https://en.wikipedia.org/wiki/Constant-Q_transform) of a time series.
+ * This type of time-frequency decomposition offers a multi-resolution [spectrogram](https://en.wikipedia.org/wiki/Spectrogram) of the input signal. This spectrogram can be visualized in user-friendly web reports. Moreover, a signal-to-noise ratio threshold can be applied to the spectrogram pixels to produce "triggers".
+ *
+ * Omicron has been derived from a well-known 'burst-type' search pipeline called [Q-pipeline](https://gwic.ligo.org/assets/docs/theses/Chatterji_Thesis.pdf) (a.k.a Omega). The original matlab code has been replaced by an optimized C++ architecture to offer a fast processing of the data. As a result, Omicron is able to process many data streams in parallel. 
  *
  * \section main_download_sec Download Omicron
  * First, define your source directory and your installation directories. For example:
@@ -20,7 +23,7 @@ mkdir -p ${OMICRON_SRCDIR} ${OMICRON_INSTALLDIR}
  * Alternatively, you can get a development copy of the Omicron software using git and select a release tag:
  * \verbatim
  cd ${OMICRON_SRCDIR}
- git clone https://git.ligo.org/virgo/virgoapp/Omicron/Omicron.git
+ git clone https://git.ligo.org/virgo/virgoapp/Omicron.git
  cd Omicron/
  git checkout [X.Y.Z]
  \endverbatim
@@ -56,23 +59,32 @@ source ${OMICRON_INSTALLDIR}/etc/omicron.env.sh
   * \verbatim
 omicron version
 \endverbatim
- * If you have the [Doxygen](http://www.doxygen.nl/) software installed in your machine, you can access Omicron documentation with a web browser at `file://${OMICRON_INSTALLDIR}/share/doc/Omicron/html/index.html`.
+ * If you have the [Doxygen](http://www.doxygen.nl/) software installed in your machine,
+ * you can access Omicron documentation with a web browser at `file://${OMICRON_INSTALLDIR}/share/doc/Omicron/html/index.html`.
  *
  * \section main_program_sec User programs
  * Omicron comes with a collection of user programs using Omicron libraries:
- * - TBC
+ * - omicron.cc: this is the main program to perform a Q-transform analysis of your data.
+ * - omicron-print.cc: this program reads omicron trigger files and prints trigger parameters.
+ * - omicron-plot.cc: this program reads omicron trigger files and plots the trigger parameters.
+ * - omicron-listfile.cc: this program discovers the list of Omicron trigger files.
+ * - omicron-scanfile.cc: this program scans a list of trigger files and detect corrupted files.
+ * - omicron-metric-print.cc: this program masures the so-called omicron-metric for a given structure in the time-frequency plane.
  *
  * \section main_develop_sec Develop a project on top of Omicron libraries
- * Omicron offers a set of [C++ classes](annotated.html) to run Q-transforms analyses. The corresponding libraries can be used to develop user programs or projects:
+ * Omicron offers a set of [C++ classes](annotated.html) to run and visualize Q-transforms analyses.
+ * The corresponding libraries can be used to develop user programs or projects:
  * - [C++ classes](annotated.html): documentation for Omicron C++ classes.
  *
  * \section main_documentation_sec Documentation and links
  *
  * \subsection main_documentation_general_sec General
  *
- * - [Omicron gitlab page](https://git.ligo.org/virgo/virgoapp/Omicron)
- * - [Omicron wiki](https://git.ligo.org/virgo/virgoapp/Omicron/-/wikis/home)
- * - [Omicron issue tracker](https://git.ligo.org/virgo/virgoapp/Omicron/-/issues)
+ * - [Omicron published paper](https://doi.org/10.1016/j.softx.2020.100620) ([arXiv](https://arxiv.org/abs/2007.11374))
+ * - [Omicron technical note](https://tds.virgo-gw.eu/ql/?c=10651)
+ * - [Omicron gitlab page](https://git.ligo.org/virgo/virgoapp/Omicron): this is the code repository.
+ * - [Omicron wiki](https://git.ligo.org/virgo/virgoapp/Omicron/-/wikis/home): additional and specific documentation is provided there.
+ * - [Omicron issue tracker](https://git.ligo.org/virgo/virgoapp/Omicron/-/issues): use this link to report bugs, request new features...
  * - [Laboratoire de Physique des 2 infinis Irène Joliot-Curie (IJCLab)](https://www.ijclab.in2p3.fr)
  *  
  * \subsection main_documentation_related_sec Related pages
