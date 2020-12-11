@@ -1,6 +1,43 @@
-//////////////////////////////////////////////////////////////////////////////
-//  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
-//////////////////////////////////////////////////////////////////////////////
+/**
+ * @file 
+ * @brief Program to run an Omicron analysis.
+ * @details `omicron` is a command line program to perform a Q-transform analysis of data time-series.
+ * The program must be given a timing and an option file.
+ * @verbatim
+omicron [GPS start time] [GPS stop time] [option file]
+ @endverbatim
+ * This command runs the Omicron algorithm between 2 GPS times.
+ * The option file is a text file in which the parameters are listed using keywords.
+ * For more details about the syntax, see Omicron::ReadOptions().
+ *
+ * @verbatim
+omicron [segment file] [option file]
+ @endverbatim
+ * This command runs the Omicron algorithm over a time segment list.
+ * The segment file is a text file with 2 columns listing the time segments (GPS start - GPS end).
+ *
+ * @verbatim
+omicron [GPS time] [option file]
+ @endverbatim
+ * This command runs the Omicron algorithm over once single time segment centered on `[GPS time]`.
+ *
+ * @note all GPS time values must be integer values.
+ *
+ * Optional arguments can be provided.
+ * - the output triggers can be time-selected using a list of segments:
+ * @verbatim
+omicron [some input timing] [option file] [GPS start time] [GPS stop time]
+ @endverbatim
+ * In that case, output triggers are only saved if they start between the 2 GPS times given in the command line.
+ * @verbatim
+omicron [some input timing] [option file] [segment file]
+ @endverbatim
+ * In that case, output triggers are only saved if they start in one of the time segment given in the command line.
+ * - One last argument can be provided in the command line: `strict`.
+ * In this mode, the program exits whenever an error is met.
+ *
+ * @author Florent Robinet - <a href="mailto:florent.robinet@ijclab.in2p3.fr">florent.robinet@ijclab.in2p3.fr</a>
+ */
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
@@ -9,6 +46,9 @@
 
 using namespace std;
 
+/**
+ * @brief Print the program usage message.
+ */
 void printhelp(void){
     cerr<<endl;
     cerr<<"This program runs an Omicron analysis."<<endl;
@@ -49,6 +89,10 @@ void printhelp(void){
     cerr<<"-----------------------------------------------------------------------------------"<<endl;
     return;
 }
+
+/**
+ * @brief Main program.
+ */
 int main (int argc, char* argv[]){
 
   if(argc>1&&!((string)argv[1]).compare("version")){

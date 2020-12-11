@@ -1,11 +1,70 @@
-//////////////////////////////////////////////////////////////////////////////
-//  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
-//////////////////////////////////////////////////////////////////////////////
+/**
+ * @file 
+ * @brief Manage Omicron options.
+ * @author Florent Robinet - <a href="mailto:florent.robinet@ijclab.in2p3.fr">florent.robinet@ijclab.in2p3.fr</a>
+ */
 #include "Oomicron.h"
 
-////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Parse Omicron parameters.
+ * @details Omicron parameters must be provided with an option file (see Omicron::Omicron()).
+ * Each parameter is identified with a tag and a keyword:
+ * @verbatim
+TAG  KEYWORD  [PARAMETERS]
+@endverbatim
+ * The combination of tag/keyword/parameters is called an option.
+ * @note For some options, multiple parameters can be used. They are separated by white spaces or tabs. 
+ * @warning If an option is not provided, default values are used for the parameter.
+ * 
+ * Here we list all the options for Omicron.
+ *
+ * @section omicron_readoptions_output OUTPUT
+ * 
+ * @subsection omicron_readoptions_output_directory output directory 
+ * @verbatim
+OUTPUT  DIRECTORY  [PARAMETER]
+@endverbatim
+ * `[PARAMETER]` is the directory path (relative or absolute).
+ * The current directory is used by default if this option is not provided or if the specified directory does not exist.
+ *
+ * @subsection omicron_readoptions_output_products output products
+ * @verbatim
+OUTPUT  PRODUCTS  [PARAMETERS]
+@endverbatim
+ * `[PARAMETERS]` is the list of products computed by Omicron.
+ * Possible parameters are:
+ * - `triggers`: Omicron tiles above a SNR threshold are saved in a file.
+ * - `asd`: The amplitude spectral density function is saved in a file.
+ * - `psd`: The power spectral density function is saved in a file.
+ * - `html`: A html report is produced in the output directory specified with the @ref omicron_readoptions_output_directory "directory option".
+ * - `timeseries`: The condition time series is saved in a file.
+ * - `white`: The time series after whitening is saved in a file.
+ * - `whitepsd`: The power spectral density after whitening is saved in a file.
+ * - `mapsnr`: The snr spectrograms are saved in a file.
+ * - `mapamplitude`: The amplitude spectrograms are saved in a file.
+ * - `mapphase`: The phase spectrograms are saved in a file.
+ *
+ * By default, only `triggers` are produced.
+ * The ouput file format is specified with the @ref omicron_readoptions_output_format "format option".
+ *
+ * @subsection omicron_readoptions_output_verbosity verbosity level
+ * @verbatim
+OUTPUT  VERBOSITY  [PARAMETER]
+@endverbatim
+ * `[PARAMETER]` is the verbosity level: 0, 1, 2, or 3.
+ * By default = 0.
+ *
+ * @subsection omicron_readoptions_output_format file format
+ * @verbatim
+OUTPUT  FORMAT  [PARAMETERS]
+@endverbatim
+ * `[PARAMETERS]` is the list of file formats to save @ref omicron_readoptions_output_products "output products".
+ * Supported formats: `root` (native), `hdf5` (for triggers only), and all usual graphical formats (`svg`, `gif`, `pdf`, `png`, `eps`...).
+ * By default = `root`.
+ *
+ */
 void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
-////////////////////////////////////////////////////////////////////////////////////
 
   // check that the option file exists
   if(!IsTextFile(fOptionFile)){
@@ -29,13 +88,16 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
     fMaindir=".";
   }
   if(!IsDirectory(fMaindir)){
-    cerr<<"Omicron::ReadOptions: output directory cannot be found (OUTPUT/DIRECTORY)  --> set default: current"<<endl;
+    cerr<<"Omicron::ReadOptions: output directory "<<fMaindir<<" does not exist --> set default: current"<<endl;
     fMaindir=".";
   }
   //*****************************
    
   //***** verbosity *****
-  if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)) fVerbosity=0;
+  if(!io->GetOpt("OUTPUT","VERBOSITY", fVerbosity)){
+    cerr<<"Omicron::ReadOptions: No verbosity level (OUTPUT/VERBOSITY)  --> set default: 0"<<endl;
+    fVerbosity=0;
+  }
   //*****************************
 
   //***** set output products *****

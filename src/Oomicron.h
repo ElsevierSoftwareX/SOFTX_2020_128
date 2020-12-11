@@ -11,9 +11,6 @@
 #include <Date.h>
 #include <InjEct.h>
 #include <ffl.h>
-#include <TRandom.h>
-#include <TRandom3.h>
-#include <TriggerBuffer.h>
 
 using namespace std;
 
@@ -302,7 +299,7 @@ class Omicron {
   int chanindex;                ///< current channel index
 
   // OPTIONS
-  void ReadOptions(const int aGpsRef=-1, const bool aStrict=false);       ///< to parse option card
+  void ReadOptions(const int aGpsRef=-1, const bool aStrict=false);
   string fOptionFile;           ///< option file name
   int fVerbosity;               ///< verbosity level
   string fMaindir;              ///< main output directory
