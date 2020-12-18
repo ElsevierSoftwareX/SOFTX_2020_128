@@ -11,9 +11,6 @@
 #include <Date.h>
 #include <InjEct.h>
 #include <ffl.h>
-#include <TRandom.h>
-#include <TRandom3.h>
-#include <TriggerBuffer.h>
 
 using namespace std;
 
@@ -166,7 +163,6 @@ class Omicron {
   /**
    * Extract triggers above threshold.
    * Triggers are saved one Q plane at a time. After each Q plane, the number of triggers is checked. If it exceeds a given maximal rate, defined in the user parameter file, false is returned and the next Q planes are not searched for (see also Otile::SaveTriggers()). All triggers are reset.
-   * @param aRateMax maximum trigger rate [Hz]
    */
   bool ExtractTriggers(void);
 
@@ -302,7 +298,7 @@ class Omicron {
   int chanindex;                ///< current channel index
 
   // OPTIONS
-  void ReadOptions(const int aGpsRef=-1, const bool aStrict=false);       ///< to parse option card
+  void ReadOptions(const int aGpsRef=-1, const bool aStrict=false);
   string fOptionFile;           ///< option file name
   int fVerbosity;               ///< verbosity level
   string fMaindir;              ///< main output directory

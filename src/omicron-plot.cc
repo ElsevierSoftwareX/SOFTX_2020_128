@@ -1,13 +1,48 @@
-//////////////////////////////////////////////////////////////////////////////
-//  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
-//////////////////////////////////////////////////////////////////////////////
+/**
+ * @file 
+ * @brief Program to plot omicron triggers.
+ * @details `omicron-plot` is a command line program to plot omicron triggers from trigger files.
+ * The program must be given a minimum set of options:
+ * @verbatim
+omicron-plot channel=[channel name] gps-start=[GPS start] gps-end=[GPS end] style=STANDARD
+ @endverbatim
+ * This command plots omicron triggers of a given channel between 2 GPS times.
+ * This command assumes that omicron trigger root files are saved in a standard place pointed by the environement variable `$OMICRON_TRIGGERS`.
+ *
+ * One can also plot triggers from a list of root files with:
+ * @verbatim
+ omicron-plot file=[trigger file pattern] gps-start=[GPS start] gps-end=[GPS end] style=STANDARD
+ @endverbatim
+ * where `[trigger file pattern]` can contain wild cards. For example: `file="/path1/to/triggers/*.root /path2/to/triggers/*.root"`.
+ *
+ * The `omicron-plot` command comes with many additional options. Type `omicron-plot` to get the full list of options. In particular, triggers can be filtered in frequency, snr and so on.
+ * @snippet this omicron-plot-usage 
+ *
+ * \anchor omicron_plot_freqtime
+ * \image html plot_V1-LSC_DARM-1217376018-187200_freqtime.png "Triggers are plotted in the time-frequency plane." width=700
+ * \anchor omicron_plot_snrtime
+ * \image html plot_V1-LSC_DARM-1217376018-187200_snrtime.png "Triggers are plotted in the time-SNR plane." width=700
+ * \anchor omicron_plot_snrfreq
+ * \image html plot_V1-LSC_DARM-1217376018-187200_snrfreq.png "Triggers are plotted in the SNR-frequency plane." width=700
+ * \anchor omicron_plot_rate
+ * \image html plot_V1-LSC_DARM-1217376018-187200_rate.png "Trigger rates are plotted as a function of time." width=700
+ * \anchor omicron_plot_snr
+ * \image html plot_V1-LSC_DARM-1217376018-187200_snr.png "Trigger SNR distribution is plotted." width=700
+ *
+ *
+ * @author Florent Robinet - <a href="mailto:florent.robinet@ijclab.in2p3.fr">florent.robinet@ijclab.in2p3.fr</a>
+ */
 #include "TriggerPlot.h"
 #include "OmicronUtils.h"
-
+#include "Oconfig.h"
 
 using namespace std;
 
+/**
+ * @brief Print the program usage message.
+ */
 void PrintUsage(void){
+  //! [omicron-plot-usage]
   cerr<<endl;
   cerr<<"Usage:"<<endl;
   cerr<<endl;
@@ -53,10 +88,19 @@ void PrintUsage(void){
   cerr<<"[plot height]             plot height in pixels. By default, plot-height=500"<<endl;
   cerr<<"[plot star flag]          plot a star on the loudest event (=1, default). =0: do not plot the star"<<endl;
   cerr<<endl;
+  //! [omicron-plot-usage]
   return;
 }
 
+/**
+ * @brief Main program.
+ */
 int main (int argc, char* argv[]){
+
+  if(argc>1&&!((string)argv[1]).compare("version")){
+    PrintVersion();
+    return 0;
+  }
 
   // number of arguments
   if(argc<2){

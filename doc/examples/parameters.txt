@@ -1,0 +1,57 @@
+//*************************************************************************************
+//************************   Omicron configuration file   *****************************
+//*************************************************************************************
+
+
+//*************************************************************************************
+//************************           DATA CLASS           *****************************
+//*************************************************************************************
+
+//** path to a frame file list file (FFL or lalcache format)
+DATA	FFL		/virgoData/ffl/raw.ffl
+
+//** list of channels you want to process (here you have 3).
+//   They can be listed on one single line or several lines
+DATA	CHANNELS	V1:Hrec_hoft_16384Hz
+DATA	CHANNELS	V1:LSC_DARM  V1:LSC_DARM_ERR
+
+//** working sampling frequency (one value for all channels)
+DATA	SAMPLEFREQUENCY	2048
+
+//************************************************************************************
+//************************         PARAMETER CLASS       *****************************
+//************************************************************************************
+
+//** analysis window duration and overlap in seconds
+PARAMETER	TIMING		64	4
+
+//** search frequency range [Hz]
+PARAMETER	FREQUENCYRANGE	12	1024
+
+//** search Q range
+PARAMETER	QRANGE		4	100
+
+//** maximal mismatch between tiles
+PARAMETER	MISMATCHMAX	0.3
+
+//** tile SNR threshold
+PARAMETER	SNRTHRESHOLD	6
+
+//** data length for optimal PSD estimation in seconds
+PARAMETER       PSDLENGTH	300
+
+//*************************************************************************************
+//************************           OUTPUT CLASS         *****************************
+//*************************************************************************************
+
+//** path to output directory
+OUTPUT	   DIRECTORY	   /path/to/output/directory
+
+//** list of data products
+OUTPUT	   PRODUCTS	   triggers html
+
+//** output file format
+OUTPUT	   FORMAT	   root
+
+//** verbosity level (0-1-2-3)
+OUTPUT	   VERBOSITY	   1

@@ -1,13 +1,37 @@
-//////////////////////////////////////////////////////////////////////////////
-//  Author : florent robinet (LAL - Orsay): robinet@lal.in2p3.fr
-//////////////////////////////////////////////////////////////////////////////
+/**
+ * @file 
+ * @brief Program to print omicron triggers.
+ * @details `omicron-print` is a command line program to print the list of omicron triggers from trigger files.
+ * The program must be given a minimum set of options:
+ * @verbatim
+omicron-print channel=[channel name] gps-start=[GPS start] gps-end=[GPS end]
+ @endverbatim
+ * This command prints the list of omicron triggers of a given channel between 2 GPS times.
+ * This command assumes that omicron trigger root files are saved in a standard place pointed by the environement variable `$OMICRON_TRIGGERS`.
+ *
+ * One can also print triggers from a list of root files with:
+ * @verbatim
+ omicron-print file=[trigger file pattern] gps-start=[GPS start] gps-end=[GPS end]
+ @endverbatim
+ * where `[trigger file pattern]` can contain wild cards. For example: `file="/path1/to/triggers/*.root /path2/to/triggers/*.root"`.
+ *
+ * The `omicron-print` command comes with many additional options. Type `omicron-print` to get the full list of options. In particular, triggers can be filtered in frequency, snr and so on. You can also select the trigger parameters to print.
+ * @snippet this omicron-print-usage 
+ *
+ * @author Florent Robinet - <a href="mailto:florent.robinet@ijclab.in2p3.fr">florent.robinet@ijclab.in2p3.fr</a>
+ */
 #include "ReadTriggers.h"
+#include "Oconfig.h"
 #include "OmicronUtils.h"
 
 
 using namespace std;
 
+/**
+ * @brief Print the program usage message.
+ */
 void PrintUsage(void){
+  //! [omicron-print-usage]
   cerr<<endl;
   cerr<<"Usage:"<<endl;
   cerr<<endl;
@@ -35,7 +59,7 @@ void PrintUsage(void){
   cerr<<"              print-freq-end=[1/0] \\"<<endl;
   cerr<<"              print-duration=[1/0] \\"<<endl;
   cerr<<"              print-bandwidth=[1/0]"<<endl;
- cerr<<endl;
+  cerr<<endl;
   cerr<<"[channel name]            channel name used to retrieve centralized Omicron triggers"<<endl;
   cerr<<"[trigger file pattern]    file pattern to ROOT trigger files (GWOLLUM convention)"<<endl;
   cerr<<"[GPS start]               starting GPS time (integer only)"<<endl;
@@ -51,10 +75,19 @@ void PrintUsage(void){
   cerr<<endl;
   cerr<<"For \"print-\" options, 1=yes and 0=no."<<endl;
   cerr<<endl;
+  //! [omicron-print-usage]
   return;
 }
 
+/**
+ * @brief Main program.
+ */
 int main (int argc, char* argv[]){
+
+  if(argc>1&&!((string)argv[1]).compare("version")){
+    PrintVersion();
+    return 0;
+  }
 
   // number of arguments
   if(argc<2){
