@@ -4,6 +4,8 @@
  * This type of time-frequency decomposition offers a multi-resolution [spectrogram](https://en.wikipedia.org/wiki/Spectrogram) of the input signal. This spectrogram can be visualized in user-friendly web reports. Moreover, a signal-to-noise ratio threshold can be applied to the spectrogram pixels to produce "triggers".
  *
  * Omicron has been derived from a well-known 'burst-type' search pipeline called [Q-pipeline](https://gwic.ligo.org/assets/docs/theses/Chatterji_Thesis.pdf) (a.k.a Omega). The original matlab code has been replaced by an optimized C++ architecture to offer a fast processing of the data. As a result, Omicron is able to process many data streams in parallel. 
+ * \anchor main_gw170817_spectro
+ * \image html gw170817_spectro.png "Omicron high-resolution spectrogram of GW170817."
  *
  * \section main_download_sec Download Omicron
  * First, define your source directory and your installation directories. For example:
