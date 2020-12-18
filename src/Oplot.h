@@ -43,10 +43,10 @@ class Oplot: public TriggerPlot {
   /**
    * Defines new SNR thrsholds.
    * 
-   * @param SNR0 first SNR threshold
-   * @param SNR1 second SNR threshold
-   * @param SNR2 third SNR threshold
-   * @param SNR3 fourth SNR threshold
+   * @param aSNR0 first SNR threshold
+   * @param aSNR1 second SNR threshold
+   * @param aSNR2 third SNR threshold
+   * @param aSNR3 fourth SNR threshold
    */ 
   void SetSNRThresholds(const double aSNR0, const double aSNR1, const double aSNR2, const double aSNR3);
 

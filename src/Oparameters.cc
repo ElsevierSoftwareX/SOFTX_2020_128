@@ -16,7 +16,6 @@ TAG  KEYWORD  [PARAMETERS]
  * @note For some options, multiple parameters can be used. They are separated by white spaces or tabs. 
  * @warning If an option is not provided, default values are used for the parameter.
  *
- * Here is an example of an option file:
  * @include parameters.txt
  * 
  * Here we list all the options for Omicron.
@@ -780,3 +779,8 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
  
   return;
 }
+
+/**
+ * @example parameters.txt
+ * This is an example of a parameter file to run omicron (omicron.cc).
+ */

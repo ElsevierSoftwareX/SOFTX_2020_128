@@ -130,7 +130,7 @@ class Otile: public GwollumPlot {
    * The number of tiles (excluding overlaps/2) above the SNR threshold is returned.
    *
    * IMPORTANT: the input data vector must the right size, i.e. SampleFrequency/2 as defined in the constructor. No check will be performed!
-   * @param aFft fft structure containing the data to project
+   * @param aDataFft fft structure containing the data to project
    */
   int ProjectData(fft *aDataFft);
 
@@ -158,6 +158,7 @@ class Otile: public GwollumPlot {
    * @param aName name identifier
    * @param aFormat output format string
    * @param aWindows list of time windows
+   * @param aTimeOffset Time offset.
    * @param aThumb also produce thumbnails if set to true
    */
   double SaveMaps(const string aOutdir, const string aName, const string aFormat, vector <int> aWindows, const double aTimeOffset=0.0, const bool aThumb=false);
