@@ -5,7 +5,6 @@
  */
 #include "Oomicron.h"
 
-
 /**
  * @brief Parse Omicron parameters.
  * @details Omicron parameters must be provided with an option file (see Omicron::Omicron()).
@@ -16,19 +15,22 @@ TAG  KEYWORD  [PARAMETERS]
  * The combination of tag/keyword/parameters is called an option.
  * @note For some options, multiple parameters can be used. They are separated by white spaces or tabs. 
  * @warning If an option is not provided, default values are used for the parameter.
+ *
+ * Here is an example of an option file:
+ * @include parameters.txt
  * 
  * Here we list all the options for Omicron.
  *
  * @section omicron_readoptions_output OUTPUT
  * 
- * @subsection omicron_readoptions_output_directory output directory 
+ * @subsection omicron_readoptions_output_directory Output directory 
  * @verbatim
 OUTPUT  DIRECTORY  [PARAMETER]
 @endverbatim
  * `[PARAMETER]` is the directory path (relative or absolute).
  * The current directory is used by default if this option is not provided or if the specified directory does not exist.
  *
- * @subsection omicron_readoptions_output_products output products
+ * @subsection omicron_readoptions_output_products Output products
  * @verbatim
 OUTPUT  PRODUCTS  [PARAMETERS]
 @endverbatim
@@ -48,20 +50,263 @@ OUTPUT  PRODUCTS  [PARAMETERS]
  * By default, only `triggers` are produced.
  * The ouput file format is specified with the @ref omicron_readoptions_output_format "format option".
  *
- * @subsection omicron_readoptions_output_verbosity verbosity level
+ * @subsection omicron_readoptions_output_format File format
+ * @verbatim
+OUTPUT  FORMAT  [PARAMETERS]
+@endverbatim
+ * `[PARAMETERS]` is the list of file formats to save @ref omicron_readoptions_output_products "output products".
+ * Supported formats: `root` (native), `hdf5` (for triggers only), and all the usual graphical formats (`svg`, `gif`, `pdf`, `png`, `eps` and so on).
+ * By default = `root`.
+ *
+ * @subsection omicron_readoptions_output_verbosity Verbosity level
  * @verbatim
 OUTPUT  VERBOSITY  [PARAMETER]
 @endverbatim
  * `[PARAMETER]` is the verbosity level: 0, 1, 2, or 3.
  * By default = 0.
  *
- * @subsection omicron_readoptions_output_format file format
+ * @subsection omicron_readoptions_output_style Output style
  * @verbatim
-OUTPUT  FORMAT  [PARAMETERS]
+OUTPUT  STYLE  [PARAMETER]
 @endverbatim
- * `[PARAMETERS]` is the list of file formats to save @ref omicron_readoptions_output_products "output products".
- * Supported formats: `root` (native), `hdf5` (for triggers only), and all usual graphical formats (`svg`, `gif`, `pdf`, `png`, `eps`...).
- * By default = `root`.
+ * `[PARAMETER]` defines the css style for the web report (if requested with the @ref omicron_readoptions_output_products "output products" option). It also defines the graphical color palette for the plots. Several styles are supported:
+ * - `GWOLLUM` (default): black background, blue style.
+ * - `FIRE`: black background, color palette from red to yellow
+ * - `STANDARD`: light background, rainbow color palette
+ * - `PINK`: black background, pink style.
+ *
+ * @subsection omicron_readoptions_output_nologo No logo flag
+ * @verbatim
+OUTPUT  NOLOGO  [PARAMETER]
+@endverbatim
+ * If `[PARAMETER]` is set to a non-zero value, the omicron background logo does not appear on the web reports (if requested with the @ref omicron_readoptions_output_products "output products" option). By default, the logo is present (`[PARAMETER] = 0`).
+ *
+ * @subsection omicron_readoptions_output_plotdimensions Plot dimensions
+ * @verbatim
+OUTPUT  PLOTDIMENSIONS  [PARAMETERS]
+@endverbatim
+ * This option sets the graphical plot dimensions (if requested with the @ref omicron_readoptions_output_format "output format" option). Exactly two integer numbers should be provided with `[PARAMETERS]`: the width and the height measured in a number of pixels.
+ *
+ * @section omicron_readoptions_data DATA
+ *
+ * @subsection omicron_readoptions_data_ffl Frame file list
+ * @verbatim
+DATA  FFL  [PARAMETERS]
+@endverbatim
+ * or
+ * @verbatim
+DATA  LCF  [PARAMETERS]
+@endverbatim
+ * This option specifies the list of frame files to be processed by omicron. In the first option, it is provided as a frame file list (FFL). In the second option, it is provided as a LAL cache file (LCF). 
+ * `[PARAMETERS]` must provide the path to the FFL or LCF file (absolute or relative). It can be complemented by 2 optional parameters which are used to load the FFL file multiple times in a row (for online applications):
+ * - Number of retries to load the FFL,
+ * - Time in [s] between two retries.
+ *
+ * By default, no FFL file is used.
+ *
+ * @subsection omicron_readoptions_data_samplefrequency Working sampling frequency
+ * @verbatim
+DATA  SAMPLEFREQUENCY  [PARAMETER]
+@endverbatim
+ * This option specifies the working sampling frequency of omicron in [Hz]. All channel time series are sampled to a common frequency before being processed. Only downsampling is supported. The working sampling frequency must be a power of 2 and must be at least 16 Hz.
+ *
+ * @subsection omicron_readoptions_data_channels List of channels
+ * @verbatim
+DATA  CHANNELS  [PARAMETERS]
+@endverbatim
+ * This option specifies the list of channels to process, e.g. `V1:Hrec_hoft_16384Hz V1:LSC_DARM`. Multiple channel names can be provided using wildcards. This option can also be used on multiple lines. This option is mandatory.
+ *
+ * @subsection omicron_readoptions_data_blacklistedchannels List of black-listed channels
+ * @verbatim
+DATA  BLACKLISTEDCHANNELS  [PARAMETERS]
+@endverbatim
+ * This option specifies the list of channels to exclude from the processing, e.g. `V1:Hrec_hoft_16384Hz V1:LSC_DARM`. Multiple channel names can be provided using wildcards. This option can also be used on multiple lines.
+ *
+ * @subsection omicron_readoptions_data_triggerbuffersize Trigger buffer size
+ * @verbatim
+DATA  TRIGGERBUFFERSIZE  [PARAMETER]
+@endverbatim
+ * This option is used for online applications. Triggers produced by omicron can be buffered. This parameter defines the size of the buffer.
+ * By default, there is no buffer (size=0).
+ *
+ * @section omicron_readoptions_parameter PARAMETER
+ *
+ * @subsection omicron_readoptions_parameter_timing Analysis timing
+ * @verbatim
+PARAMETER  TIMING  [PARAMETERS]
+@endverbatim
+ * This option specifies the timing parameters to perform the analysis. It includes 2 parameters:
+ * - The analysis window size in [s]. It must be a power of 2.
+ * - Overlap duration [s]. Two consecutive analysis windows overlap by this amount.
+ * By default, window size = 64 s and overlap = 4 s.
+ *
+ * @subsection omicron_readoptions_parameter_frequencyrange Frequency range
+ * @verbatim
+PARAMETER  FREQUENCYRANGE  [PARAMETERS]
+@endverbatim
+ * This option specifies the search frequency range with a lower bound and a higher bound, both in [Hz].
+ * The higher bound must be compatible with the @ref omicron_readoptions_data_samplefrequency "sampling frequency" option.
+ * By default, lower frequency = 2 Hz and higher frequency = sampling frequency /2.
+ *
+ * @subsection omicron_readoptions_parameter_qrange Q range
+ * @verbatim
+PARAMETER  QRANGE  [PARAMETERS]
+@endverbatim
+ * This option specifies the search Q range with a lower bound and a higher bound. The lower bound must be at least \f$\sqrt{11}\f$.
+ * By default, lower Q = 4 and higher Q = 100.
+ *
+ * @subsection omicron_readoptions_parameter_mismatchmax Maximum mismatch between tiles
+ * @verbatim
+PARAMETER  MISMATCHMAX  [PARAMETER]
+@endverbatim
+ * This option specifies the maximum energy mismatch between time-frequency tiles. This value should be a number between 0 and 1.
+ * By default, max mismatch = 0.25.
+ *
+ * @subsection omicron_readoptions_parameter_snrthreshold SNR thresholds
+ * @verbatim
+PARAMETER  SNRTHRESHOLD  [PARAMETERS]
+@endverbatim
+ * This option specifies the signal-to-noise ratio. There are 2 SNR threshold:
+ * - The first SNR threshold applies to the individual time-frequency tiles to define a trigger.
+ * - The second SNR threshold determines if spectogram plots must be generated. The plots are produced if at least one tile in the first plot time window is above this threshold. 
+ * 
+ * By default, both thresholds are set to 7.
+ * @note only one `PARAMETER` can be provided. The same vlaue will then be given to both thresholds.
+ *
+ * @subsection omicron_readoptions_parameter_psdlength Power spectrum density length
+ * @verbatim
+PARAMETER  PSDLENGTH  [PARAMETER]
+@endverbatim
+ * This option specifies the duration [s] over which the power spectrum density is estimated.
+ * By default, use the @ref omicron_readoptions_parameter_timing "analysis window duration" minus the overlap.
+ *
+ * @subsection omicron_readoptions_parameter_highpass High-pass filter
+ * @verbatim
+PARAMETER  HIGHPASS  [PARAMETER]
+@endverbatim
+ * This option specifies the frequency cutoff [Hz] at which to high-pass the data before processing.
+ * By default, do not high-pass the data.
+ *
+ * @subsection omicron_readoptions_parameter_clustering Clustering algorithm
+ * @verbatim
+PARAMETER  CLUSTERING  [PARAMETER]
+@endverbatim
+ * This option selects the clustering method. Only one clustering method is currently supported: "TIME".
+ * By default, no clustering.
+ * @note This option is useless for triggers saved in a ROOT format. Clusters are nevered saved in ROOT files.
+ *
+ * @subsection omicron_readoptions_parameter_clusterdt Clustering time window
+ * @verbatim
+PARAMETER  CLUSTERDT  [PARAMETER]
+@endverbatim
+ * This option specifies the time window duration to cluster triggers in [s].
+ * By default, = 0.1 s
+ *
+ * @subsection omicron_readoptions_parameter_windows Time windows for plots
+ * @verbatim
+PARAMETER  WINDOWS  [PARAMETERS]
+@endverbatim
+ * This option specifies the time window durations for plots. There is no limit on the number of parameters.
+ * By default, on single value = @ref omicron_readoptions_parameter_timing "analysis window duration" minus the overlap.
+ *
+ * @subsection omicron_readoptions_parameter_maplogscale Log scale for SNR scales in plots
+ * @verbatim
+PARAMETER  MAPLOGSCALE  [PARAMETER]
+@endverbatim
+ * This option, when different from 0, activates the log scale when plotting the SNR.
+ * By default, the log scale is used.
+ *
+ * @subsection omicron_readoptions_parameter_mapvrange Vertical range for spectrograms
+ * @verbatim
+PARAMETER  MAPVRANGE  [PARAMETERS]
+@endverbatim
+ * This option specifies the vertical range for spectrogram plots.
+ *
+ * @subsection omicron_readoptions_parameter_fftplan FFT plan
+ * @verbatim
+PARAMETER  FFTPLAN  [PARAMETER]
+@endverbatim
+ * This option specifies the plan to perform Fourier transforms with FFTW.
+ * By default = "FFTW_MEASURE".
+ *
+ * @subsection omicron_readoptions_parameter_triggerratemax Maximum trigger rate
+ * @verbatim
+PARAMETER  TRIGGERRATEMAX [PARAMETER]
+@endverbatim
+ * This option specifies maximum trigger rate limit [Hz] when saving triggers to files. If the trigger rate is above this value (over the @ref omicron_readoptions_parameter_timing "analysis window"), the file is not saved.
+ * By default = 5000 Hz.
+ *
+ * @subsection omicron_readoptions_parameter_chirp Newtonian chirp
+ * @verbatim
+PARAMETER  CHIRP [PARAMETERS]
+@endverbatim
+ * With this option, it is possible to draw a Newtonian chirp on top of omicron spectrograms. There can be one or two parameters:
+ * - A chirp mass in solar masses: the chirp is drawn with an end time positioned at the center of the @ref omicron_readoptions_parameter_timing "analysis window".
+ * - A chirp mass in solar masses + a GPS time [s]: the chirp is drawn with an end time positioned at the requested GPS time.
+ *
+ * By default: no chirp.
+ *
+ * @subsection omicron_readoptions_injection INJECTION
+ *
+ * @subsection omicron_readoptions_injection_channels Injection channel list 
+ * @verbatim
+INJECTION  CHANNELS [PARAMETERS]
+@endverbatim
+ * This option specifies the list of channels to be used as injection signals. There should be as many channels as listed in the @ref omicron_readoptions_data_channels "main channel list".
+ *
+ * @subsection omicron_readoptions_injection_factors Injection scaling factors
+ * @verbatim
+INJECTION  FACTORS [PARAMETERS]
+@endverbatim
+ * This option specifies the list of amplitude scaling factors used to inject signals. There should be as many factors as the number of @ref omicron_readoptions_injection_channels "injection channels".
+ *
+ * @subsection omicron_readoptions_injection_ffl Frame file list 
+ * @verbatim
+INJECTION  FFL [PARAMETERS]
+@endverbatim
+ * or
+ * @verbatim
+INJECTION  LCF [PARAMETERS]
+@endverbatim 
+ * If the @ref omicron_readoptions_injection_channels "injection channel(s)" are not included in the @ref omicron_readoptions_data_ffl "main ffl file", this option specifies an additional ffl file. `[PARAMETER]` is the relative or absolute path to the ffl/lcf file. This parameter can be complemented by 2 optional parameters which are used to load the FFL file multiple times in a row (for online applications):
+ * - Number of retries to load the FFL,
+ * - Time in [s] between two retries.
+ *
+ * @subsection omicron_readoptions_injection_filename Injection file
+ * @verbatim
+INJECTION  FILENAME [PARAMETER]
+@endverbatim
+ * Injections can also be performed through an injection file listing the source/waveform parameters. The injection file must be a ROOT file generated with the InjGen class. This option provides the file absolute/relative path to the injection file.
+ *
+ * @subsection omicron_readoptions_injection_sg Sine-Gauss injections
+ * @verbatim
+INJECTION  SG [PARAMETER]
+@endverbatim
+ * Sine-gauss injections can be performed by setting `[PARAMETER]` to a value different from 0. One waveform is injected in every @ref omicron_readoptions_parameter_timing "analysis window".
+ *
+ * @subsection omicron_readoptions_injection_sgtime Sine-Gauss injection time
+ * @verbatim
+INJECTION  SGTIME [PARAMETERS]
+@endverbatim
+* By default, sine-Gaussian waveforms are always injected at the center of the @ref omicron_readoptions_parameter_timing "analysis window". With this option, the time of the injection can be taken as a random value in a given time range. The time range is defined with 2 values: a negative and a positive range from the center (in seconds).
+ *
+ * @subsection omicron_readoptions_injection_sgfrequency Sine-Gauss injection frequency
+ * @verbatim
+INJECTION  SGFREQUENCY [PARAMETERS]
+@endverbatim
+* With this option, the frequency of the injection is taken as a random value in a given frequency range, following a logarithmic distribution. If only one value is provided, the injection frequency is fixed at that value.
+ *
+ * @subsection omicron_readoptions_injection_sgq Sine-Gauss injection Q
+ * @verbatim
+INJECTION  SGQ [PARAMETERS]
+@endverbatim
+* With this option, the quality factor of the injection is taken as a random value in a given range, following a logarithmic distribution. If only one value is provided, the injection Q is fixed at that value.
+ *
+ * @subsection omicron_readoptions_injection_sgamplitude Sine-Gauss amplitude
+ * @verbatim
+INJECTION  SGAMPLITUDE [PARAMETERS]
+@endverbatim
+* With this option, the amplitude of the injection is taken as a random value in a given range, following a logarithmic distribution. If only one value is provided, the injection amplitude is fixed at that value.
  *
  */
 void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
@@ -260,6 +505,7 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
   vector <int> timing;
   if(!io->GetOpt("PARAMETER", "TIMING",   timing)){
     timing.push_back(64); timing.push_back(4);
+    cerr<<"Omicron::ReadOptions: No timing (PARAMETER/TIMING)  --> set default: 64s with 4s overlap"<<endl;
   }
   else if(timing.size()==1) timing.push_back(timing[0]/4);
   else;
@@ -344,7 +590,10 @@ void Omicron::ReadOptions(const int aGpsRef, const bool aStrict){
   
   //***** set spectrum *****
   double psdlength;
-  if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)) psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
+  if(!io->GetOpt("PARAMETER","PSDLENGTH", psdlength)){
+    cerr<<"Omicron::ReadOptions: No PSD length (PARAMETER/PSDLENGTH)  --> set default: "<<tile->GetTimeRange()-tile->GetOverlapDuration()<<endl;
+    psdlength=tile->GetTimeRange()-tile->GetOverlapDuration();
+  }
   spectrum1 = new Spectrum* [nchannels];
   spectrum2 = new Spectrum* [nchannels];
   if(tile->GetFrequencyMin()>1.0){ // resolution = 0.5 Hz above 1 Hz

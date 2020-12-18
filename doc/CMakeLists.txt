@@ -1,7 +1,7 @@
 # -- doxygen -------
 
 find_package(Doxygen)
-find_package(LATEX COMPONENTS PDFLATEX MAKEINDEX DVIPDF BIBTEX)
+#find_package(LATEX COMPONENTS PDFLATEX MAKEINDEX DVIPDF BIBTEX)
 
 if (DOXYGEN_FOUND)
   # set input and output files
@@ -16,6 +16,7 @@ if (DOXYGEN_FOUND)
   file(
     COPY
     ./images
+    ./examples
     ./style
     ./main.dox
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
